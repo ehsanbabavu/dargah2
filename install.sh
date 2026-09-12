@@ -195,7 +195,8 @@ echo -e "${BLUE}[۵/۶] در حال اتصال و راه‌اندازی دیتا
 sleep 5
 for i in {1..8}; do
   if $COMPOSE_CMD exec -T app npm run db:push 2>/dev/null || docker exec -i -e DATABASE_URL="postgresql://postgres:${DB_PASSWORD}@db:5432/rakhsh_db" rakhsh-express-app npm run db:push; then
-    echo -e "${GREEN}جدول‌های دیتابیس با موفقیت ثبت شدند.${CLEAR}"
+    echo -e "${GREEN}جدول‌های دیتابیس با موفقیت ثبت شدند. در حال راه‌اندازی مجدد برنامه...${CLEAR}"
+    $COMPOSE_CMD restart app 2>/dev/null || docker restart rakhsh-express-app
     break
   fi
   sleep 4

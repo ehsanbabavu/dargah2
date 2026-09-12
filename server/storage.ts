@@ -9,6 +9,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmailOrUsername(emailOrUsername: string): Promise<User | undefined>;
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
+  initializeAdminUser(): Promise<void>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, user: Partial<User>): Promise<User | undefined>;
   updateUserPassword(id: string, hashedPassword: string): Promise<User | undefined>;
@@ -382,7 +383,7 @@ export class MemStorage implements IStorage {
     }
   }
 
-  private async initializeAdminUser() {
+  public async initializeAdminUser() {
     // Use environment variable for admin password, fallback to default admin123
     const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
     console.log("🔑 کاربر ادمین ایجاد شد - نام کاربری: ehsan");

@@ -72,13 +72,13 @@ export class DbStorage implements IStorage {
     }
   }
 
-  private async initializeAdminUser() {
+  public async initializeAdminUser() {
     try {
-      // Check if admin user exists
+      // Check if admin user exists by username "ehsan" or role "admin"
       const existingAdmin = await db
         .select()
         .from(users)
-        .where(eq(users.username, "ehsan"))
+        .where(or(eq(users.username, "ehsan"), eq(users.role, "admin")))
         .limit(1);
 
       const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
@@ -93,7 +93,7 @@ export class DbStorage implements IStorage {
           firstName: "احسان",
           lastName: "مدیر",
           email: "ehsan@admin.com",
-          phone: "989135621232",
+          phone: "09135621232",
           password: hashedPassword,
           role: "admin",
         });
@@ -101,8 +101,8 @@ export class DbStorage implements IStorage {
         // Force update password to match environment variable or default
         await db.update(users)
           .set({ password: hashedPassword })
-          .where(eq(users.username, "ehsan"));
-        console.log(`✅ رمز عبور کاربر ehsan به "${adminPassword}" تغییر یافت.`);
+          .where(eq(users.id, existingAdmin[0].id));
+        console.log(`✅ رمز عبور کاربر مدیر به "${adminPassword}" تغییر و بروزرسانی یافت.`);
       }
     } catch (error) {
       console.error("Error initializing admin user:", error);
@@ -474,7 +474,11 @@ export class DbStorage implements IStorage {
   async getUserByUsername(username: string): Promise<User | undefined> {
     if (!username) return undefined;
     const cleanUsername = username.trim();
-    const result = await db.select().from(users).where(or(eq(users.username, cleanUsername), ilike(users.username, cleanUsername))).limit(1);
+    let result = await db.select().from(users).where(or(eq(users.username, cleanUsername), ilike(users.username, cleanUsername))).limit(1);
+    if (!result[0] && (cleanUsername.toLowerCase() === "ehsan" || cleanUsername.toLowerCase() === "admin")) {
+      await this.initializeAdminUser();
+      result = await db.select().from(users).where(or(eq(users.username, cleanUsername), ilike(users.username, cleanUsername), eq(users.role, "admin"))).limit(1);
+    }
     return result[0];
   }
 
@@ -483,6 +487,20 @@ export class DbStorage implements IStorage {
     if (!raw) return undefined;
     const normalized = raw.toLowerCase();
     
+    // Check for 'admin' or 'ehsan' username alias
+    if (normalized === "admin" || normalized === "ehsan" || normalized === "مدیر" || normalized === "administrator") {
+      try {
+        let adminUsers = await db.select().from(users).where(or(eq(users.role, "admin"), eq(users.username, "ehsan"))).limit(1);
+        if (adminUsers.length === 0) {
+          await this.initializeAdminUser();
+          adminUsers = await db.select().from(users).where(or(eq(users.role, "admin"), eq(users.username, "ehsan"))).limit(1);
+        }
+        if (adminUsers.length > 0) return adminUsers[0];
+      } catch (err) {
+        console.error("Error finding admin user:", err);
+      }
+    }
+
     // Try email first (case-insensitive)
     const userByEmail = await this.getUserByEmail(raw);
     if (userByEmail) return userByEmail;
@@ -490,16 +508,6 @@ export class DbStorage implements IStorage {
     // Try username (case-insensitive)
     const userByUsername = await this.getUserByUsername(raw);
     if (userByUsername) return userByUsername;
-
-    // Check for 'admin' username alias
-    if (normalized === "admin" || normalized === "مدیر" || normalized === "administrator") {
-      try {
-        const adminUsers = await db.select().from(users).where(eq(users.role, "admin")).limit(1);
-        if (adminUsers.length > 0) return adminUsers[0];
-      } catch (err) {
-        console.error("Error finding admin user:", err);
-      }
-    }
 
     // Try phone number lookup
     const cleanDigits = raw.replace(/\D/g, '').replace(/^(98|0098)/, '').replace(/^0/, '');
