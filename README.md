@@ -10,10 +10,10 @@
 
 ```bash
 # ۱. کلون کردن مخزن از گیت‌هاب
-git clone https://github.com/ehsanbabavu/Dargah.git
+git clone https://github.com/ehsanbabavu/dargah2.git
 
 # ۲. ورود به پوشه پروژه
-cd Dargah
+cd dargah2
 
 # ۳. اجرای اسکریپت نصب خودکار
 chmod +x install.sh

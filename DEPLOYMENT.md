@@ -6,8 +6,8 @@
 
 ```bash
 # ۱. دریافت کد پروژه از مخزن گیت‌هاب
-git clone https://github.com/ehsanbabavu/Dargah.git
-cd Dargah
+git clone https://github.com/ehsanbabavu/dargah2.git
+cd dargah2
 
 # ۲. اعطای دسترسی و اجرای اسکریپت نصب اتوماتیک
 chmod +x install.sh
