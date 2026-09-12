@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800" viewBox="0 0 1280 800" direction="rtl">
+      <defs>
+        <linearGradient id="neonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#3b82f6" />
+          <stop offset="100%" stop-color="#8b5cf6" />
+        </linearGradient>
+        <linearGradient id="btnGrad" x1="100%" y1="0%" x2="0%" y2="0%">
+          <stop offset="0%" stop-color="#2563eb" />
+          <stop offset="100%" stop-color="#4f46e5" />
+        </linearGradient>
+      </defs>
+      <rect width="1280" height="800" fill="#f8fafc" />
+      <circle cx="640" cy="400" r="300" fill="#eff6ff" opacity="0.8" />
+      <circle cx="350" cy="250" r="180" fill="#f3e8ff" opacity="0.6" />
+      
+      <!-- 404 Large Display -->
+      <g transform="translate(640, 320)" text-anchor="middle">
+        <text font-family="system-ui, -apple-system, sans-serif" font-size="140" font-weight="900" fill="url(#neonGrad)" letter-spacing="4">404</text>
+        <text y="70" font-family="system-ui, sans-serif" font-size="30" font-weight="800" fill="#0f172a">صفحه مورد نظر پیدا نشد!</text>
+        <text y="115" font-family="system-ui, sans-serif" font-size="18" font-weight="500" fill="#64748b">متأسفانه صفحه‌ای که به دنبال آن بودید وجود ندارد یا حذف شده است.</text>
+      </g>
+
+      <!-- Return Button -->
+      <g transform="translate(640, 500)">
+        <rect x="-110" y="0" width="220" height="52" rx="14" fill="url(#btnGrad)" />
+        <text x="0" y="32" font-family="system-ui, sans-serif" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">بازگشت به صفحه اصلی</text>
+      </g>
+    </svg>

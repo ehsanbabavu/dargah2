@@ -56,9 +56,10 @@ import SmsSettingsPage from "@/pages/admin/sms-settings";
 import TelegramBotPage from "@/pages/admin/telegram-bot";
 import AdminGatewayManagementPage from "@/pages/admin/gateway-management";
 import PublicLanding from "@/components/public-landing";
+import BuySubscriptionPage from "@/pages/user/buy-subscription";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Ticket, Send, Clock } from "lucide-react";
+import { Ticket, Send, Clock, Crown } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 interface MaintenanceStatus {
@@ -88,29 +89,34 @@ function MaintenanceCheck({ children, userRole }: { children: React.ReactNode; u
 function ExpiredSubscriptionPage() {
   return (
     <DashboardLayout title="اشتراک منقضی شده">
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Card className="w-full max-w-lg border-amber-200 dark:border-amber-900">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-3 rounded-full bg-amber-100 p-3 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+      <div className="min-h-[60vh] flex items-center justify-center p-3 sm:p-4">
+        <Card className="w-full max-w-lg border-amber-200 dark:border-amber-900 rounded-2xl sm:rounded-3xl shadow-lg">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto mb-3 rounded-2xl bg-amber-100 dark:bg-amber-950/60 p-3 text-amber-700 dark:text-amber-300 w-fit">
               <Clock className="h-8 w-8" />
             </div>
-            <CardTitle>اشتراک شما به پایان رسیده است</CardTitle>
+            <CardTitle className="text-base sm:text-lg font-black">اشتراک شما به پایان رسیده است</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-5 text-center">
-            <p className="text-muted-foreground">
-              برای فعال شدن دوباره امکانات سامانه، لطفاً از طریق تیکت با پشتیبانی تماس بگیرید.
-              بخش تیکت‌ها همچنان برای شما فعال است.
+          <CardContent className="space-y-4 text-center">
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              برای فعال شدن دوباره امکانات سامانه و درگاه، می‌توانید هم‌اکنون اشتراک خود را تمدید نمایید یا از طریق تیکت با پشتیبانی در ارتباط باشید.
             </p>
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-              <Button asChild>
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center pt-2">
+              <Button asChild className="h-10 text-xs font-bold rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white">
+                <Link href="/buy-subscription">
+                  <Crown className="ml-1.5 h-4 w-4" />
+                  خرید و تمدید اشتراک
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="h-10 text-xs font-bold rounded-xl">
                 <Link href="/send-ticket">
-                  <Send className="ml-2 h-4 w-4" />
+                  <Send className="ml-1.5 h-4 w-4" />
                   ارسال تیکت
                 </Link>
               </Button>
-              <Button asChild variant="outline">
+              <Button asChild variant="ghost" className="h-10 text-xs font-bold rounded-xl">
                 <Link href="/my-tickets">
-                  <Ticket className="ml-2 h-4 w-4" />
+                  <Ticket className="ml-1.5 h-4 w-4" />
                   تیکت‌های من
                 </Link>
               </Button>
@@ -128,7 +134,10 @@ function SubscriptionGate({ children }: { children: React.ReactNode }) {
   const canUseTickets = location === "/my-tickets"
     || location === "/send-ticket"
     || location.startsWith("/my-tickets/")
-    || location.startsWith("/send-ticket/");
+    || location.startsWith("/send-ticket/")
+    || location === "/profile"
+    || location === "/buy-subscription"
+    || location === "/subscriptions";
 
   const { data: subscription, isLoading } = useQuery<{
     status: string;
@@ -209,6 +218,14 @@ function AdminRoute({ component: Component }: { component: React.ComponentType }
       <Component />
     </SubscriptionGate>
   );
+}
+
+function SubscriptionsPageSwitcher() {
+  const { user } = useAuth();
+  if (user?.role === "admin") {
+    return <Subscriptions />;
+  }
+  return <BuySubscriptionPage />;
 }
 
 function PluginAwareAdminRoute({ component: Component, pluginName }: { component: React.ComponentType; pluginName: string }) {
@@ -420,7 +437,8 @@ function Router() {
       <Route path="/guest-chats" component={() => <PluginAwareAdminRoute component={GuestChats} pluginName="guest-chats" />} />
       <Route path="/seller-chats" component={() => <PluginAwareAdminRoute component={SellerChats} pluginName="internal-chats" />} />
       <Route path="/plugins" component={() => <AdminRoute component={PluginsManagement} />} />
-      <Route path="/subscriptions" component={() => <AdminRoute component={Subscriptions} />} />
+      <Route path="/subscriptions" component={() => <ProtectedRoute component={SubscriptionsPageSwitcher} />} />
+      <Route path="/buy-subscription" component={() => <ProtectedRoute component={BuySubscriptionPage} />} />
       <Route path="/categories" component={() => <AdminOrLevel1Route component={Categories} />} />
       <Route path="/login-logs" component={() => <AdminRoute component={LoginLogs} />} />
       <Route path="/database-backup" component={() => <AdminRoute component={DatabaseBackup} />} />

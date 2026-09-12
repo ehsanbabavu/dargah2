@@ -2894,11 +2894,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Subscription routes (Admin only)
-  app.get("/api/subscriptions", authenticateToken, requireAdmin, async (req, res) => {
+  // Subscription routes (Admin gets all, users get active subscriptions)
+  app.get("/api/subscriptions", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const subscriptions = await storage.getAllSubscriptions();
-      res.json(subscriptions);
+      if (req.user?.role === "admin") {
+        return res.json(subscriptions);
+      }
+      const activeSubscriptions = subscriptions.filter(s => s.isActive);
+      res.json(activeSubscriptions);
+    } catch (error) {
+      res.status(500).json({ message: "خطا در دریافت اشتراک ها" });
+    }
+  });
+
+  app.get("/api/subscriptions/available", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const subscriptions = await storage.getAllSubscriptions();
+      const activeSubscriptions = subscriptions.filter(s => s.isActive);
+      res.json(activeSubscriptions);
     } catch (error) {
       res.status(500).json({ message: "خطا در دریافت اشتراک ها" });
     }
@@ -3360,14 +3374,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "این اشتراک فعال نیست" });
       }
       
-      // Check if user already has an active subscription
-      const existingSubscription = await storage.getUserSubscription(req.user!.id);
-      if (existingSubscription && existingSubscription.remainingDays > 0) {
-        return res.status(400).json({ message: "شما اشتراک فعال دارید" });
-      }
-      
       // Calculate duration in days
       const durationInDays = subscription.duration === 'monthly' ? 30 : 365;
+
+      // Check if user already has an existing subscription
+      const existingSubscription = await storage.getUserSubscription(req.user!.id);
+      if (existingSubscription) {
+        // Upgrade or extend days
+        const currentDays = existingSubscription.remainingDays > 0 ? existingSubscription.remainingDays : 0;
+        const newRemainingDays = currentDays + durationInDays;
+        const updated = await storage.updateUserSubscription(existingSubscription.id, {
+          subscriptionId: subscriptionId,
+          remainingDays: newRemainingDays,
+          status: "active",
+          endDate: new Date(Date.now() + newRemainingDays * 24 * 60 * 60 * 1000),
+        });
+        return res.json(updated);
+      }
       
       // Create new user subscription
       const userSubscription = await storage.createUserSubscription({

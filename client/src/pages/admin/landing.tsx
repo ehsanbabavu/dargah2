@@ -1106,7 +1106,7 @@ export default function AdminLandingPage() {
     : [
         {
           id: "default",
-          name: "قالب پیش‌فرض سیستم",
+          name: "تم پیش‌فرض ۱ (اصلی سامانه)",
           type: "default" as const,
           entryFile: "index.html",
           folderName: "default",
@@ -1122,7 +1122,7 @@ export default function AdminLandingPage() {
         },
       ];
 
-  // Compile list of all 404 templates (default 1, default 2 + any uploaded ones)
+  // Compile list of all 404 templates (default + any uploaded ones)
   const notFoundTemplatesList = notFoundConfig?.templates && notFoundConfig.templates.length > 0
     ? notFoundConfig.templates
     : [
@@ -1141,22 +1141,6 @@ export default function AdminLandingPage() {
           isDefault: true,
           showHomeButton: true,
           showChatWidget: true,
-        },
-        {
-          id: "default-2",
-          name: "پیش‌فرض ۲ سامانه (انیمیشنی و جذاب)",
-          type: "zip" as const,
-          entryFile: "index.html",
-          folderName: "default-2",
-          entryUrl: "/not-found-templates/default-2/index.html",
-          previewImage: "/not-found-previews/default-2.svg",
-          uploadedAt: null,
-          fileSize: 389437,
-          filesCount: 7,
-          filesList: [],
-          isDefault: true,
-          showHomeButton: false,
-          showChatWidget: false,
         },
       ];
 
@@ -1570,7 +1554,7 @@ export default function AdminLandingPage() {
                           {/* Top Bar with Status Badge */}
                           <div className="relative z-10 p-2 flex items-center justify-between">
                             <Badge variant="secondary" className="bg-black/60 backdrop-blur-xs text-white/90 text-[9px] py-0 px-1.5 h-4 border-0 font-normal">
-                              {tpl.isDefault ? "پیش‌فرض" : tpl.type === "html" ? "HTML" : "ZIP"}
+                              {tpl.id === "default" || tpl.isDefault ? "پیش‌فرض ۱" : tpl.type === "html" ? "HTML" : "ZIP"}
                             </Badge>
 
                             {isActive && (
@@ -2441,7 +2425,7 @@ export default function AdminLandingPage() {
                   {notFoundTemplatesList.map((tpl) => {
                     const isActive =
                       notFoundConfig?.activeTemplateId === tpl.id ||
-                      (!notFoundConfig?.activeTemplateId && tpl.id === "default-2") ||
+                      (!notFoundConfig?.activeTemplateId && tpl.id === "default") ||
                       (notFoundConfig?.mode === "default" && tpl.id === "default");
 
                     const previewSrc = tpl.previewImage || notFoundConfig?.defaultPreviewImage || "/landing-previews/default.png";
@@ -2451,8 +2435,6 @@ export default function AdminLandingPage() {
                     const badgeLabel =
                       tpl.id === "default"
                         ? "پیش‌فرض ۱"
-                        : tpl.id === "default-2"
-                        ? "پیش‌فرض ۲"
                         : tpl.isDefault
                         ? "پیش‌فرض"
                         : tpl.type === "html"
@@ -2472,9 +2454,7 @@ export default function AdminLandingPage() {
                         <div className="relative h-32 sm:h-36 w-full overflow-hidden border-b border-border/60 bg-muted/40 flex flex-col justify-between group">
                           <img
                             src={
-                              tpl.id === "default-2"
-                                ? "/not-found-previews/default-2.svg"
-                                : tpl.id === "default"
+                              tpl.id === "default"
                                 ? "/not-found-previews/default.svg"
                                 : previewSrc
                             }
@@ -2561,8 +2541,6 @@ export default function AdminLandingPage() {
                             <p className="text-[10px] text-muted-foreground line-clamp-1 leading-snug">
                               {tpl.id === "default"
                                 ? "صفحه 404 استاندارد سامانه با طراحی مدرن و واکنش‌گرا"
-                                : tpl.id === "default-2"
-                                ? "قالب انیمیشنی و جذاب کاراکتر فانتزی ۴۰۴"
                                 : tpl.isDefault
                                 ? "قالب پیش‌فرض سیستم"
                                 : tpl.uploadedAt
@@ -2657,7 +2635,7 @@ export default function AdminLandingPage() {
                               </a>
                             </Button>
 
-                            {!tpl.isDefault && tpl.id !== "default" && tpl.id !== "default-2" && (
+                            {!tpl.isDefault && tpl.id !== "default" && (
                               <Button
                                 variant="ghost"
                                 size="sm"

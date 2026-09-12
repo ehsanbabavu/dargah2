@@ -228,7 +228,7 @@ export class LandingService {
   private loadConfig(): LandingConfig {
     const defaultTemplate: TemplateItem = {
       id: "default",
-      name: "پیش‌فرض سامانه",
+      name: "تم پیش‌فرض ۱ (اصلی سامانه)",
       type: "default",
       entryFile: "home",
       folderName: "default",

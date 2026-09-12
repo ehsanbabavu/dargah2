@@ -341,43 +341,15 @@ export class NotFoundService {
       customMessage: "متأسفانه صفحه‌ای که به دنبال آن بودید یافت نشد یا به آدرس دیگری منتقل شده است.",
     };
 
-    const defaultTemplate2: NotFoundTemplateItem = {
-      id: "default-2",
-      name: "پیش‌فرض ۲ سامانه (انیمیشنی و جذاب)",
-      type: "zip",
-      entryFile: "index.html",
-      folderName: "default-2",
-      entryUrl: "/not-found-templates/default-2/index.html",
-      previewImage: "/not-found-previews/default-2.svg",
-      uploadedAt: null,
-      fileSize: 389437,
-      filesCount: 7,
-      filesList: [
-        "index.html",
-        "css/bootstrap-rtl.css",
-        "css/style.css",
-        "js/scripts.js",
-        "pics/download.svg",
-        "responsive-404-character-1(Webrubik.com).gif",
-        "preview.gif"
-      ],
-      isDefault: true,
-      showHomeButton: false,
-      showSearchBox: false,
-      showChatWidget: false,
-      customTitle: "صفحه مورد نظر پیدا نشد",
-      customMessage: "متأسفانه صفحه‌ای که به دنبال آن بودید یافت نشد یا به آدرس دیگری منتقل شده است.",
-    };
-
-    return [defaultTemplate1, defaultTemplate2];
+    return [defaultTemplate1];
   }
 
   private loadConfig(): NotFoundConfig {
     const defaultTemplates = this.getDefaultTemplates();
 
     const initialConfig: NotFoundConfig = {
-      activeTemplateId: "default-2",
-      mode: "custom",
+      activeTemplateId: "default",
+      mode: "default",
       templates: defaultTemplates,
       showHomeButton: true,
       homeButtonText: "بازگشت به صفحه اصلی",
@@ -397,7 +369,7 @@ export class NotFoundService {
 
         let currentTemplates: NotFoundTemplateItem[] = Array.isArray(parsed.templates) ? parsed.templates : [];
 
-        // Ensure default-1 is present
+        // Ensure default is present
         const hasDefault1 = currentTemplates.some((t) => t.id === "default");
         if (!hasDefault1) {
           currentTemplates.unshift(defaultTemplates[0]);
@@ -414,32 +386,14 @@ export class NotFoundService {
           );
         }
 
-        // Ensure default-2 is present
-        const hasDefault2 = currentTemplates.some((t) => t.id === "default-2");
-        if (!hasDefault2) {
-          currentTemplates.splice(1, 0, defaultTemplates[1]);
-        } else {
-          currentTemplates = currentTemplates.map((t) =>
-            t.id === "default-2"
-              ? {
-                  ...defaultTemplates[1],
-                  ...t,
-                  name: t.name || defaultTemplates[1].name,
-                  isDefault: true,
-                  folderName: "default-2",
-                  entryUrl: "/not-found-templates/default-2/index.html",
-                  previewImage: "/not-found-previews/default-2.svg",
-                }
-              : t
-          );
-        }
+        // Remove default-2 if present (user deleted it)
+        currentTemplates = currentTemplates.filter(
+          (t) => t.id !== "notfound_zip_1787773510963" && t.id !== "default-2"
+        );
 
-        // Remove temporary uploaded template if it was the initial install of default-2
-        currentTemplates = currentTemplates.filter((t) => t.id !== "notfound_zip_1787773510963");
-
-        let activeId = parsed.activeTemplateId || "default-2";
-        if (activeId === "notfound_zip_1787773510963") {
-          activeId = "default-2";
+        let activeId = parsed.activeTemplateId || "default";
+        if (activeId === "notfound_zip_1787773510963" || activeId === "default-2") {
+          activeId = "default";
         }
 
         const activeTpl = currentTemplates.find((t) => t.id === activeId) || currentTemplates[0];
@@ -711,7 +665,7 @@ export class NotFoundService {
     if (!tpl) {
       throw new Error("قالب مورد نظر یافت نشد");
     }
-    if (tpl.isDefault || tpl.id === "default" || tpl.id === "default-2") {
+    if (tpl.isDefault || tpl.id === "default") {
       throw new Error("امکان حذف قالب‌های پیش‌فرض سیستم وجود ندارد");
     }
 
@@ -732,7 +686,7 @@ export class NotFoundService {
     this.config.templates = this.config.templates.filter((t) => t.id !== id);
 
     if (this.config.activeTemplateId === id) {
-      const defaultTpl = this.config.templates.find((t) => t.id === "default-2") || this.config.templates.find((t) => t.isDefault) || this.config.templates[0];
+      const defaultTpl = this.config.templates.find((t) => t.isDefault) || this.config.templates[0];
       this.config.activeTemplateId = defaultTpl ? defaultTpl.id : "default";
       this.config.mode = this.config.activeTemplateId === "default" ? "default" : "custom";
     }
@@ -776,7 +730,7 @@ export class NotFoundService {
     if (mode === "default") {
       this.config.activeTemplateId = "default";
     } else {
-      const customTpl = this.config.templates.find((t) => t.id === "default-2") || this.config.templates.find((t) => t.id !== "default");
+      const customTpl = this.config.templates.find((t) => t.id !== "default");
       if (customTpl) {
         this.config.activeTemplateId = customTpl.id;
       }
@@ -798,8 +752,8 @@ export class NotFoundService {
     const defaultTemplates = this.getDefaultTemplates();
 
     this.config = {
-      activeTemplateId: "default-2",
-      mode: "custom",
+      activeTemplateId: "default",
+      mode: "default",
       templates: defaultTemplates,
       showHomeButton: true,
       homeButtonText: "بازگشت به صفحه اصلی",

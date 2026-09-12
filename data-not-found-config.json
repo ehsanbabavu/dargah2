@@ -1,6 +1,6 @@
 {
-  "activeTemplateId": "default-2",
-  "mode": "custom",
+  "activeTemplateId": "default",
+  "mode": "default",
   "templates": [
     {
       "id": "default",
@@ -18,32 +18,6 @@
       "showHomeButton": true,
       "showSearchBox": true,
       "showChatWidget": true,
-      "customTitle": "صفحه مورد نظر پیدا نشد",
-      "customMessage": "متأسفانه صفحه‌ای که به دنبال آن بودید یافت نشد یا به آدرس دیگری منتقل شده است."
-    },
-    {
-      "id": "default-2",
-      "name": "پیش‌فرض ۲ سامانه (انیمیشنی و جذاب)",
-      "type": "zip",
-      "entryFile": "index.html",
-      "folderName": "default-2",
-      "entryUrl": "/not-found-templates/default-2/index.html",
-      "previewImage": "/not-found-previews/default-2.svg",
-      "uploadedAt": null,
-      "fileSize": 389437,
-      "filesCount": 7,
-      "filesList": [
-        "index.html",
-        "css/bootstrap-rtl.css",
-        "css/style.css",
-        "js/scripts.js",
-        "pics/download.svg",
-        "responsive-404-character-1(Webrubik.com).gif"
-      ],
-      "isDefault": true,
-      "showHomeButton": false,
-      "showSearchBox": false,
-      "showChatWidget": false,
       "customTitle": "صفحه مورد نظر پیدا نشد",
       "customMessage": "متأسفانه صفحه‌ای که به دنبال آن بودید یافت نشد یا به آدرس دیگری منتقل شده است."
     }

@@ -405,7 +405,7 @@ export default function UserDashboard() {
   // Admin/Level1 dashboard view
   return (
     <DashboardLayout title="پیشخوان">
-      <div className="space-y-5 max-w-md mx-auto" data-testid="dashboard-content" dir="rtl">
+      <div className="space-y-6 max-w-6xl mx-auto pb-16" data-testid="dashboard-content" dir="rtl">
 
         {/* Level 1 Specific: Blupal Gateway Status, Statistics & 10 Latest Transactions */}
         {user?.role === "user_level_1" && (() => {

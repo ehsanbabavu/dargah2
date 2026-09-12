@@ -102,19 +102,10 @@ export default function Home() {
                 <p className="text-[13px] sm:text-[15px] lg:text-[16px] leading-[24px] sm:leading-[27px] lg:leading-[28px] text-[#c5c5d7] max-w-xl leading-relaxed">
                   رخش پی بستری جامع برای فروشندگان فراهم کرده تا بدون نیاز به دانش فنی، درگاه پرداخت اختصاصی کارت به کارت با لینک اختصاصی، افزونه ووکامرس، فروشگاه اینترنتی مستقل و ابزار مدیریت سفارش‌ها را در یک پنل هوشمند دریافت کنند.
                 </p>
-
-                <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
-                  <Link
-                    href="/login"
-                    className="inline-flex items-center justify-center w-full sm:w-auto px-6 sm:px-8 h-11 sm:h-12 rounded-xl bg-[#2848d3] text-white font-semibold text-[14px] sm:text-[15px] hover:bg-[#1932B8] hover:shadow-[0_8px_20px_rgba(40,72,211,0.35)] active:scale-98 transition-all duration-200 text-center"
-                  >
-                    ورود به پنل فروشندگان
-                  </Link>
-                </div>
               </div>
 
-              {/* Hero Graphic Card Mockup */}
-              <div className="lg:col-span-5 flex justify-center items-center relative w-full">
+              {/* Hero Graphic Card Mockup & Action */}
+              <div className="lg:col-span-5 flex flex-col justify-center items-center relative w-full gap-4 sm:gap-5">
                 <div className="relative w-full max-w-[300px] sm:max-w-[340px] aspect-[1.586/1] rounded-2xl bg-gradient-to-br from-white/15 via-white/10 to-white/5 p-4 sm:p-5 border border-white/15 backdrop-blur-xl shadow-xl flex flex-col justify-between overflow-hidden">
                   <div className="absolute -right-6 -top-6 w-32 h-32 bg-[#2848d3]/30 rounded-full blur-2xl pointer-events-none"></div>
                   
@@ -148,6 +139,16 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Call to action button placed directly under the card */}
+                <div className="w-full max-w-[300px] sm:max-w-[340px] z-10">
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center justify-center w-full px-6 sm:px-8 h-11 sm:h-12 rounded-xl bg-[#2848d3] text-white font-semibold text-[14px] sm:text-[15px] hover:bg-[#1932B8] hover:shadow-[0_8px_20px_rgba(40,72,211,0.35)] active:scale-98 transition-all duration-200 text-center shadow-lg"
+                  >
+                    ورود به پنل فروشندگان
+                  </Link>
                 </div>
               </div>
             </div>
@@ -542,15 +543,38 @@ export default function Home() {
                 سامانه یکپارچه درگاه پرداخت کارت به کارت هوشمند، فروشگاه اختصاصی و خدمات فروش برای فروشندگان و پذیرندگان.
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-14 h-18 sm:w-16 sm:h-20 rounded-xl bg-[#F3F4F6] dark:bg-slate-800 border border-[#E5E7EB] dark:border-slate-700 flex flex-col items-center justify-center p-2 text-center shadow-inner">
-                <span className="material-symbols-outlined text-[#002db6] dark:text-[#bac3ff] text-xl sm:text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
-                <span className="text-[9px] font-bold mt-1 text-[#111827] dark:text-white">رخش پی</span>
-              </div>
-              <div className="w-14 h-18 sm:w-16 sm:h-20 rounded-xl bg-[#F3F4F6] dark:bg-slate-800 border border-[#E5E7EB] dark:border-slate-700 flex flex-col items-center justify-center p-2 text-center shadow-inner">
-                <span className="material-symbols-outlined text-[#ffba38] text-xl sm:text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>security</span>
-                <span className="text-[9px] font-bold mt-1 text-[#111827] dark:text-white">امنیت ۲۵۶</span>
-              </div>
+            <div className="flex items-center justify-center sm:justify-start gap-3 w-full sm:w-auto">
+              <a
+                href="https://blubank.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="بلوبانک"
+                className="transition-transform hover:scale-105 active:scale-95 shrink-0"
+              >
+                <img
+                  src="/images/blubank.webp"
+                  alt="بلوبانک"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = "/images/blubank.png";
+                  }}
+                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl shadow-md object-cover"
+                />
+              </a>
+              <a
+                href="https://www.blupal.net/"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="blupal"
+                className="transition-transform hover:scale-105 active:scale-95 shrink-0 flex items-center justify-center"
+              >
+                <img
+                  src="/images/blupal.svg"
+                  alt="blupal"
+                  referrerPolicy="no-referrer"
+                  className="h-10 sm:h-12 w-auto object-contain"
+                />
+              </a>
             </div>
           </div>
 

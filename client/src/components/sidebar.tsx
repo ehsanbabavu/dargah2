@@ -202,11 +202,10 @@ export function AppSidebar() {
   const userMenuItems = [
     { path: "/", label: "پیشخوان", icon: Home },
     ...(user?.role === "user_level_1" ? [{ path: "/level1/settings", label: "تنظیمات درگاه", icon: Settings }] : []),
+    ...(user?.role === "user_level_1" && isSubscriptionPluginEnabled ? [{ path: "/buy-subscription", label: "خرید اشتراک", icon: Crown }] : []),
   ];
 
   const level1MenuItems = [
-    { path: "/products", label: "محصولات", icon: List },
-    { path: "/add-product", label: "افزودن محصول", icon: Plus },
     { 
       path: "/announcements", 
       label: "اطلاعیه‌ها", 
