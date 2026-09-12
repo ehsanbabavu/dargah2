@@ -1,11 +1,32 @@
-<div align="center">
+# سامانه رخشان (Dargah)
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+سامانه مدیریت فاکتور، درگاه پرداخت و خدمات کاربردی نسخه **Full-Stack (Node.js Express + React SPA + PostgreSQL)**.
 
-  <h1>Built with AI Studio</h2>
+---
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## 🚀 راهنمای نصب سریع از مخزن گیت‌هاب (Quick Setup from GitHub)
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+برای راه‌اندازی و نصب اتوماتیک روی سرور مجازی (VPS):
 
-</div>
+```bash
+# ۱. کلون کردن مخزن از گیت‌هاب
+git clone https://github.com/ehsanbabavu/Dargah.git
+
+# ۲. ورود به پوشه پروژه
+cd Dargah
+
+# ۳. اجرای اسکریپت نصب خودکار
+chmod +x install.sh
+sudo ./install.sh
+```
+
+---
+
+### 📋 مراحل نصب خودکار شامل:
+1. ایجاد حافظه Swap (در صورت نیاز سرور)
+2. نصب و کانفیگ Docker و Docker Compose
+3. ساخت ایمیج‌های بهینه و اجرای کانتینرها
+4. اتصال و ساخت جدول‌های دیتابیس PostgreSQL
+5. تنظیم Nginx و دریافت SSL رایگان HTTPS برای دامنه شما
+
+برای جزئیات بیشتر فایل [DEPLOYMENT.md](DEPLOYMENT.md) را مطالعه کنید.

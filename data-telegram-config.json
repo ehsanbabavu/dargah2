@@ -1,0 +1,110 @@
+{
+  "botToken": "",
+  "isEnabled": false,
+  "adminChatId": "",
+  "apiBaseUrl": "https://api.telegram.org",
+  "isWebhookSet": false,
+  "botCommands": [
+    {
+      "id": "cmd-start",
+      "command": "/start",
+      "description": "شروع ربات و پیام خوش‌آمدهای خوش‌آمدگویی",
+      "response": "سلام! 👋\nبه ربات رسمی سامانه و فروشگاه رخش خوش آمدید.\nاز منوی زیر می‌توانید به بخش‌های مختلف دسترسی پیدا کنید:",
+      "isEnabled": false,
+      "isSystem": true
+    },
+    {
+      "id": "cmd-help",
+      "command": "/help",
+      "description": "راهنمای دستورات ربات",
+      "response": "راهنمای استفاده از ربات:\n\n🛒 /products - مشاهده جدیدترین محصولات\n📦 /track - پیگیری وضعیت سفارش\nℹ️ /about - درباره ما\n📞 /contact - تماس با پشتیبانی",
+      "isEnabled": false,
+      "isSystem": true
+    },
+    {
+      "id": "cmd-about",
+      "command": "/about",
+      "description": "درباره ما و معرفی سامانه",
+      "response": "سامانه هوشمند رخش\nارائه دهنده پیشرفته‌ترین خدمات فروشگاهی، محتوایی و پشتیبانی مشتریان.",
+      "isEnabled": false,
+      "isSystem": true
+    },
+    {
+      "id": "cmd-contact",
+      "command": "/contact",
+      "description": "راه‌های ارتباطی و پشتیبانی",
+      "response": "📞 راه‌های ارتباطی با پشتیبانی:\n\nتلفن: ۰۲۱-۸۸۸۸۸۸۸۸\nایمیل: support@rakhsh.ir\nساعت پاسخگویی: همه روزه از ۹ الی ۲۱",
+      "isEnabled": false,
+      "isSystem": true
+    },
+    {
+      "id": "cmd-products",
+      "command": "/products",
+      "description": "کاتالوگ محصولات فروشگاه",
+      "response": "🛒 مشاهده کاتالوگ محصولات با دریافت قیمت آنلاین از سایت",
+      "isEnabled": false,
+      "isSystem": true
+    },
+    {
+      "id": "cmd-track",
+      "command": "/track",
+      "description": "پیگیری وضعیت سفارش خرید",
+      "response": "📦 جهت پیگیری سفارش خود، شماره سفارش را ارسال کنید.",
+      "isEnabled": false,
+      "isSystem": true
+    }
+  ],
+  "notifications": {
+    "successBloPalTxLevel1": true,
+    "answeredTicketLevel1": true,
+    "subscriptionExpiry3DaysLevel1": true,
+    "newAnnouncementsLevel1": true
+  },
+  "botResponses": {
+    "welcomeMessage": "سلام! 👋\nبه ربات رسمی سامانه و فروشگاه رخش خوش آمدید.\nاز منوی زیر می‌توانید به بخش‌های مختلف دسترسی پیدا کنید:",
+    "helpMessage": "راهنمای استفاده از ربات:\n\n🛒 /products - مشاهده جدیدترین محصولات\n📦 /track - پیگیری وضعیت سفارش\nℹ️ /about - درباره ما\n📞 /contact - تماس با پشتیبانی",
+    "aboutMessage": "سامانه هوشمند رخش\nارائه دهنده پیشرفته‌ترین خدمات فروشگاهی، محتوایی و پشتیبانی مشتریان.",
+    "contactMessage": "📞 راه‌های ارتباطی با پشتیبانی:\n\nتلفن: ۰۲۱-۸۸۸۸۸۸۸۸\nایمیل: support@rakhsh.ir\nساعت پاسخگویی: همه روزه از ۹ الی ۲۱",
+    "enableCatalog": true,
+    "enableOrderTracking": true
+  },
+  "menuButtons": [
+    {
+      "id": "btn-1",
+      "text": "🛒 مشاهده محصولات",
+      "type": "command",
+      "value": "/products"
+    },
+    {
+      "id": "btn-2",
+      "text": "🌐 ورود به وب‌سایت",
+      "type": "url",
+      "value": "https://rakhsh.ir"
+    },
+    {
+      "id": "btn-3",
+      "text": "📞 تماس با پشتیبانی",
+      "type": "command",
+      "value": "/contact"
+    },
+    {
+      "id": "btn-4",
+      "text": "ℹ️ درباره ما",
+      "type": "command",
+      "value": "/about"
+    }
+  ],
+  "stats": {
+    "totalMessagesSent": 0,
+    "totalUpdatesReceived": 1,
+    "lastActiveAt": "2026-09-07T18:14:14.329Z"
+  },
+  "logs": [
+    {
+      "id": "0damz62",
+      "timestamp": "2026-09-07T18:14:14.329Z",
+      "type": "webhook",
+      "message": "پیام دریافتی از کاربر عزیز (99999): \"test\""
+    }
+  ]
+}

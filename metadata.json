@@ -1,0 +1,6 @@
+{
+  "name": "رخش پی",
+  "description": "سامانه یکپارچه درگاه پرداخت کارت به کارت، فروشگاه اختصاصی و خدمات پرداخت الکترونیک ویژه پذیرندگان و فروشندگان",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

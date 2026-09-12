@@ -1,0 +1,55 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: rakhsh-postgres-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: your_secure_db_password_here
+      POSTGRES_DB: rakhsh_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rakhsh_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rakhsh-express-app
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://postgres:your_secure_db_password_here@db:5432/rakhsh_db
+      - SESSION_SECRET=your_very_secure_session_secret_change_me
+      - JWT_SECRET=your_very_secure_jwt_secret_change_me
+      - ADMIN_PASSWORD=admin123
+      - SMS_API_TOKEN=your_sms_token_here
+      - TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
+    volumes:
+      - app_uploads:/app/uploads
+      - app_stamppic:/app/stamppic
+      - app_invoices:/app/public/invoices
+    links:
+      - db
+
+volumes:
+  postgres_data:
+    driver: local
+  app_uploads:
+    driver: local
+  app_stamppic:
+    driver: local
+  app_invoices:
+    driver: local

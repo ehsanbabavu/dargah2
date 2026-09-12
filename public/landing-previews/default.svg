@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800" viewBox="0 0 1280 800" direction="rtl">
+  <defs>
+    <linearGradient id="textGrad" x1="100%" y1="0%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#9333ea" />
+      <stop offset="50%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    <linearGradient id="btnGrad" x1="100%" y1="0%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#16a34a" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <linearGradient id="glowGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#67e8f9" stop-opacity="0.2" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="10" stdDeviation="15" flood-color="#000" flood-opacity="0.08" />
+    </filter>
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="20" stdDeviation="25" flood-color="#7c3aed" flood-opacity="0.15" />
+    </filter>
+  </defs>
+  
+  <!-- Crisp White Background -->
+  <rect width="1280" height="800" fill="#ffffff" />
+  
+  <!-- Subtle ambient background blur orbs -->
+  <circle cx="1100" cy="150" r="180" fill="#f3e8ff" opacity="0.6" filter="blur(40px)" />
+  <circle cx="250" cy="400" r="220" fill="#e0f2fe" opacity="0.6" filter="blur(50px)" />
+  <circle cx="450" cy="200" r="150" fill="#fdf4ff" opacity="0.7" filter="blur(30px)" />
+
+  <!-- Top Navbar -->
+  <rect x="0" y="0" width="1280" height="84" fill="#ffffff" fill-opacity="0.95" />
+  <line x1="0" y1="84" x2="1280" y2="84" stroke="#f1f5f9" stroke-width="1.5" />
+  
+  <g transform="translate(1080, 22)">
+    <!-- Logo -->
+    <circle cx="22" cy="20" r="20" fill="#8b5cf6" />
+    <text x="-15" y="27" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="900" fill="#1e293b" text-anchor="end">Rakhsh</text>
+  </g>
+  
+  <!-- Nav Links -->
+  <g transform="translate(750, 48)" font-family="system-ui, sans-serif" font-size="15" font-weight="600" fill="#475569" text-anchor="middle">
+    <text x="180">اشتراک‌ها</text>
+    <text x="80">آخرین اخبار</text>
+    <text x="-20">سوالات متداول</text>
+    <text x="-130">ارتباط با ما</text>
+  </g>
+  
+  <!-- Top Action Button -->
+  <g transform="translate(80, 22)">
+    <rect width="140" height="42" rx="10" fill="url(#btnGrad)" filter="url(#shadow)" />
+    <text x="70" y="26" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">ورود و ثبت‌نام</text>
+  </g>
+
+  <!-- Main Hero Section (2 Columns) -->
+  <!-- Right Column: Hero Typography -->
+  <g transform="translate(1200, 240)" text-anchor="end">
+    <text x="0" y="0" font-family="system-ui, sans-serif" font-size="52" font-weight="900" fill="#0f172a">دستیار هوشمند</text>
+    <text x="0" y="70" font-family="system-ui, sans-serif" font-size="56" font-weight="900" fill="url(#textGrad)">۲۴ ساعته</text>
+    
+    <text x="0" y="140" font-family="system-ui, sans-serif" font-size="19" font-weight="500" fill="#64748b">
+      با این ربات به راحتی یک کارمند ۲۴ ساعته استخدام کنید و به راحتی
+    </text>
+    <text x="0" y="175" font-family="system-ui, sans-serif" font-size="19" font-weight="500" fill="#64748b">
+      کارهای روزمره و فروش محصولات خود را مدیریت کنید.
+    </text>
+
+    <!-- CTA Buttons -->
+    <g transform="translate(0, 230)">
+      <rect x="-170" y="0" width="170" height="52" rx="12" fill="url(#btnGrad)" filter="url(#shadow)" />
+      <text x="-85" y="32" font-family="system-ui, sans-serif" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">شروع رایگان</text>
+
+      <rect x="-330" y="0" width="140" height="52" rx="12" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" />
+      <text x="-260" y="32" font-family="system-ui, sans-serif" font-size="15" font-weight="600" fill="#334155" text-anchor="middle">مشاهده دمو</text>
+    </g>
+  </g>
+
+  <!-- Left Column: Robot Mascot Card -->
+  <g transform="translate(120, 150)">
+    <!-- Ambient Glow -->
+    <rect x="40" y="40" width="380" height="420" rx="36" fill="url(#glowGrad1)" filter="blur(25px)" />
+    
+    <!-- White Glass Card -->
+    <rect x="60" y="50" width="340" height="390" rx="28" fill="#ffffff" stroke="#f1f5f9" stroke-width="2" filter="url(#cardShadow)" />
+    
+    <!-- Robot Graphic Mockup -->
+    <circle cx="230" cy="210" r="85" fill="#f8fafc" stroke="#e2e8f0" stroke-width="3" />
+    <rect x="170" y="165" width="120" height="85" rx="24" fill="#0f172a" />
+    <circle cx="195" cy="205" r="10" fill="#38bdf8" />
+    <circle cx="265" cy="205" r="10" fill="#38bdf8" />
+    <path d="M210,225 Q230,238 250,225" stroke="#38bdf8" stroke-width="3" fill="none" stroke-linecap="round" />
+    <circle cx="230" cy="140" r="7" fill="#a855f7" />
+    <line x1="230" y1="147" x2="230" y2="165" stroke="#a855f7" stroke-width="3" />
+
+    <!-- Floating Badge 1: Verification -->
+    <g transform="translate(320, 130)" filter="url(#shadow)">
+      <rect width="130" height="48" rx="14" fill="#ffffff" stroke="#f1f5f9" stroke-width="1" />
+      <circle cx="24" cy="24" r="14" fill="#dcfce7" />
+      <text x="24" y="29" font-family="system-ui, sans-serif" font-size="14" font-weight="900" fill="#16a34a" text-anchor="middle">✓</text>
+      <text x="75" y="29" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#1e293b" text-anchor="middle">پاسخ خودکار</text>
+    </g>
+
+    <!-- Floating Badge 2: 24/7 Counter -->
+    <g transform="translate(10, 310)" filter="url(#shadow)">
+      <rect width="120" height="54" rx="16" fill="#ffffff" stroke="#f1f5f9" stroke-width="1" />
+      <text x="60" y="26" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#64748b" text-anchor="middle">پشتیبانی فعال</text>
+      <text x="60" y="44" font-family="system-ui, sans-serif" font-size="15" font-weight="900" fill="#2563eb" text-anchor="middle">۲۴ / ۷ آنلاین</text>
+    </g>
+  </g>
+
+  <!-- Bottom Feature Dots/Divider -->
+  <g transform="translate(640, 720)" fill="#e2e8f0">
+    <circle cx="-30" cy="0" r="4" />
+    <circle cx="0" cy="0" r="5" fill="#8b5cf6" />
+    <circle cx="30" cy="0" r="4" />
+  </g>
+</svg>

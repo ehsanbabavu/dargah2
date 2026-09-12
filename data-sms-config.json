@@ -1,0 +1,7 @@
+{
+  "token": "test-bearer-token-123",
+  "templateId": 1,
+  "apiUrl": "https://s.api.ir/api/sw1/SmsOTP",
+  "isEnabled": true,
+  "updatedAt": "2026-09-07T10:31:03.848Z"
+}

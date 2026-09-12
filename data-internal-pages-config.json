@@ -1,0 +1,100 @@
+{
+  "activeTemplateId": "internal-posts-editorial",
+  "mode": "default",
+  "templates": [
+    {
+      "id": "internal-posts-editorial",
+      "name": "قالب اختصاصی مقالات و تحریریه (/admin/posts)",
+      "type": "default",
+      "entryFile": "posts.html",
+      "folderName": "internal-posts-editorial",
+      "entryUrl": "/admin/posts",
+      "previewImage": "/landing-previews/posts-template-preview.svg",
+      "uploadedAt": "2026-08-28T05:06:54.498Z",
+      "fileSize": 49152,
+      "filesCount": 6,
+      "filesList": [
+        "posts.html",
+        "post-view.html",
+        "categories.html",
+        "comments.html",
+        "tags.html",
+        "editorial-styles.css"
+      ],
+      "isDefault": true,
+      "targetPath": "/admin/posts",
+      "category": "posts",
+      "showQuickNav": true,
+      "showChatWidget": true,
+      "customTitle": "سیستم مدیریت و نمایش مقالات، وبلاگ و تحریریه",
+      "description": "قالب طراحی اختصاصی ویژه صفحات /admin/posts با پشتیبانی از گرید مجلات خبری، مدیریت دسته‌بندی‌ها، برچسب‌ها، دیدگاه‌ها، نویسندگان و مشاهده آنلاین مقالات.",
+      "features": [
+        "طراحی مجله‌ای و شبکه‌ای مدرن مقالات",
+        "پنل اختصاصی مدیریت دسته‌ها و برچسب‌ها",
+        "سیستم دیدگاه‌ها و لایک متقابل",
+        "پشتیبانی از حالت شب و روز خودکار",
+        "سئوی پیشرفته و بهینه‌سازی سرعت بارگذاری"
+      ]
+    },
+    {
+      "id": "internal-store-catalog",
+      "name": "قالب ویترین و فروشگاه محصولات",
+      "type": "default",
+      "entryFile": "catalog.html",
+      "folderName": "internal-store-catalog",
+      "entryUrl": "/vitrin",
+      "previewImage": "/landing-previews/posts-template-preview.svg",
+      "uploadedAt": null,
+      "fileSize": 32768,
+      "filesCount": 4,
+      "filesList": [
+        "catalog.html",
+        "product.html",
+        "cart.html",
+        "checkout.html"
+      ],
+      "isDefault": false,
+      "targetPath": "/vitrin",
+      "category": "store",
+      "showQuickNav": true,
+      "showChatWidget": true,
+      "customTitle": "قالب ویترین محصولات و فروشگاه اینترنتی",
+      "description": "لایه‌بندی شیک برای گرید محصولات، فیلترها و جزئیات خرید با سبد خرید یکپارچه.",
+      "features": [
+        "گرید مدرن کارت محصول",
+        "فیلتر پیشرفته بر اساس قیمت و دسته",
+        "سبد خرید یکپارچه"
+      ]
+    },
+    {
+      "id": "internal-general-page",
+      "name": "قالب عمومی صفحات محتوایی و تماس",
+      "type": "default",
+      "entryFile": "page.html",
+      "folderName": "internal-general-page",
+      "entryUrl": "/faqs",
+      "previewImage": "/landing-previews/default.svg",
+      "uploadedAt": null,
+      "fileSize": 18432,
+      "filesCount": 2,
+      "filesList": [
+        "page.html",
+        "faq.html"
+      ],
+      "isDefault": false,
+      "targetPath": "/faqs",
+      "category": "general",
+      "showQuickNav": true,
+      "showChatWidget": true,
+      "customTitle": "قالب استاندارد صفحات متنی و سوالات متداول",
+      "description": "قالب ساده و شیک مناسب برای صفحات درباره ما، تماس، قوانین و شرایط و پرسش‌های متداول.",
+      "features": [
+        "آکاردئون هوشمند پرسش و پاسخ",
+        "فرمت‌بندی زیبای متون طولانی"
+      ]
+    }
+  ],
+  "showQuickNav": true,
+  "showChatWidget": true,
+  "defaultPreviewImage": "/landing-previews/posts-template-preview.svg"
+}

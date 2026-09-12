@@ -1,0 +1,1 @@
+- [Guest chat visibility](guest-chat-visibility.md) — admin lists should show only sessions with at least one visitor message, not automated welcome-only sessions.
