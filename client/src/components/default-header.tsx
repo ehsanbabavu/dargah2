@@ -128,14 +128,15 @@ export function DefaultHeader({ forceDefault = false }: DefaultHeaderProps = {})
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 cursor-pointer">
+          <Link href="/" className="flex items-center gap-2.5 cursor-pointer">
             <motion.img
-              src={ariyaBotImage}
-              alt="Rakhsh"
-              className="w-10 h-10 rounded-full object-cover shadow-lg"
+              src="/images/rakhsh_logo.jpg"
+              alt="رخش پی"
+              className="w-10 h-10 rounded-xl object-cover shadow-md border border-amber-500/20"
               whileHover={{ scale: 1.05 }}
+              referrerPolicy="no-referrer"
             />
-            <span className="text-2xl font-bold text-gray-800 tracking-tight">Rakhsh</span>
+            <span className="text-xl font-bold text-gray-900 tracking-tight">رخش پی</span>
           </Link>
 
           {/* Desktop Navigation */}

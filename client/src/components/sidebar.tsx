@@ -308,10 +308,15 @@ export function AppSidebar() {
     <aside className="w-64 bg-card border-l border-border flex flex-col sidebar-transition" data-testid="sidebar-navigation">
       <div className="p-6 border-b border-border" data-testid="section-logo">
         <div className="flex items-center">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <Store className="text-primary-foreground" />
+          <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xs border border-primary/20 shrink-0">
+            <img 
+              src="/images/rakhsh_logo.jpg" 
+              alt="رخش پی" 
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+            />
           </div>
-          <h2 className="mr-3 text-lg font-bold text-foreground">سایت ساز رخش</h2>
+          <h2 className="mr-3 text-lg font-bold text-foreground">سامانه رخش پی</h2>
         </div>
       </div>
       
