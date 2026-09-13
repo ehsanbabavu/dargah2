@@ -1030,6 +1030,26 @@ export default function BlupalPaymentPage() {
                         سفارش شما در سایت ووکامرس به‌صورت خودکار به‌روزرسانی شد.
                       </p>
                     </div>
+                  ) : (searchParams.get("is_sub") === "1" || searchParams.get("is_sub") === "true" || searchParams.get("sub_id") || invoice?.description?.includes("اشتراک") || (invoiceStatus as any)?.orderId?.startsWith("SUB:")) ? (
+                    <div className="space-y-2 pt-1">
+                      <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center text-xs font-bold text-amber-700 dark:text-amber-400">
+                        اشتراک شما با موفقیت فعال و تمدید گردید.
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <a
+                          href="/"
+                          className="w-full h-10 rounded-lg bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 text-white dark:text-slate-900 text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all no-underline"
+                        >
+                          <span>پیشخوان کاربری</span>
+                        </a>
+                        <a
+                          href="/profile"
+                          className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-all no-underline"
+                        >
+                          <span>پروفایل و اشتراک</span>
+                        </a>
+                      </div>
+                    </div>
                   ) : (
                     <Button
                       type="button"

@@ -335,6 +335,28 @@ export function AppSidebar() {
                   پیشخوان
                 </Button>
               </li>
+              <li key="/level1/settings">
+                <Button 
+                  variant={isActive("/level1/settings") || isActive("/settings") || isActive("/admin/my-gateway") ? "default" : "ghost"} 
+                  className={cn("w-full justify-start relative font-medium", (isActive("/level1/settings") || isActive("/settings") || isActive("/admin/my-gateway")) && "bg-primary text-primary-foreground")}
+                  onClick={() => handleNavigate("/level1/settings")}
+                  data-testid="link-admin-my-gateway"
+                >
+                  <CreditCard className="w-5 h-5 ml-2 text-indigo-500" />
+                  درگاه پرداخت کارت به کارت
+                </Button>
+              </li>
+              <li key="/transactions">
+                <Button 
+                  variant={isActive("/transactions") ? "default" : "ghost"} 
+                  className={cn("w-full justify-start relative", isActive("/transactions") && "bg-primary text-primary-foreground")}
+                  onClick={() => handleNavigate("/transactions")}
+                  data-testid="link-admin-transactions"
+                >
+                  <Receipt className="w-5 h-5 ml-2 text-emerald-500" />
+                  تراکنش‌ها و واریزی‌ها
+                </Button>
+              </li>
             </>
           )}
 

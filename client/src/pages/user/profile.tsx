@@ -68,7 +68,15 @@ export default function Profile() {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
+      if (data?.requiresPayment && data?.paymentUrl) {
+        toast({
+          title: "صدور فاکتور پرداخت",
+          description: "فاکتور صادر شد. در حال انتقال به درگاه پرداخت کارت به کارت...",
+        });
+        window.location.href = data.paymentUrl;
+        return;
+      }
       toast({
         title: "موفقیت‌آمیز",
         description: "اشتراک با موفقیت فعال / تمدید گردید.",
@@ -503,7 +511,7 @@ export default function Profile() {
                             data-testid={`button-subscribe-plan-${sub.id}`}
                           >
                             <Check className="w-3.5 h-3.5 shrink-0" />
-                            <span>{subscribeMutation.isPending ? "در حال ثبت..." : "خرید و فعال‌سازی"}</span>
+                            <span>{subscribeMutation.isPending ? "در حال صدور فاکتور..." : "خرید و فعال‌سازی"}</span>
                           </Button>
                         </div>
                       </div>

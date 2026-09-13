@@ -60,7 +60,15 @@ export default function BuySubscriptionPage() {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
+      if (data?.requiresPayment && data?.paymentUrl) {
+        toast({
+          title: "صدور فاکتور پرداخت",
+          description: "فاکتور صادر شد. در حال انتقال به درگاه پرداخت کارت به کارت...",
+        });
+        window.location.href = data.paymentUrl;
+        return;
+      }
       toast({
         title: "موفقیت‌آمیز",
         description: "اشتراک با موفقیت فعال و تمدید گردید.",
@@ -239,7 +247,7 @@ export default function BuySubscriptionPage() {
                         data-testid={`button-subscribe-page-${sub.id}`}
                       >
                         <Crown className="w-4 h-4" />
-                        <span>{subscribeMutation.isPending ? "در حال فعال‌سازی..." : "خرید و فعال‌سازی آنی"}</span>
+                        <span>{subscribeMutation.isPending ? "در حال صدور فاکتور و انتقال به درگاه..." : "خرید و فعال‌سازی اشتراک"}</span>
                       </Button>
                     </div>
                   </div>

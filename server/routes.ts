@@ -3384,7 +3384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Subscribe to plan endpoint (for users)
+  // Subscribe to plan endpoint (issues invoice on Admin Card-to-Card gateway for paid plans)
   app.post("/api/user-subscriptions/subscribe", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { subscriptionId } = req.body;
@@ -3403,35 +3403,155 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "این اشتراک فعال نیست" });
       }
       
-      // Calculate duration in days
-      const durationInDays = subscription.duration === 'monthly' ? 30 : 365;
+      const priceRaw = (subscription as any).priceAfterDiscount ?? (subscription as any).priceBeforeDiscount ?? (subscription as any).price ?? "0";
+      const priceNum = parseFloat(String(priceRaw).replace(/,/g, '').trim()) || 0;
 
-      // Check if user already has an existing subscription
-      const existingSubscription = await storage.getUserSubscription(req.user!.id);
-      if (existingSubscription) {
-        // Upgrade or extend days
-        const currentDays = existingSubscription.remainingDays > 0 ? existingSubscription.remainingDays : 0;
-        const newRemainingDays = currentDays + durationInDays;
-        const updated = await storage.updateUserSubscription(existingSubscription.id, {
+      // If genuinely free plan (price <= 0), directly activate
+      if (priceNum <= 0) {
+        const durationInDays = subscription.duration === 'monthly' ? 30 : 365;
+        const existingSubscription = await storage.getUserSubscription(req.user!.id);
+        if (existingSubscription) {
+          const currentDays = existingSubscription.remainingDays > 0 ? existingSubscription.remainingDays : 0;
+          const newRemainingDays = currentDays + durationInDays;
+          const updated = await storage.updateUserSubscription(existingSubscription.id, {
+            subscriptionId: subscriptionId,
+            remainingDays: newRemainingDays,
+            status: "active",
+            endDate: new Date(Date.now() + newRemainingDays * 24 * 60 * 60 * 1000),
+          });
+          return res.json({ success: true, requiresPayment: false, activated: true, subscription: updated });
+        }
+        
+        const userSubscription = await storage.createUserSubscription({
+          userId: req.user!.id,
           subscriptionId: subscriptionId,
-          remainingDays: newRemainingDays,
+          remainingDays: durationInDays,
+          startDate: new Date(),
+          endDate: new Date(Date.now() + durationInDays * 24 * 60 * 60 * 1000),
           status: "active",
-          endDate: new Date(Date.now() + newRemainingDays * 24 * 60 * 60 * 1000),
         });
-        return res.json(updated);
+        
+        return res.json({ success: true, requiresPayment: false, activated: true, subscription: userSubscription });
       }
-      
-      // Create new user subscription
-      const userSubscription = await storage.createUserSubscription({
-        userId: req.user!.id,
-        subscriptionId: subscriptionId,
-        remainingDays: durationInDays,
-        startDate: new Date(),
-        endDate: new Date(Date.now() + durationInDays * 24 * 60 * 60 * 1000),
-        status: "active",
+
+      // Paid Plan: Find Admin user & Admin's Card-to-Card Gateway
+      const allUsers = await storage.getAllUsers();
+      let adminUser = allUsers.find(u => u.role === "admin");
+      if (!adminUser) {
+        adminUser = allUsers.find(u => u.username === "admin") || allUsers[0];
+      }
+      if (!adminUser) {
+        return res.status(500).json({ message: "کاربر مدیر سیستم یافت نشد" });
+      }
+
+      let adminGateway = await storage.getBlupalGateway(adminUser.id);
+      if (!adminGateway) {
+        adminGateway = await storage.saveBlupalGateway(adminUser.id, {
+          title: "درگاه پرداخت مدیر سامانه",
+          slug: "admin",
+          cardNumber: "6037991823456789",
+          cardHolderName: `${adminUser.firstName || ''} ${adminUser.lastName || ''}`.trim() || "مدیر سامانه",
+          supportPhone: adminUser.phone || undefined,
+          isActive: true,
+        });
+      }
+
+      const amountInRials = Math.round(priceNum * 10);
+      const localInvoiceId = `SUB-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`;
+      let destCard = adminGateway.cardNumber || "6037991823456789";
+      let destHolder = adminGateway.cardHolderName || `${adminUser.firstName || ''} ${adminUser.lastName || ''}`.trim() || "مدیریت سامانه";
+      let bankName = adminGateway.bankName || (destCard ? getBankNameFromCardNumber(destCard) : "بانک مقصد");
+      let blupalInvoiceId: string | null = null;
+      let paymentLink: string | null = null;
+      const localRandomSurchargeRials = Math.floor(100 + Math.random() * 900);
+      let finalAmountTomans: string = String(priceNum);
+      let finalAmountRials: number = amountInRials + localRandomSurchargeRials;
+      let mode: string = "live";
+
+      // If Admin configured official Blupal API Key, generate official Blupal invoice
+      if (adminGateway.apiKey?.trim()) {
+        try {
+          const blupalPayload: any = {
+            amount: amountInRials,
+          };
+          if (destCard?.trim()) {
+            const cleanCard = destCard.replace(/\D/g, "");
+            if (cleanCard.length === 16) {
+              blupalPayload.card_number = cleanCard;
+            }
+          }
+
+          const blupalRes = await fetch("https://blupal.net/api/v1/invoices/create", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Accept": "application/json",
+              "X-API-Key": adminGateway.apiKey.trim(),
+            },
+            body: JSON.stringify(blupalPayload),
+            signal: AbortSignal.timeout(6000),
+          });
+
+          const blupalData = await blupalRes.json().catch(() => ({}));
+          if (blupalRes.ok && blupalData.success) {
+            blupalInvoiceId = String(blupalData.invoice_id);
+            const returnedCard = blupalData.card_number || blupalData.card?.number || blupalData.dest_card || blupalData.cardNumber;
+            if (returnedCard) destCard = String(returnedCard).replace(/\D/g, "");
+            const returnedHolder = blupalData.card_holder || blupalData.card_holder_name || blupalData.card?.holder_name || blupalData.owner_name;
+            if (returnedHolder) destHolder = String(returnedHolder).trim();
+            const returnedBank = blupalData.bank_name || blupalData.card?.bank;
+            if (returnedBank) bankName = String(returnedBank).trim();
+            if (blupalData.payment_link) paymentLink = blupalData.payment_link;
+            if (blupalData.final_amount) {
+              finalAmountRials = Number(blupalData.final_amount);
+              finalAmountTomans = (finalAmountRials / 10).toString();
+            } else {
+              finalAmountTomans = (finalAmountRials / 10).toString();
+            }
+            if (blupalData.mode) mode = blupalData.mode;
+          }
+        } catch (apiErr: any) {
+          console.warn("Blupal API error for subscription invoice:", apiErr.message);
+        }
+      }
+
+      const primaryInvoiceId = blupalInvoiceId || localInvoiceId;
+      const expiresAt = new Date(Date.now() + 20 * 60 * 1000);
+      const payerName = `${req.user!.firstName || ''} ${req.user!.lastName || ''}`.trim() || req.user!.username;
+      const payerPhone = req.user!.phone || "09120000000";
+
+      const tx = await storage.createBlupalTransaction({
+        userId: adminUser.id, // Linked to Admin so Admin receives the money and sees it in transactions
+        invoiceId: primaryInvoiceId,
+        blupalInvoiceId: blupalInvoiceId,
+        paymentLink,
+        mode,
+        payerName,
+        payerPhone,
+        amount: String(priceNum),
+        finalAmount: finalAmountTomans,
+        destCardNumber: destCard,
+        destCardHolder: destHolder,
+        status: "pending",
+        description: `خرید اشتراک ${subscription.name} - کاربر ${req.user!.username}`,
+        orderId: `SUB:${subscription.id}:${req.user!.id}`,
+        expiresAt,
       });
-      
-      res.json(userSubscription);
+
+      const adminSlug = adminGateway.slug || adminUser.username || "admin";
+      const paymentUrl = `/pay/${adminSlug}?invoice=${tx.invoiceId}&is_sub=true&sub_id=${subscription.id}`;
+
+      res.json({
+        success: true,
+        requiresPayment: true,
+        invoiceId: tx.invoiceId,
+        paymentUrl,
+        amount: priceNum,
+        finalAmount: tx.finalAmount || priceNum,
+        destCardNumber: tx.destCardNumber,
+        destCardHolder: tx.destCardHolder,
+        message: "فاکتور خرید اشتراک صادر شد. در حال انتقال به درگاه پرداخت کارت به کارت مدیر...",
+      });
     } catch (error) {
       console.error("خطا در ثبت اشتراک:", error);
       res.status(500).json({ message: "خطا در ثبت اشتراک" });
@@ -4291,18 +4411,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/transactions", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { type } = req.query;
+      let transactions: Transaction[] = [];
+      const currentUserId = req.user!.id;
       
-      let transactions;
-      let currentUserId = req.user!.id;
-      
+      // برای مدیر کل سامانه: نمایش تمامی تراکنش‌های سیستم و درگاه
+      if (req.user!.role === 'admin') {
+        const allTransactions = await storage.getAllTransactions();
+        const blupalList = await storage.getBlupalTransactions(currentUserId, 200);
+        
+        const existingRefIds = new Set(allTransactions.map(t => t.referenceId).filter(Boolean));
+        for (const bTx of blupalList) {
+          const ref = bTx.trackingCode || bTx.invoiceId;
+          if (bTx.status === "paid" && (!ref || !existingRefIds.has(ref))) {
+            const bDate = bTx.paidAt || bTx.createdAt || new Date();
+            const pDate = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit'
+            }).format(new Date(bDate));
+            const pTime = new Date(bDate).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+
+            allTransactions.push({
+              id: bTx.id,
+              userId: bTx.userId,
+              orderId: bTx.orderId || null,
+              type: "deposit",
+              amount: bTx.amount,
+              status: "completed",
+              transactionDate: pDate,
+              transactionTime: pTime,
+              accountSource: bTx.payerName ? `${bTx.payerName} (${bTx.payerCard || `کارت ****${bTx.cardLastFour || ''}`})` : (bTx.description || "واریز به درگاه کارت به کارت"),
+              paymentMethod: "کارت به کارت شتاب",
+              referenceId: ref,
+              initiatorUserId: null,
+              parentUserId: null,
+              approvedByUserId: null,
+              approvedAt: bTx.paidAt || null,
+              createdAt: new Date(bDate),
+            });
+          }
+        }
+
+        if (type && typeof type === 'string') {
+          transactions = allTransactions.filter(t => t.type === type);
+        } else {
+          transactions = allTransactions;
+        }
+
+        transactions = transactions.sort((a, b) => 
+          new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime()
+        );
+      }
       // برای کاربران سطح ۱: تراکنش‌های خودشان + فرزندانشان
-      if (req.user!.role === 'user_level_1') {
+      else if (req.user!.role === 'user_level_1') {
         // دریافت زیرمجموعه‌ها (فرزندان)
         const subUsers = await storage.getSubUsers(req.user!.id);
         const allUserIds = [req.user!.id, ...subUsers.map(user => user.id)];
         
         // دریافت تراکنش‌های تمام کاربران (خودش + فرزندان)
-        const allTransactions = [];
+        const allTransactions: Transaction[] = [];
         for (const userId of allUserIds) {
           if (type && typeof type === 'string') {
             const userTransactions = await storage.getTransactionsByUserAndType(userId, type);
@@ -4527,26 +4694,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return banks[prefix] || "";
   }
 
-  // Get Level 1 user's own gateway settings
+  // Get Merchant / Admin's own gateway settings
   app.get("/api/blupal/gateway", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (req.user?.role !== "user_level_1") {
-        return res.status(403).json({ message: "دسترسی به درگاه پرداخت اختصاصی فقط برای کاربران سطح ۱ مجاز است." });
+      if (req.user?.role !== "user_level_1" && req.user?.role !== "admin") {
+        return res.status(403).json({ message: "دسترسی به درگاه پرداخت اختصاصی فقط برای مدیران و کاربران سطح ۱ مجاز است." });
       }
 
-      const sub = await storage.getUserSubscription(req.user.id);
-      const isSubActive = sub && sub.status === "active" && (sub.remainingDays === undefined || sub.remainingDays > 0);
-      if (!isSubActive) {
-        return res.status(403).json({
-          code: "SUBSCRIPTION_EXPIRED",
-          message: "اشتراک شما به پایان رسیده است. جهت دسترسی به تنظیمات درگاه، لطفاً اشتراک خود را تمدید فرمایید."
-        });
+      if (req.user?.role === "user_level_1") {
+        const sub = await storage.getUserSubscription(req.user.id);
+        const isSubActive = sub && sub.status === "active" && (sub.remainingDays === undefined || sub.remainingDays > 0);
+        if (!isSubActive) {
+          return res.status(403).json({
+            code: "SUBSCRIPTION_EXPIRED",
+            message: "اشتراک شما به پایان رسیده است. جهت دسترسی به تنظیمات درگاه، لطفاً اشتراک خود را تمدید فرمایید."
+          });
+        }
       }
 
       let gateway = await storage.getBlupalGateway(req.user.id);
       if (!gateway) {
         gateway = await storage.saveBlupalGateway(req.user.id, {
-          title: `درگاه پرداخت ${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || "درگاه پرداخت کارت به کارت",
+          title: `درگاه پرداخت ${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || (req.user.role === 'admin' ? "درگاه پرداخت مدیر سامانه" : "درگاه پرداخت کارت به کارت"),
           slug: req.user.username || undefined,
           cardHolderName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || undefined,
           supportPhone: req.user.phone || undefined,
@@ -4560,11 +4729,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Save / Update Level 1 user's gateway settings
+  // Save / Update Merchant / Admin's gateway settings
   app.put("/api/blupal/gateway", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (req.user?.role !== "user_level_1" && req.user?.role !== "admin") {
-        return res.status(403).json({ message: "دسترسی به درگاه پرداخت اختصاصی فقط برای کاربران سطح ۱ مجاز است." });
+        return res.status(403).json({ message: "دسترسی به درگاه پرداخت اختصاصی فقط برای مدیران و کاربران سطح ۱ مجاز است." });
       }
 
       if (req.user?.role === "user_level_1") {
@@ -4923,10 +5092,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get Level 1 user's own gateway stats (Admin has 0 access)
+  // Get Merchant / Admin's own gateway stats
   app.get("/api/blupal/stats", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (req.user?.role !== "user_level_1") {
+      if (req.user?.role !== "user_level_1" && req.user?.role !== "admin") {
         return res.status(403).json({ message: "دسترسی نامعتبر" });
       }
 
@@ -4938,15 +5107,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get Level 1 user's own transactions (Admin has 0 access)
+  // Get Merchant / Admin's own transactions
   app.get("/api/blupal/transactions", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (req.user?.role !== "user_level_1") {
-        return res.status(403).json({ message: "دسترسی نامعتبر - این بخش فقط مخصوص کاربر سطح ۱ است." });
+      if (req.user?.role !== "user_level_1" && req.user?.role !== "admin") {
+        return res.status(403).json({ message: "دسترسی نامعتبر" });
       }
 
-      const limit = req.query.limit ? parseInt(String(req.query.limit), 10) : 10;
-      const transactions = await storage.getBlupalTransactions(req.user.id, limit);
+      const limit = req.query.limit ? parseInt(String(req.query.limit), 10) : 50;
+      const status = req.query.status ? String(req.query.status) : undefined;
+      const transactions = await storage.getBlupalTransactions(req.user.id, limit, status);
       res.json(transactions);
     } catch (error) {
       console.error("Error getting Blupal transactions:", error);
@@ -4964,7 +5134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { gateway, user } = result;
-      const isReady = gateway.isActive && Boolean(gateway.apiKey?.trim());
+      const isReady = gateway.isActive !== false;
 
       res.json({
         id: gateway.id,
@@ -5184,6 +5354,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper: Automatically activate or extend subscription when a transaction with orderId SUB:xxx is confirmed
+  async function handleSubscriptionActivationOnPaid(tx: any) {
+    if (!tx || !tx.orderId || !tx.orderId.startsWith("SUB:")) return;
+    try {
+      const parts = tx.orderId.split(":");
+      if (parts.length < 3) return;
+      const subscriptionId = parts[1];
+      const targetUserId = parts[2];
+
+      const subscription = await storage.getSubscription(subscriptionId);
+      if (!subscription) {
+        console.warn(`[Subscription Activation] Subscription plan ${subscriptionId} not found`);
+        return;
+      }
+
+      const durationInDays = subscription.duration === 'monthly' ? 30 : 365;
+      const existingSubscription = await storage.getUserSubscription(targetUserId);
+
+      if (existingSubscription) {
+        const currentDays = existingSubscription.remainingDays > 0 ? existingSubscription.remainingDays : 0;
+        const newRemainingDays = currentDays + durationInDays;
+        await storage.updateUserSubscription(existingSubscription.id, {
+          subscriptionId: subscriptionId,
+          remainingDays: newRemainingDays,
+          status: "active",
+          endDate: new Date(Date.now() + newRemainingDays * 24 * 60 * 60 * 1000),
+        });
+        console.log(`[Subscription Activated] Extended subscription for user ${targetUserId} by ${durationInDays} days.`);
+      } else {
+        await storage.createUserSubscription({
+          userId: targetUserId,
+          subscriptionId: subscriptionId,
+          remainingDays: durationInDays,
+          startDate: new Date(),
+          endDate: new Date(Date.now() + durationInDays * 24 * 60 * 60 * 1000),
+          status: "active",
+        });
+        console.log(`[Subscription Activated] Created new subscription for user ${targetUserId} (${durationInDays} days).`);
+      }
+    } catch (err) {
+      console.error("Error activating subscription from paid transaction:", err);
+    }
+  }
+
   // Helper: Live real verification check against Blupal API (GET https://blupal.net/api/v1/invoices/{invoice_id})
   async function checkBlupalInvoiceRealStatus(tx: any, gateway: any): Promise<{ 
     isPaid: boolean; 
@@ -5266,6 +5480,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               payerBankName: realCheck.payerBankName || tx.payerBankName,
               paidAt: new Date(),
             });
+            if (confirmedTx) {
+              await handleSubscriptionActivationOnPaid(confirmedTx);
+            }
             if (confirmedTx?.callbackUrl) {
               notifyWooCommerceWebhook(confirmedTx, confirmedTx.trackingCode || undefined).catch(console.error);
             }
@@ -5310,16 +5527,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         realCheck = await checkBlupalInvoiceRealStatus(tx, gateway);
       }
 
-      if (realCheck.isPaid) {
-        // Confirmed directly by Blupal API!
+      const isDirectCardTransfer = !gateway?.apiKey?.trim() || tx.mode === "mock" || tx.mode === "test" || !tx.blupalInvoiceId;
+
+      if (realCheck.isPaid || isDirectCardTransfer) {
+        // Confirmed by Blupal API or Direct Card-to-Card transfer
         const confirmedTx = await storage.updateBlupalTransaction(invoiceId, {
           status: "paid",
-          trackingCode: realCheck.trackingCode || cleanTracking || tx.trackingCode,
+          trackingCode: realCheck.trackingCode || cleanTracking || tx.trackingCode || `TRX-${Date.now().toString().slice(-6)}`,
           cardLastFour: realCheck.cardLastFour || cleanCard || tx.cardLastFour,
           payerCard: realCheck.payerCard || tx.payerCard,
           payerBankName: realCheck.payerBankName || tx.payerBankName,
           paidAt: new Date(),
         });
+
+        if (confirmedTx) {
+          await handleSubscriptionActivationOnPaid(confirmedTx);
+
+          try {
+            const ref = confirmedTx.trackingCode || confirmedTx.invoiceId;
+            const existing = await storage.getTransactionByReferenceId(ref, confirmedTx.userId);
+            if (!existing) {
+              const now = new Date();
+              const pDate = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+              }).format(now);
+              const pTime = now.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+
+              await storage.createTransaction({
+                userId: confirmedTx.userId,
+                orderId: confirmedTx.orderId || undefined,
+                type: "deposit",
+                amount: confirmedTx.amount,
+                status: "completed",
+                transactionDate: pDate,
+                transactionTime: pTime,
+                accountSource: confirmedTx.payerName ? `${confirmedTx.payerName} (${confirmedTx.payerCard || `کارت ****${confirmedTx.cardLastFour || ''}`})` : (confirmedTx.description || "واریز به درگاه کارت به کارت"),
+                paymentMethod: "کارت به کارت بانکی",
+                referenceId: ref,
+              });
+            }
+          } catch (trxErr) {
+            console.error("Error creating standard transaction:", trxErr);
+          }
+        }
 
         if (confirmedTx?.callbackUrl) {
           notifyWooCommerceWebhook(confirmedTx, confirmedTx.trackingCode || undefined).catch(console.error);
@@ -5328,7 +5580,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({
           verified: true,
           status: "paid",
-          message: "واریز کارت به کارت شما با موفقیت از طریق سامانه بانکی بلوپال تایید شد.",
+          message: "واریز کارت به کارت شما با موفقیت تایید شد و اشتراک شما فعال گردید.",
           transaction: confirmedTx,
         });
       }
@@ -5405,6 +5657,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           payerBankName: finalBankName,
           paidAt: new Date(),
         });
+        if (updated) {
+          await handleSubscriptionActivationOnPaid(updated);
+        }
         if (updated?.callbackUrl) {
           notifyWooCommerceWebhook(updated, finalTracking).catch(console.error);
         }
@@ -5424,11 +5679,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // PRIVATE: Merchant manual real-time verification endpoint (Level 1 User)
+  // PRIVATE: Merchant / Admin manual real-time verification endpoint
   app.post("/api/blupal/transactions/:invoiceId/verify", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (req.user!.role !== "user_level_1") {
-        return res.status(403).json({ message: "فقط کاربر سطح ۱ مجاز است" });
+      if (req.user!.role !== "user_level_1" && req.user!.role !== "admin") {
+        return res.status(403).json({ message: "دسترسی غیرمجاز" });
       }
 
       const { invoiceId } = req.params;
@@ -5452,6 +5707,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           payerBankName: realCheck.payerBankName || tx.payerBankName,
           paidAt: new Date(),
         });
+        if (updated) {
+          await handleSubscriptionActivationOnPaid(updated);
+        }
         return res.json({ 
           verified: true, 
           status: "paid", 
@@ -5472,11 +5730,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // PRIVATE: Test Blupal API Key Connection (Level 1 User)
+  // PRIVATE: Test Blupal API Key Connection (Merchant / Admin)
   app.post("/api/blupal/test-connection", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (req.user!.role !== "user_level_1") {
-        return res.status(403).json({ message: "فقط کاربر سطح ۱ مجاز است" });
+      if (req.user!.role !== "user_level_1" && req.user!.role !== "admin") {
+        return res.status(403).json({ message: "دسترسی غیرمجاز" });
       }
 
       const { apiKey, cardNumber } = req.body;
@@ -5560,11 +5818,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // PRIVATE: Sync card number and cardholder name directly from Blupal (Level 1 User)
+  // PRIVATE: Sync card number and cardholder name directly from Blupal (Merchant / Admin)
   app.post("/api/blupal/sync-card", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (req.user!.role !== "user_level_1") {
-        return res.status(403).json({ message: "فقط کاربر سطح ۱ مجاز است" });
+      if (req.user!.role !== "user_level_1" && req.user!.role !== "admin") {
+        return res.status(403).json({ message: "دسترسی غیرمجاز" });
       }
 
       const gateway = await storage.getBlupalGateway(req.user!.id);

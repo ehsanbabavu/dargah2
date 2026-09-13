@@ -113,6 +113,7 @@ export interface IStorage {
   
   // Transactions
   getTransaction(id: string): Promise<Transaction | undefined>;
+  getAllTransactions(): Promise<Transaction[]>;
   getTransactionsByUser(userId: string): Promise<Transaction[]>;
   getTransactionsByUserAndType(userId: string, type: string): Promise<Transaction[]>;
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
@@ -216,7 +217,7 @@ export interface IStorage {
   getBlupalGatewayByWpApiKey(wpApiKey: string): Promise<BlupalGateway | undefined>;
   generateWpApiKey(userId: string): Promise<string>;
   saveBlupalGateway(userId: string, data: Partial<InsertBlupalGateway>): Promise<BlupalGateway>;
-  getBlupalTransactions(userId: string, limit?: number): Promise<BlupalTransaction[]>;
+  getBlupalTransactions(userId: string, limit?: number, status?: string): Promise<BlupalTransaction[]>;
   getBlupalTransactionByInvoiceId(invoiceId: string): Promise<BlupalTransaction | undefined>;
   createBlupalTransaction(tx: InsertBlupalTransaction): Promise<BlupalTransaction>;
   updateBlupalTransaction(invoiceId: string, updates: Partial<BlupalTransaction>): Promise<BlupalTransaction | undefined>;
@@ -1676,6 +1677,11 @@ export class MemStorage implements IStorage {
     return this.transactions.get(id);
   }
 
+  async getAllTransactions(): Promise<Transaction[]> {
+    return Array.from(this.transactions.values())
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+
   async getTransactionsByUser(userId: string): Promise<Transaction[]> {
     return Array.from(this.transactions.values())
       .filter(transaction => transaction.userId === userId)
@@ -2733,9 +2739,10 @@ export class MemStorage implements IStorage {
     }
   }
 
-  async getBlupalTransactions(userId: string, limit = 50): Promise<BlupalTransaction[]> {
+  async getBlupalTransactions(userId: string, limit = 50, status?: string): Promise<BlupalTransaction[]> {
     const list: BlupalTransaction[] = [];
     const twentyMinutesAgo = Date.now() - 20 * 60 * 1000;
+
     for (const tx of this.blupalTransactions.values()) {
       if (tx.userId === userId) {
         if ((tx.status === "pending" || tx.status === "verifying") && tx.createdAt) {
@@ -2743,7 +2750,9 @@ export class MemStorage implements IStorage {
             tx.status = "failed";
           }
         }
-        list.push(tx);
+        if (!status || tx.status === status) {
+          list.push(tx);
+        }
       }
     }
     return list

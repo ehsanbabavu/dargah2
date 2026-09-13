@@ -38,15 +38,17 @@ import {
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { type Transaction } from "@shared/schema";
 
-const statusColors = {
+const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100",
   completed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
+  paid: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
   failed: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
 };
 
-const statusLabels = {
+const statusLabels: Record<string, string> = {
   pending: "در انتظار بررسی",
   completed: "تکمیل شده",
+  paid: "تکمیل شده",
   failed: "رد شده"
 };
 
@@ -131,10 +133,10 @@ export default function SuccessfulTransactionsPage() {
   const stats = {
     total: depositTransactions.length,
     pending: depositTransactions.filter(t => t.status === 'pending').length,
-    completed: depositTransactions.filter(t => t.status === 'completed').length,
+    completed: depositTransactions.filter(t => t.status === 'completed' || t.status === 'paid').length,
     failed: depositTransactions.filter(t => t.status === 'failed').length,
     totalAmount: depositTransactions
-      .filter(t => t.status === 'completed')
+      .filter(t => t.status === 'completed' || t.status === 'paid')
       .reduce((acc, t) => acc + Number(t.amount), 0)
   };
 

@@ -23,19 +23,31 @@ import {
   Lock,
   Unlock,
   Inbox,
-  Sparkles
+  Sparkles,
+  CreditCard,
+  Wallet,
+  Copy,
+  Check,
+  ExternalLink,
+  Settings,
+  ArrowLeft,
+  ArrowUpRight
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { createAuthenticatedRequest } from "@/lib/auth";
+import { apiRequest } from "@/lib/queryClient";
 import type { Ticket as TicketType, User as UserType } from "@shared/schema";
 
 export default function AdminDashboard() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const [selectedTicketForReply, setSelectedTicketForReply] = useState<TicketType | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
   const [isReplyModalOpen, setIsReplyModalOpen] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   // 1. Fetch Users
   const { 
@@ -66,6 +78,60 @@ export default function AdminDashboard() {
     },
     staleTime: 15000,
   });
+
+  // 3. Fetch Admin's Card-to-Card Gateway Settings
+  const { data: blupalGateway } = useQuery<{
+    id?: string;
+    isActive?: boolean;
+    apiKey?: string | null;
+    slug?: string | null;
+    title?: string;
+    cardNumber?: string | null;
+    cardHolderName?: string | null;
+    bankName?: string | null;
+  }>({
+    queryKey: ["/api/blupal/gateway"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/blupal/gateway");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 15000,
+  });
+
+  // 4. Fetch Admin's Card-to-Card Gateway Stats
+  const { data: blupalStats } = useQuery<{
+    totalAmount: number;
+    paidCount: number;
+    pendingCount: number;
+  }>({
+    queryKey: ["/api/blupal/stats"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/blupal/stats");
+      if (!res.ok) return { totalAmount: 0, paidCount: 0, pendingCount: 0 };
+      return res.json();
+    },
+    staleTime: 15000,
+  });
+
+  const slug = blupalGateway?.slug || user?.username || "";
+  const publicPaymentUrl = typeof window !== "undefined" && slug
+    ? `${window.location.origin}/pay/${slug}`
+    : `/pay/${slug}`;
+
+  const isGatewayConfigured = Boolean(blupalGateway?.apiKey?.trim()) && Boolean(blupalGateway?.isActive);
+
+  const handleCopyPaymentLink = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(publicPaymentUrl);
+      setCopiedLink(true);
+      toast({
+        title: "✅ کپی شد",
+        description: "لینک پرداخت کارت به کارت مدیر با موفقیت در کلیپ‌بورد کپی شد",
+      });
+      setTimeout(() => setCopiedLink(false), 2500);
+    }
+  };
 
   // Reply to ticket mutation
   const replyMutation = useMutation({
@@ -258,7 +324,121 @@ export default function AdminDashboard() {
 
   return (
     <DashboardLayout title="پیشخوان مدیریت">
-      <div className="space-y-6 pb-16" dir="rtl">
+      <div className="space-y-6 pb-16 text-right" dir="rtl">
+        
+        {/* Card-to-Card Payment Gateway & Direct Deposit Management for Admin */}
+        <Card className="border border-indigo-200 dark:border-indigo-900/60 bg-gradient-to-br from-indigo-50/70 via-card to-card dark:from-indigo-950/20 dark:via-card dark:to-card shadow-xs overflow-hidden">
+          <div className="p-4 sm:p-5 lg:p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-indigo-600 text-white dark:bg-indigo-500 flex items-center justify-center shadow-sm shrink-0">
+                  <CreditCard className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base sm:text-lg font-bold text-foreground">
+                      درگاه پرداخت کارت به کارت مستقل مدیر
+                    </h2>
+                    <Badge 
+                      variant="outline"
+                      className={isGatewayConfigured 
+                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60 text-xs px-2.5 py-0.5 flex items-center gap-1.5" 
+                        : "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800/60 text-xs px-2.5 py-0.5 flex items-center gap-1.5"}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${isGatewayConfigured ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
+                      <span>{isGatewayConfigured ? "درگاه فعال و آماده دریافت واریزی" : "در انتظار تکمیل تنظیمات"}</span>
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    دریافت مستقیم واریزی‌های کاربران، اتصال به وب‌سرویس بلوپال و صدور فاکتور اختصاصی
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs font-medium border-border"
+                  data-testid="button-admin-transactions"
+                >
+                  <Link href="/transactions">
+                    <Wallet className="w-4 h-4 text-indigo-500" />
+                    <span>تراکنش‌ها ({blupalStats?.paidCount || 0})</span>
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
+                  data-testid="button-admin-gateway-settings"
+                >
+                  <Link href="/level1/settings">
+                    <Settings className="w-4 h-4" />
+                    <span>تنظیمات و شماره کارت</span>
+                  </Link>
+                </Button>
+              </div>
+            </div>
+
+            {/* Public Link Share & Quick Financial Metrics */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 pt-1">
+              {/* Share Box */}
+              <div className="lg:col-span-2 flex flex-col sm:flex-row sm:items-center gap-2 bg-background/80 dark:bg-muted/40 p-2 sm:p-2.5 rounded-xl border border-border/80">
+                <span className="text-xs font-medium text-muted-foreground shrink-0 px-1">
+                  لینک پرداخت مستقیم کاربران:
+                </span>
+                <div className="flex-1 text-left px-2 truncate font-mono text-xs text-indigo-600 dark:text-indigo-400 bg-muted/40 py-1.5 rounded-md" dir="ltr">
+                  {publicPaymentUrl}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0 justify-end">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={handleCopyPaymentLink}
+                    className="h-8 px-2.5 text-xs gap-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 dark:bg-indigo-950 dark:hover:bg-indigo-900 dark:text-indigo-200 font-medium"
+                    data-testid="button-copy-admin-pay-link"
+                  >
+                    {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedLink ? "کپی شد" : "کپی لینک"}</span>
+                  </Button>
+                  <a href={publicPaymentUrl} target="_blank" rel="noreferrer">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-2.5 text-xs gap-1"
+                      title="مشاهده صفحه پرداخت کاربران"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">باز کردن</span>
+                    </Button>
+                  </a>
+                </div>
+              </div>
+
+              {/* Stats Summary */}
+              <div className="flex items-center justify-between sm:justify-around p-2.5 rounded-xl bg-background/80 dark:bg-muted/40 border border-border/80 text-xs">
+                <div className="text-right space-y-0.5">
+                  <span className="text-muted-foreground text-[11px] block">مجموع واریزی‌ها</span>
+                  <span className="font-bold font-mono text-foreground text-sm">
+                    {(blupalStats?.totalAmount || 0).toLocaleString('fa-IR')}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground mr-1">تومان</span>
+                </div>
+                <div className="h-8 w-px bg-border/60" />
+                <div className="text-right space-y-0.5">
+                  <span className="text-muted-foreground text-[11px] block">پرداخت‌های موفق</span>
+                  <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400 text-sm">
+                    {(blupalStats?.paidCount || 0).toLocaleString('fa-IR')}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground mr-1">فاکتور</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
           {/* 1. LAST 5 REGISTERED USERS */}

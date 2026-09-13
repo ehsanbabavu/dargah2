@@ -2975,12 +2975,16 @@ export class DbStorage implements IStorage {
     }
   }
 
-  async getBlupalTransactions(userId: string, limit = 50): Promise<BlupalTransaction[]> {
+  async getBlupalTransactions(userId: string, limit = 50, status?: string): Promise<BlupalTransaction[]> {
     try {
       await this.expireOldBlupalTransactions(userId);
+      const conditions = [eq(blupalTransactions.userId, userId)];
+      if (status) {
+        conditions.push(eq(blupalTransactions.status, status));
+      }
       return await db.select()
         .from(blupalTransactions)
-        .where(eq(blupalTransactions.userId, userId))
+        .where(and(...conditions))
         .orderBy(desc(blupalTransactions.createdAt))
         .limit(limit);
     } catch (error) {

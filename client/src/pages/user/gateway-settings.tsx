@@ -137,7 +137,7 @@ export default function GatewaySettingsPage() {
       if (!res.ok) throw new Error("Failed to load gateway settings");
       return res.json();
     },
-    enabled: !!user && user.role === "user_level_1",
+    enabled: !!user && (user.role === "user_level_1" || user.role === "admin"),
   });
 
   useEffect(() => {

@@ -430,9 +430,10 @@ function Router() {
       <Route path="/sub-users" component={() => <Level1Route component={SubUsers} />} />
       <Route path="/cart" component={() => <AdminOrLevel1Route component={Cart} />} />
       <Route path="/addresses" component={() => <AdminOrLevel1Route component={Addresses} />} />
-      <Route path="/received-orders" component={() => <Level1Route component={GatewaySettingsPage} />} />
-      <Route path="/level1/settings" component={() => <Level1Route component={GatewaySettingsPage} />} />
-      <Route path="/settings" component={() => <Level1Route component={GatewaySettingsPage} />} />
+      <Route path="/received-orders" component={() => <AdminOrLevel1Route component={GatewaySettingsPage} />} />
+      <Route path="/level1/settings" component={() => <AdminOrLevel1Route component={GatewaySettingsPage} />} />
+      <Route path="/settings" component={() => <AdminOrLevel1Route component={GatewaySettingsPage} />} />
+      <Route path="/admin/my-gateway" component={() => <AdminOrLevel1Route component={GatewaySettingsPage} />} />
       <Route path="/pay/:slugOrUsername" component={BlupalPaymentPage} />
       <Route path="/p/:slugOrUsername" component={BlupalPaymentPage} />
       <Route path="/announcements" component={() => <AdminOrLevel1Route component={WithLayout(Announcements, "اطلاعیه‌ها")} />} />
