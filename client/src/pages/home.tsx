@@ -3,8 +3,6 @@ import { Link } from "wouter";
 import { GuestChatWidget } from "@/components/guest-chat-widget";
 
 export default function Home() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   return (
     <div className="bg-[#f8f9fa] text-[#111827] antialiased min-h-screen flex flex-col justify-between selection:bg-[#bac3ff] selection:text-[#002db6] pt-16 sm:pt-20 overflow-x-hidden" dir="rtl">
       {/* ================= FIXED NAVBAR ================= */}
@@ -53,35 +51,13 @@ export default function Home() {
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <Link
               href="/login"
-              className="hidden sm:inline-flex items-center justify-center px-5 sm:px-6 h-10 sm:h-12 rounded-xl bg-[#2848d3] text-white font-semibold text-[13px] sm:text-[15px] shadow-xs hover:bg-[#1932B8] hover:shadow-[0_8px_20px_rgba(40,72,211,0.28)] active:scale-95 transition-all duration-200 whitespace-nowrap"
+              className="inline-flex items-center justify-center px-4 py-2 sm:px-6 sm:h-12 rounded-xl bg-[#2848d3] text-white font-semibold text-[13px] sm:text-[15px] shadow-xs hover:bg-[#1932B8] hover:shadow-[0_8px_20px_rgba(40,72,211,0.28)] active:scale-95 transition-all duration-200 whitespace-nowrap"
             >
-              ورود به پنل فروشندگان
+              <span className="sm:hidden">ورود</span>
+              <span className="hidden sm:inline">ورود به پنل فروشندگان</span>
             </Link>
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-lg text-[#4B5563] dark:text-slate-300 hover:bg-[#F3F4F6] dark:hover:bg-slate-800 transition-colors"
-              aria-label="منوی ناوبری"
-            >
-              <span className="material-symbols-outlined text-2xl">
-                {mobileMenuOpen ? "close" : "menu"}
-              </span>
-            </button>
           </div>
         </div>
-
-        {/* Mobile Dropdown Menu */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden px-4 sm:px-6 py-4 bg-white dark:bg-[#0F1A2D] border-b border-gray-200 dark:border-slate-800 space-y-3 shadow-lg">
-            <a href="#features" onClick={() => setMobileMenuOpen(false)} className="block py-1 text-[#002db6] dark:text-[#bac3ff] font-bold text-sm">امکانات فروشندگان</a>
-            <a href="#gateway" onClick={() => setMobileMenuOpen(false)} className="block py-1 text-[#4B5563] dark:text-slate-300 font-medium text-sm">درگاه کارت به کارت</a>
-            <a href="#store" onClick={() => setMobileMenuOpen(false)} className="block py-1 text-[#4B5563] dark:text-slate-300 font-medium text-sm">ویترین و فروشگاه اختصاصی</a>
-            <a href="#developers" onClick={() => setMobileMenuOpen(false)} className="block py-1 text-[#4B5563] dark:text-slate-300 font-medium text-sm">افزونه ووکامرس و API</a>
-            <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="block py-1 text-[#4B5563] dark:text-slate-300 font-medium text-sm">سوالات متداول</a>
-            <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="block text-center w-full py-2.5 bg-[#2848d3] text-white rounded-xl font-bold text-sm mt-2 active:scale-98 transition-transform">
-              ورود به پنل فروشندگان
-            </Link>
-          </div>
-        )}
       </header>
 
       <main className="w-full flex-1">
@@ -119,8 +95,8 @@ export default function Home() {
                   </div>
 
                   {/* Card Middle: Pan Number */}
-                  <div className="my-auto py-1 z-10">
-                    <div className="font-mono text-sm sm:text-base text-white tracking-widest font-semibold drop-shadow-sm" dir="ltr">
+                  <div className="my-auto py-1 z-10 flex justify-center items-center w-full">
+                    <div className="font-mono text-sm sm:text-base text-white tracking-widest font-semibold drop-shadow-sm text-center" dir="ltr">
                       ۶۰۳۷ •••• •••• ۸۲۹۴
                     </div>
                   </div>
@@ -537,13 +513,13 @@ export default function Home() {
       <footer className="bg-white dark:bg-[#0F1A2D] border-t border-[#E5E7EB] dark:border-slate-800 transition-colors">
         <div className="flex flex-col w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 max-w-[1240px] mx-auto">
           {/* Top Brand & Badges */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-8 sm:pb-10 border-b border-[#E5E7EB] dark:border-slate-800 text-right">
-            <div className="space-y-2 text-right">
+          <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-6 pb-8 sm:pb-10 border-b border-[#E5E7EB] dark:border-slate-800 text-center sm:text-right">
+            <div className="space-y-2 text-center sm:text-right">
               <p className="text-[12px] text-[#4B5563] dark:text-slate-300 max-w-md leading-relaxed">
                 سامانه یکپارچه درگاه پرداخت کارت به کارت هوشمند، فروشگاه اختصاصی و خدمات فروش برای فروشندگان و پذیرندگان.
               </p>
             </div>
-            <div className="flex items-center justify-center sm:justify-start gap-3 w-full sm:w-auto">
+            <div className="flex items-center justify-center sm:justify-start gap-4 w-full sm:w-auto">
               <a
                 href="https://blubank.com/"
                 target="_blank"
