@@ -9,7 +9,7 @@
 کافی است دستور زیر را در ترمینال سرور خود کپی و اجرا کنید تا پروژه خودکار از گیت‌هاب دریافت شده و تمامی مراحل نصب انجام گردد:
 
 ```bash
-git clone https://github.com/ehsanbabavu/dargah2.git && cd dargah2 && chmod +x install.sh && sudo ./install.sh
+git clone https://github.com/ehsanbabagoli71/dargah2.git && cd dargah2 && chmod +x install.sh && sudo ./install.sh
 ```
 
 ---
@@ -18,7 +18,7 @@ git clone https://github.com/ehsanbabavu/dargah2.git && cd dargah2 && chmod +x i
 
 ### ۱. دریافت پروژه از گیت‌هاب
 ```bash
-git clone https://github.com/ehsanbabavu/dargah2.git
+git clone https://github.com/ehsanbabagoli71/dargah2.git
 cd dargah2
 ```
 

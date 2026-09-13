@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import Header from './landing/components/Header';
-import Hero from './landing/components/Hero';
-import Features from './landing/components/Features';
-import HowItWorks from './landing/components/HowItWorks';
-import Screenshots from './landing/components/Screenshots';
-import Pricing from './landing/components/Pricing';
-import Testimonials from './landing/components/Testimonials';
-import CTA from './landing/components/CTA';
-import Contact from './landing/components/Contact';
-import Footer from './landing/components/Footer';
+import Header from './components/Header';
+import Hero from './components/Hero';
+import Features from './components/Features';
+import HowItWorks from './components/HowItWorks';
+import Screenshots from './components/Screenshots';
+import Pricing from './components/Pricing';
+import Testimonials from './components/Testimonials';
+import CTA from './components/CTA';
+import Contact from './components/Contact';
+import Footer from './components/Footer';
 
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);

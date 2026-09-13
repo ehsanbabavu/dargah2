@@ -149,28 +149,28 @@ export default function SendTicket() {
 
   return (
     <DashboardLayout title="ارسال تیکت">
-      <div className="space-y-4 max-w-2xl mx-auto pb-8" data-testid="page-send-ticket">
+      <div className="w-full p-3 sm:p-5 lg:p-6 space-y-4 max-w-3xl mx-auto pb-10" data-testid="page-send-ticket" dir="rtl">
         
         {/* Mobile Header with Back Navigation */}
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2 px-0.5 pb-2 border-b border-border/40">
+          <div className="flex items-center gap-2 min-w-0">
             <Button
               asChild
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+              className="h-8.5 w-8.5 rounded-xl text-muted-foreground hover:text-foreground shrink-0"
             >
               <Link href="/my-tickets">
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
-            <div>
-              <h1 className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                <MessageCircle className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                ثبت تیکت پشتیبانی
+            <div className="min-w-0">
+              <h1 className="text-sm sm:text-base font-bold text-foreground flex items-center gap-1.5 truncate">
+                <MessageCircle className="h-4 w-4 text-indigo-500 shrink-0" />
+                <span>ثبت تیکت پشتیبانی</span>
               </h1>
-              <p className="text-[10px] text-muted-foreground">
-                پاسخ‌گویی سریع تیم پشتیبانی به درخواست‌ها
+              <p className="text-[11px] text-muted-foreground truncate">
+                ارسال درخواست یا مشکل به تیم پشتیبانی
               </p>
             </div>
           </div>
@@ -179,28 +179,28 @@ export default function SendTicket() {
             asChild
             variant="outline"
             size="sm"
-            className="h-8 text-[11px] font-bold rounded-xl border-slate-200 dark:border-zinc-800"
+            className="h-8.5 text-xs font-bold rounded-xl border-border/80 shrink-0"
           >
             <Link href="/my-tickets">
-              لیست تیکت‌ها
+              تیکت‌های من
             </Link>
           </Button>
         </div>
 
         {/* Compact Form Card */}
-        <Card className="rounded-[22px] border border-slate-200/80 dark:border-zinc-800/80 shadow-xs overflow-hidden">
-          <CardContent className="p-4 sm:p-5">
+        <Card className="rounded-2xl border border-border/70 shadow-xs overflow-hidden bg-card text-card-foreground">
+          <CardContent className="p-3.5 sm:p-5">
             <form onSubmit={handleSubmit} className="space-y-4" data-testid="form-send-ticket">
               
               {/* Subject Field */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="subject" className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-indigo-500" />
+                  <Label htmlFor="subject" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
                     موضوع تیکت
                     <span className="text-rose-500">*</span>
                   </Label>
-                  <span className="text-[10px] text-muted-foreground font-mono">
+                  <span className="text-[11px] text-muted-foreground font-mono">
                     {formData.subject.length}/80
                   </span>
                 </div>
@@ -212,7 +212,7 @@ export default function SendTicket() {
                   placeholder="عنوان خلاصه مشکل یا درخواست..."
                   required
                   data-testid="input-ticket-subject"
-                  className="h-10 text-xs rounded-xl border-slate-200 dark:border-zinc-800 focus-visible:ring-indigo-500/20 focus-visible:border-indigo-500"
+                  className="h-10 text-xs sm:text-sm rounded-xl border-border/70 focus-visible:ring-indigo-500/20"
                 />
               </div>
 
@@ -220,8 +220,8 @@ export default function SendTicket() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Category */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="category" className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5 text-emerald-500" />
+                  <Label htmlFor="category" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                    <Tag className="w-4 h-4 text-emerald-500 shrink-0" />
                     دسته‌بندی
                     <span className="text-rose-500">*</span>
                   </Label>
@@ -231,25 +231,25 @@ export default function SendTicket() {
                   >
                     <SelectTrigger 
                       data-testid="select-ticket-category" 
-                      className="h-10 text-xs rounded-xl border-slate-200 dark:border-zinc-800 text-right focus:ring-indigo-500/20"
+                      className="h-10 text-xs sm:text-sm rounded-xl border-border/70 text-right focus:ring-indigo-500/20"
                       dir="rtl"
                     >
                       <SelectValue placeholder="انتخاب دسته‌بندی..." />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">
-                      <SelectItem value="technical" className="text-xs">مشکل فنی و سایت</SelectItem>
-                      <SelectItem value="account" className="text-xs">حساب کاربری و احراز هویت</SelectItem>
-                      <SelectItem value="billing" className="text-xs">امور مالی و پرداخت‌ها</SelectItem>
-                      <SelectItem value="feature" className="text-xs">پیشنهاد یا ویژگی جدید</SelectItem>
-                      <SelectItem value="other" className="text-xs">سایر موارد</SelectItem>
+                      <SelectItem value="technical" className="text-xs sm:text-sm">مشکل فنی و سایت</SelectItem>
+                      <SelectItem value="account" className="text-xs sm:text-sm">حساب کاربری و احراز هویت</SelectItem>
+                      <SelectItem value="billing" className="text-xs sm:text-sm">امور مالی و پرداخت‌ها</SelectItem>
+                      <SelectItem value="feature" className="text-xs sm:text-sm">پیشنهاد یا ویژگی جدید</SelectItem>
+                      <SelectItem value="other" className="text-xs sm:text-sm">سایر موارد</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Priority */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="priority" className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                  <Label htmlFor="priority" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
                     اولویت
                   </Label>
                   <Select
@@ -258,31 +258,31 @@ export default function SendTicket() {
                   >
                     <SelectTrigger 
                       data-testid="select-ticket-priority" 
-                      className="h-10 text-xs rounded-xl border-slate-200 dark:border-zinc-800 text-right focus:ring-indigo-500/20"
+                      className="h-10 text-xs sm:text-sm rounded-xl border-border/70 text-right focus:ring-indigo-500/20"
                       dir="rtl"
                     >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">
-                      <SelectItem value="low" className="text-xs">
+                      <SelectItem value="low" className="text-xs sm:text-sm">
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full bg-slate-400"></span>
                           کم (عادی)
                         </div>
                       </SelectItem>
-                      <SelectItem value="medium" className="text-xs">
+                      <SelectItem value="medium" className="text-xs sm:text-sm">
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full bg-blue-500"></span>
                           متوسط
                         </div>
                       </SelectItem>
-                      <SelectItem value="high" className="text-xs">
+                      <SelectItem value="high" className="text-xs sm:text-sm">
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full bg-amber-500"></span>
                           بالا
                         </div>
                       </SelectItem>
-                      <SelectItem value="urgent" className="text-xs">
+                      <SelectItem value="urgent" className="text-xs sm:text-sm">
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full bg-rose-500"></span>
                           خیلی فوری
@@ -295,8 +295,8 @@ export default function SendTicket() {
 
               {/* Message Field */}
               <div className="space-y-1.5">
-                <Label htmlFor="message" className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                  <MessageCircle className="w-3.5 h-3.5 text-purple-500" />
+                <Label htmlFor="message" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                  <MessageCircle className="w-4 h-4 text-purple-500 shrink-0" />
                   متن پیام و توضیحات
                   <span className="text-rose-500">*</span>
                 </Label>
@@ -304,22 +304,22 @@ export default function SendTicket() {
                   id="message"
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  placeholder="شرح کامل مشکل، شماره فاکتور یا کد خطا را اینجا بنویسید..."
+                  placeholder="شرح کامل مشکل، شماره فاکتور یا توضیحات مورد نظر را بنویسید..."
                   rows={4}
                   required
                   data-testid="textarea-ticket-message"
-                  className="text-xs rounded-xl border-slate-200 dark:border-zinc-800 focus-visible:ring-indigo-500/20 focus-visible:border-indigo-500 resize-none leading-relaxed"
+                  className="text-xs sm:text-sm rounded-xl border-border/70 focus-visible:ring-indigo-500/20 resize-none leading-relaxed min-h-[110px]"
                 />
               </div>
 
               {/* Attachments Section - Modern Mobile Upload */}
               <div className="space-y-2 pt-1">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                    <Paperclip className="w-3.5 h-3.5 text-slate-500" />
+                  <Label className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                    <Paperclip className="w-4 h-4 text-muted-foreground shrink-0" />
                     پیوست فایل
                   </Label>
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-[11px] text-muted-foreground">
                     {attachments.length}/۵ فایل (حداکثر ۵MB)
                   </span>
                 </div>
@@ -339,16 +339,16 @@ export default function SendTicket() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full border border-dashed border-slate-200 dark:border-zinc-800 hover:border-indigo-500 dark:hover:border-indigo-500 rounded-xl p-3 text-center transition-all duration-200 bg-slate-50/50 dark:bg-zinc-900/30 active:scale-[0.99] flex items-center justify-center gap-2 group cursor-pointer"
+                  className="w-full border border-dashed border-border/80 hover:border-indigo-500 rounded-2xl p-3.5 text-center transition-all duration-200 bg-muted/30 active:scale-[0.99] flex items-center justify-center gap-3 cursor-pointer"
                 >
-                  <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                  <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
                     <Paperclip className="w-4 h-4" />
                   </div>
-                  <div className="text-right">
-                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">
+                  <div className="text-right min-w-0">
+                    <span className="text-xs font-bold text-foreground block truncate">
                       افزودن تصویر، اسکرین‌شات یا سند
                     </span>
-                    <span className="text-[9px] text-muted-foreground">
+                    <span className="text-[10px] text-muted-foreground block truncate">
                       فرمت‌های مجاز: JPG, PNG, PDF, DOC
                     </span>
                   </div>
@@ -360,15 +360,15 @@ export default function SendTicket() {
                     {attachments.map((file, index) => (
                       <div 
                         key={index} 
-                        className="flex items-center justify-between p-2 bg-slate-50 dark:bg-zinc-900/60 rounded-xl border border-slate-200/70 dark:border-zinc-800 text-xs"
+                        className="flex items-center justify-between p-2.5 bg-muted/40 rounded-xl border border-border/60 text-xs"
                         data-testid={`text-attachment-${index}`}
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <File className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                          <span className="text-[11px] text-slate-700 dark:text-slate-300 font-medium truncate">
+                          <File className="w-4 h-4 text-indigo-500 shrink-0" />
+                          <span className="text-xs text-foreground font-medium truncate">
                             {file.name}
                           </span>
-                          <span className="text-[9px] text-muted-foreground font-mono shrink-0">
+                          <span className="text-[10px] text-muted-foreground font-mono shrink-0">
                             ({Math.round(file.size / 1024)} KB)
                           </span>
                         </div>
@@ -377,9 +377,9 @@ export default function SendTicket() {
                           variant="ghost"
                           size="icon"
                           onClick={() => removeAttachment(index)}
-                          className="h-6 w-6 text-slate-400 hover:text-rose-500 rounded-lg shrink-0"
+                          className="h-7 w-7 text-muted-foreground hover:text-rose-500 rounded-lg shrink-0"
                         >
-                          <X className="w-3.5 h-3.5" />
+                          <X className="w-4 h-4" />
                         </Button>
                       </div>
                     ))}
@@ -388,22 +388,22 @@ export default function SendTicket() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2 pt-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2">
                 <Button
                   type="submit"
                   disabled={createTicketMutation.isPending}
                   data-testid="button-submit-ticket"
-                  className="flex-1 h-10 text-xs font-black bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-xs active:scale-98 transition-all flex items-center justify-center gap-1.5"
+                  className="flex-1 h-10 sm:h-11 text-xs sm:text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-xs active:scale-98 transition-all flex items-center justify-center gap-1.5"
                 >
                   {createTicketMutation.isPending ? (
                     <>
-                      <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white/30 border-t-white ml-1"></div>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white ml-1"></div>
                       در حال ثبت تیکت...
                     </>
                   ) : (
                     <>
-                      <Send className="w-3.5 h-3.5 ml-1" />
-                      ارسال تیکت
+                      <Send className="w-4 h-4 ml-1" />
+                      ثبت و ارسال تیکت
                     </>
                   )}
                 </Button>
@@ -413,9 +413,10 @@ export default function SendTicket() {
                   variant="outline"
                   onClick={handleReset}
                   data-testid="button-reset-form"
-                  className="h-10 px-3 text-xs font-bold rounded-xl border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800"
+                  className="h-10 sm:h-11 px-4 text-xs font-bold rounded-xl border-border/80 text-muted-foreground hover:text-foreground"
                 >
-                  <RotateCcw className="w-3.5 h-3.5" />
+                  <RotateCcw className="w-4 h-4 ml-1" />
+                  <span>بازنشانی</span>
                 </Button>
               </div>
             </form>
@@ -423,10 +424,10 @@ export default function SendTicket() {
         </Card>
 
         {/* Helpful Tip Card for Mobile */}
-        <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/80 dark:border-indigo-900/40 rounded-2xl flex items-start gap-2.5">
-          <Clock className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
-          <div className="text-[10px] text-indigo-900 dark:text-indigo-300 leading-relaxed">
-            تیکت‌های شما در ساعات کاری در کمتر از ۲ ساعت بررسی و پاسخ داده خواهند شد. وضعیت پاسخ‌ها در بخش <strong>تیکت‌های من</strong> قابل مشاهده است.
+        <div className="p-3.5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-start gap-2.5">
+          <Clock className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
+          <div className="text-xs text-indigo-900 dark:text-indigo-200 leading-relaxed">
+            تیکت‌های شما در ساعات کاری بررسی و پاسخ داده خواهند شد. وضعیت و پیام‌های پاسخ در بخش <strong>تیکت‌های من</strong> قابل مشاهده و پیگیری است.
           </div>
         </div>
 

@@ -12,7 +12,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -33,16 +32,21 @@ import {
   TrendingUp,
   TrendingDown,
   Search,
-  Banknote
+  Banknote,
+  Receipt,
+  CreditCard,
+  Edit3,
+  RefreshCw,
+  X
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { type Transaction } from "@shared/schema";
 
 const statusColors: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100",
-  completed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
-  paid: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
-  failed: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
+  pending: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
+  completed: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
+  paid: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
+  failed: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30"
 };
 
 const statusLabels: Record<string, string> = {
@@ -53,10 +57,10 @@ const statusLabels: Record<string, string> = {
 };
 
 const transactionColors = {
-  deposit: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
-  withdraw: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",
-  order_payment: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
-  commission: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100"
+  deposit: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
+  withdraw: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30",
+  order_payment: "bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30",
+  commission: "bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30"
 };
 
 const transactionLabels = {
@@ -101,7 +105,7 @@ export default function SuccessfulTransactionsPage() {
         description: "وضعیت تراکنش به‌روزرسانی شد"
       });
     },
-    onError: (error: Error) => {
+    onError: (_error: Error) => {
       toast({
         title: "خطا",
         description: "خطا در به‌روزرسانی وضعیت",
@@ -161,339 +165,491 @@ export default function SuccessfulTransactionsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white p-6">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-          <div className="grid gap-6">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-            ))}
-          </div>
+      <div className="w-full p-3 sm:p-5 lg:p-6 space-y-4 max-w-7xl mx-auto">
+        <div className="h-10 bg-muted/60 rounded-xl animate-pulse w-48"></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="h-20 bg-muted/50 rounded-xl animate-pulse"></div>
+          <div className="h-20 bg-muted/50 rounded-xl animate-pulse"></div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="h-20 bg-muted/50 rounded-xl animate-pulse"></div>
+          ))}
+        </div>
+        <div className="h-12 bg-muted/50 rounded-xl animate-pulse"></div>
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-24 bg-muted/40 rounded-xl animate-pulse"></div>
+          ))}
         </div>
       </div>
     );
   }
 
+  const hasActiveFilters = statusFilter !== "all" || typeFilter !== "all" || searchTerm !== "";
+
   return (
-    <div className="min-h-screen bg-white p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="w-full p-3 sm:p-5 lg:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto" dir="rtl">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border/50">
+        <div>
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <Receipt className="w-5 h-5 text-emerald-500 shrink-0" />
+            <span>مدیریت تراکنش‌ها و واریزی‌ها</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            بررسی و مدیریت واریزی‌های کاربران، وضعیت تراکنش‌ها و آمار مالی
+          </p>
+        </div>
+      </div>
 
-        {/* Compact Stats - First Row: Total Amount and Deposits */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-          <div className="bg-white dark:bg-gray-800 border rounded-lg p-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1 bg-gray-100 dark:bg-gray-700 rounded">
-                <TrendingUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-600 dark:text-gray-300">مجموع مبلغ کارت به کارت کاربران</p>
-                <p className="text-sm font-bold text-gray-900 dark:text-gray-100" data-testid="stat-amount">
-                  {formatPrice(stats.totalAmount)}
-                </p>
-              </div>
+      {/* Row 1 Stats: Total Card-to-Card & Deposit Summary */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        <div className="bg-card text-card-foreground border border-border/70 rounded-2xl p-3.5 sm:p-4 shadow-xs transition-all hover:border-primary/30">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shrink-0">
+              <TrendingUp className="w-5 h-5" />
             </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 border rounded-lg p-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1 bg-purple-100 dark:bg-purple-900 rounded">
-                <Banknote className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-600 dark:text-gray-300">واریزی‌های شما</p>
-                <p className="text-sm font-bold text-purple-600 dark:text-purple-400" data-testid="stat-deposits">
-                  {formatPrice(depositsSummary?.totalAmount || 0)}
-                </p>
-              </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-muted-foreground font-medium truncate">مجموع مبلغ کارت به کارت کاربران</p>
+              <p className="text-sm sm:text-lg font-black text-foreground tracking-tight mt-0.5" data-testid="stat-amount">
+                {formatPrice(stats.totalAmount)}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Compact Stats - Second Row: Other Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="bg-white dark:bg-gray-800 border rounded-lg p-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1 bg-blue-100 dark:bg-blue-900 rounded">
-                <DollarSign className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-600 dark:text-gray-300">کل تراکنش‌ها</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-gray-100" data-testid="stat-total">
-                  {stats.total}
-                </p>
-              </div>
+        <div className="bg-card text-card-foreground border border-border/70 rounded-2xl p-3.5 sm:p-4 shadow-xs transition-all hover:border-primary/30">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 shrink-0">
+              <Banknote className="w-5 h-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-muted-foreground font-medium truncate">واریزی‌های شما</p>
+              <p className="text-sm sm:text-lg font-black text-purple-600 dark:text-purple-400 tracking-tight mt-0.5" data-testid="stat-deposits">
+                {formatPrice(depositsSummary?.totalAmount || 0)}
+              </p>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div className="bg-white dark:bg-gray-800 border rounded-lg p-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1 bg-yellow-100 dark:bg-yellow-900 rounded">
-                <Clock className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-600 dark:text-gray-300">در انتظار</p>
-                <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400" data-testid="stat-pending">
-                  {stats.pending}
-                </p>
-              </div>
+      {/* Row 2 Stats: Counters Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="bg-card text-card-foreground border border-border/70 rounded-2xl p-3 sm:p-4 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 shrink-0">
+              <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 border rounded-lg p-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1 bg-green-100 dark:bg-green-900 rounded">
-                <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-600 dark:text-gray-300">تکمیل شده</p>
-                <p className="text-lg font-bold text-green-600 dark:text-green-400" data-testid="stat-completed">
-                  {stats.completed}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 border rounded-lg p-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1 bg-red-100 dark:bg-red-900 rounded">
-                <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-600 dark:text-gray-300">رد شده</p>
-                <p className="text-lg font-bold text-red-600 dark:text-red-400" data-testid="stat-failed">
-                  {stats.failed}
-                </p>
-              </div>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground font-medium">کل تراکنش‌ها</p>
+              <p className="text-base sm:text-xl font-bold text-foreground" data-testid="stat-total">
+                {stats.total}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Compact Filters */}
-        <div className="bg-white dark:bg-gray-800 border rounded-lg p-3 mb-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-              <Filter className="w-4 h-4" />
-              فیلتر:
+        <div className="bg-card text-card-foreground border border-border/70 rounded-2xl p-3 sm:p-4 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            
-            <div className="relative min-w-48">
-              <Search className="absolute left-3 top-2.5 w-3 h-3 text-gray-400" />
-              <Input
-                placeholder="جستجو..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                data-testid="input-search"
-                className="pl-8 h-8 text-xs"
-              />
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground font-medium">در انتظار</p>
+              <p className="text-base sm:text-xl font-bold text-amber-600 dark:text-amber-400" data-testid="stat-pending">
+                {stats.pending}
+              </p>
             </div>
+          </div>
+        </div>
 
-            <div className="hidden md:block">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-28 h-8 text-xs" data-testid="select-status-filter">
-                  <SelectValue placeholder="وضعیت" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">همه</SelectItem>
-                  <SelectItem value="pending">در انتظار</SelectItem>
-                  <SelectItem value="completed">تکمیل شده</SelectItem>
-                  <SelectItem value="failed">رد شده</SelectItem>
-                </SelectContent>
-              </Select>
+        <div className="bg-card text-card-foreground border border-border/70 rounded-2xl p-3 sm:p-4 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-
-            <div className="hidden md:block">
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-32 h-8 text-xs" data-testid="select-type-filter">
-                  <SelectValue placeholder="نوع تراکنش" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">همه</SelectItem>
-                  <SelectItem value="deposit">واریز</SelectItem>
-                  <SelectItem value="withdraw">برداشت</SelectItem>
-                  <SelectItem value="order_payment">پرداخت سفارش</SelectItem>
-                  <SelectItem value="commission">کمیسیون</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground font-medium">تکمیل شده</p>
+              <p className="text-base sm:text-xl font-bold text-emerald-600 dark:text-emerald-400" data-testid="stat-completed">
+                {stats.completed}
+              </p>
             </div>
+          </div>
+        </div>
 
-            {(statusFilter !== "all" || typeFilter !== "all" || searchTerm) && (
-              <Button 
-                variant="ghost" 
+        <div className="bg-card text-card-foreground border border-border/70 rounded-2xl p-3 sm:p-4 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 shrink-0">
+              <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground font-medium">رد شده</p>
+              <p className="text-base sm:text-xl font-bold text-rose-600 dark:text-rose-400" data-testid="stat-failed">
+                {stats.failed}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters Card */}
+      <div className="bg-card text-card-foreground border border-border/70 rounded-2xl p-3 sm:p-4 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1 w-full">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="جستجو (کد پیگیری، شماره حساب، تاریخ...)"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              data-testid="input-search"
+              className="pr-9 pl-3 h-9 sm:h-10 text-xs sm:text-sm bg-background border-border/70 rounded-xl"
+            />
+          </div>
+
+          {/* Filter Dropdowns - Fully Accessible on Mobile and Desktop */}
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm w-full sm:w-36 rounded-xl bg-background border-border/70" data-testid="select-status-filter">
+                <SelectValue placeholder="وضعیت" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+                <SelectItem value="pending">در انتظار</SelectItem>
+                <SelectItem value="completed">تکمیل شده</SelectItem>
+                <SelectItem value="failed">رد شده</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm w-full sm:w-40 rounded-xl bg-background border-border/70" data-testid="select-type-filter">
+                <SelectValue placeholder="نوع تراکنش" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">همه انواع</SelectItem>
+                <SelectItem value="deposit">واریز</SelectItem>
+                <SelectItem value="withdraw">برداشت</SelectItem>
+                <SelectItem value="order_payment">پرداخت سفارش</SelectItem>
+                <SelectItem value="commission">کمیسیون</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Clear Filters indicator */}
+        {hasActiveFilters && (
+          <div className="flex items-center justify-between pt-2 border-t border-border/50 text-xs">
+            <span className="text-muted-foreground flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5" />
+              فیلترهای فعال در حال اعمال هستند
+            </span>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => {
+                setStatusFilter("all");
+                setTypeFilter("all");
+                setSearchTerm("");
+              }}
+              data-testid="button-clear-filters"
+              className="text-xs h-7 px-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg gap-1"
+            >
+              <X className="w-3.5 h-3.5" />
+              پاک کردن فیلترها
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Transactions Container */}
+      <div className="w-full">
+        {filteredTransactions.length === 0 ? (
+          <div className="bg-card text-card-foreground border border-border/70 rounded-2xl p-8 sm:p-12 text-center flex flex-col items-center justify-center space-y-3">
+            <div className="w-14 h-14 rounded-2xl bg-muted/60 flex items-center justify-center text-muted-foreground">
+              <Receipt className="w-7 h-7" />
+            </div>
+            <h3 className="text-base sm:text-lg font-bold text-foreground">
+              تراکنشی یافت نشد
+            </h3>
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-sm">
+              با فیلترها و عبارت جستجوی انتخاب شده تراکنشی وجود ندارد.
+            </p>
+            {hasActiveFilters && (
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => {
                   setStatusFilter("all");
                   setTypeFilter("all");
                   setSearchTerm("");
                 }}
-                data-testid="button-clear-filters"
-                className="text-xs h-8 px-2"
+                className="mt-2 text-xs rounded-xl"
               >
-                ✕ پاک کردن
+                حذف فیلترها و نمایش همه
               </Button>
             )}
           </div>
-        </div>
-
-        {/* Transactions Table */}
-        <div className="bg-white dark:bg-gray-800 border rounded-lg overflow-hidden">
-          {filteredTransactions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <DollarSign className="w-16 h-16 text-gray-400 dark:text-gray-600 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                تراکنشی یافت نشد
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400 text-center">
-                با فیلترهای انتخاب شده تراکنشی موجود نیست
-              </p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-right">نوع تراکنش</TableHead>
-                  <TableHead className="text-right">مبلغ</TableHead>
-                  <TableHead className="text-right">وضعیت</TableHead>
-                  <TableHead className="text-right">تاریخ انجام</TableHead>
-                  <TableHead className="text-right">حساب</TableHead>
-                  <TableHead className="text-right">کد پیگیری</TableHead>
-                  <TableHead className="text-right">عملیات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTransactions.map((transaction) => (
-                  <TableRow key={transaction.id} data-testid={`transaction-${transaction.id}`}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className={`p-1 rounded-full ${transactionColors[transaction.type as keyof typeof transactionColors]}`}>
-                          {transaction.type === 'deposit' && <TrendingUp className="w-3 h-3" />}
-                          {transaction.type === 'withdraw' && <TrendingDown className="w-3 h-3" />}
-                          {transaction.type === 'order_payment' && <DollarSign className="w-3 h-3" />}
-                          {transaction.type === 'commission' && <DollarSign className="w-3 h-3" />}
-                        </div>
-                        <span className="text-sm font-medium">
-                          {transactionLabels[transaction.type as keyof typeof transactionLabels]}
-                        </span>
+        ) : (
+          <>
+            {/* Mobile View: Clean Responsive Cards (Visible on screens smaller than md) */}
+            <div className="block md:hidden space-y-3">
+              {filteredTransactions.map((transaction) => (
+                <div 
+                  key={transaction.id} 
+                  data-testid={`transaction-${transaction.id}`}
+                  className="bg-card text-card-foreground border border-border/70 rounded-2xl p-3.5 shadow-xs space-y-3 transition-all hover:border-primary/40"
+                >
+                  {/* Top Bar: Type Badge & Status Badge */}
+                  <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className={`p-1.5 rounded-xl border ${transactionColors[transaction.type as keyof typeof transactionColors] || 'bg-muted'}`}>
+                        {transaction.type === 'deposit' && <TrendingUp className="w-3.5 h-3.5" />}
+                        {transaction.type === 'withdraw' && <TrendingDown className="w-3.5 h-3.5" />}
+                        {transaction.type === 'order_payment' && <DollarSign className="w-3.5 h-3.5" />}
+                        {transaction.type === 'commission' && <DollarSign className="w-3.5 h-3.5" />}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-bold" data-testid={`amount-${transaction.id}`}>
-                        {formatPrice(Number(transaction.amount))}
+                      <span className="text-xs font-bold text-foreground">
+                        {transactionLabels[transaction.type as keyof typeof transactionLabels] || transaction.type}
                       </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={`${statusColors[transaction.status as keyof typeof statusColors]} text-xs`}>
-                        {statusLabels[transaction.status as keyof typeof statusLabels]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {transaction.transactionDate && (
-                          <div>{transaction.transactionDate}</div>
-                        )}
-                        {transaction.transactionTime && (
-                          <div className="text-gray-500 text-xs">{transaction.transactionTime}</div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">
-                        {transaction.accountSource || '-'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm font-mono">
-                        {transaction.referenceId || '-'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-xs px-2 py-1 h-auto"
-                        onClick={() => handleStatusChange(transaction)}
-                        data-testid={`button-edit-${transaction.id}`}
-                      >
-                        تغییر
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </div>
+                    </div>
 
-        {/* Status Update Dialog */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="sm:max-w-[400px]">
-            <DialogHeader>
-              <DialogTitle>تغییر وضعیت تراکنش</DialogTitle>
-              <DialogDescription>
-                وضعیت جدید تراکنش را انتخاب کنید
-              </DialogDescription>
-            </DialogHeader>
-
-            {selectedTransaction && (
-              <div className="space-y-4">
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-medium">
-                      {transactionLabels[selectedTransaction.type as keyof typeof transactionLabels]}
-                    </span>
-                    <Badge className={transactionColors[selectedTransaction.type as keyof typeof transactionColors]}>
-                      {formatPrice(Number(selectedTransaction.amount))}
+                    <Badge className={`text-[11px] font-medium px-2 py-0.5 rounded-lg border ${statusColors[transaction.status as keyof typeof statusColors] || ''}`}>
+                      {statusLabels[transaction.status as keyof typeof statusLabels] || transaction.status}
                     </Badge>
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
-                    {selectedTransaction.transactionDate && (
-                      <p>تاریخ انجام: {selectedTransaction.transactionDate}</p>
-                    )}
-                    {selectedTransaction.transactionTime && (
-                      <p>ساعت انجام: {selectedTransaction.transactionTime}</p>
-                    )}
-                    {selectedTransaction.accountSource && (
-                      <p>از حساب: {selectedTransaction.accountSource}</p>
-                    )}
+
+                  {/* Middle Info: Amount & Details */}
+                  <div className="space-y-2">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-xs text-muted-foreground">مبلغ تراکنش:</span>
+                      <span className="text-sm font-extrabold text-foreground tracking-tight" data-testid={`amount-${transaction.id}`}>
+                        {formatPrice(Number(transaction.amount))}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-1.5 pt-1 text-xs text-muted-foreground bg-muted/30 p-2.5 rounded-xl border border-border/40">
+                      {transaction.transactionDate && (
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            تاریخ و زمان:
+                          </span>
+                          <span className="font-medium text-foreground dir-ltr">
+                            {transaction.transactionDate} {transaction.transactionTime ? ` - ${transaction.transactionTime}` : ''}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <CreditCard className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          شماره/منبع حساب:
+                        </span>
+                        <span className="font-medium text-foreground dir-ltr truncate max-w-[180px]">
+                          {transaction.accountSource || '-'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <Hash className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          کد پیگیری:
+                        </span>
+                        <span className="font-mono font-bold text-foreground text-[11px] dir-ltr">
+                          {transaction.referenceId || '-'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label>وضعیت جدید</Label>
-                  <Select value={newStatus} onValueChange={setNewStatus}>
-                    <SelectTrigger data-testid="select-new-status">
-                      <SelectValue placeholder="انتخاب وضعیت" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">در انتظار بررسی</SelectItem>
-                      <SelectItem value="completed">تکمیل شده</SelectItem>
-                      <SelectItem value="failed">رد شده</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {/* Action Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-9 text-xs font-semibold rounded-xl border-border/80 gap-1.5 hover:bg-primary hover:text-primary-foreground transition-colors"
+                    onClick={() => handleStatusChange(transaction)}
+                    data-testid={`button-edit-${transaction.id}`}
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    تغییر وضعیت تراکنش
+                  </Button>
                 </div>
+              ))}
+            </div>
 
-                <div className="flex gap-3 pt-4">
-                  <Button 
-                    onClick={handleStatusUpdate}
-                    disabled={updateStatusMutation.isPending || !newStatus || newStatus === selectedTransaction.status}
-                    data-testid="button-confirm-status"
-                    size="lg"
-                  >
-                    {updateStatusMutation.isPending ? "در حال به‌روزرسانی..." : "تایید"}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setDialogOpen(false)}
-                    data-testid="button-cancel-status"
-                    size="lg"
-                  >
-                    لغو
-                  </Button>
+            {/* Desktop View: Full Responsive Table (Visible on md screens and larger) */}
+            <div className="hidden md:block bg-card text-card-foreground border border-border/70 rounded-2xl overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-muted/50">
+                    <TableRow className="border-b border-border/60 hover:bg-transparent">
+                      <TableHead className="text-right font-bold text-xs text-foreground py-3.5">نوع تراکنش</TableHead>
+                      <TableHead className="text-right font-bold text-xs text-foreground py-3.5">مبلغ</TableHead>
+                      <TableHead className="text-right font-bold text-xs text-foreground py-3.5">وضعیت</TableHead>
+                      <TableHead className="text-right font-bold text-xs text-foreground py-3.5">تاریخ و زمان انجام</TableHead>
+                      <TableHead className="text-right font-bold text-xs text-foreground py-3.5">حساب منبع</TableHead>
+                      <TableHead className="text-right font-bold text-xs text-foreground py-3.5">کد پیگیری</TableHead>
+                      <TableHead className="text-center font-bold text-xs text-foreground py-3.5">عملیات</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTransactions.map((transaction) => (
+                      <TableRow key={transaction.id} data-testid={`transaction-${transaction.id}`} className="border-b border-border/40 hover:bg-muted/30 transition-colors">
+                        <TableCell className="py-3">
+                          <div className="flex items-center gap-2">
+                            <div className={`p-1.5 rounded-xl border ${transactionColors[transaction.type as keyof typeof transactionColors] || 'bg-muted'}`}>
+                              {transaction.type === 'deposit' && <TrendingUp className="w-3.5 h-3.5" />}
+                              {transaction.type === 'withdraw' && <TrendingDown className="w-3.5 h-3.5" />}
+                              {transaction.type === 'order_payment' && <DollarSign className="w-3.5 h-3.5" />}
+                              {transaction.type === 'commission' && <DollarSign className="w-3.5 h-3.5" />}
+                            </div>
+                            <span className="text-xs font-bold text-foreground">
+                              {transactionLabels[transaction.type as keyof typeof transactionLabels] || transaction.type}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <span className="font-extrabold text-sm text-foreground tracking-tight" data-testid={`amount-${transaction.id}`}>
+                            {formatPrice(Number(transaction.amount))}
+                          </span>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <Badge className={`text-xs px-2.5 py-0.5 rounded-lg border ${statusColors[transaction.status as keyof typeof statusColors] || ''}`}>
+                            {statusLabels[transaction.status as keyof typeof statusLabels] || transaction.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <div className="text-xs">
+                            {transaction.transactionDate && (
+                              <div className="font-medium text-foreground">{transaction.transactionDate}</div>
+                            )}
+                            {transaction.transactionTime && (
+                              <div className="text-muted-foreground text-[11px] mt-0.5">{transaction.transactionTime}</div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <span className="text-xs font-medium dir-ltr text-foreground">
+                            {transaction.accountSource || '-'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <span className="text-xs font-mono font-bold text-foreground dir-ltr">
+                            {transaction.referenceId || '-'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="py-3 text-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs px-3 h-8 rounded-xl font-medium border-border/80 hover:bg-primary hover:text-primary-foreground transition-colors"
+                            onClick={() => handleStatusChange(transaction)}
+                            data-testid={`button-edit-${transaction.id}`}
+                          >
+                            تغییر وضعیت
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Status Update Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="w-[92vw] max-w-[420px] rounded-2xl p-4 sm:p-6 dir-rtl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg font-bold">تغییر وضعیت تراکنش</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
+              وضعیت جدید را برای این تراکنش انتخاب کرده و ثبت کنید.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedTransaction && (
+            <div className="space-y-4 pt-2">
+              <div className="p-3.5 bg-muted/50 rounded-2xl border border-border/60 space-y-2">
+                <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2">
+                  <span className="font-bold text-xs sm:text-sm text-foreground">
+                    {transactionLabels[selectedTransaction.type as keyof typeof transactionLabels] || selectedTransaction.type}
+                  </span>
+                  <Badge className={`text-xs ${transactionColors[selectedTransaction.type as keyof typeof transactionColors] || ''}`}>
+                    {formatPrice(Number(selectedTransaction.amount))}
+                  </Badge>
+                </div>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  {selectedTransaction.transactionDate && (
+                    <p className="flex justify-between">
+                      <span>تاریخ انجام:</span>
+                      <span className="font-medium text-foreground">{selectedTransaction.transactionDate}</span>
+                    </p>
+                  )}
+                  {selectedTransaction.transactionTime && (
+                    <p className="flex justify-between">
+                      <span>ساعت انجام:</span>
+                      <span className="font-medium text-foreground">{selectedTransaction.transactionTime}</span>
+                    </p>
+                  )}
+                  {selectedTransaction.accountSource && (
+                    <p className="flex justify-between">
+                      <span>از حساب:</span>
+                      <span className="font-medium text-foreground dir-ltr">{selectedTransaction.accountSource}</span>
+                    </p>
+                  )}
+                  {selectedTransaction.referenceId && (
+                    <p className="flex justify-between">
+                      <span>کد پیگیری:</span>
+                      <span className="font-mono font-bold text-foreground dir-ltr">{selectedTransaction.referenceId}</span>
+                    </p>
+                  )}
                 </div>
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
-      </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs sm:text-sm font-semibold">وضعیت جدید</Label>
+                <Select value={newStatus} onValueChange={setNewStatus}>
+                  <SelectTrigger className="h-10 text-xs sm:text-sm rounded-xl" data-testid="select-new-status">
+                    <SelectValue placeholder="انتخاب وضعیت..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">در انتظار بررسی</SelectItem>
+                    <SelectItem value="completed">تکمیل شده</SelectItem>
+                    <SelectItem value="failed">رد شده</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <Button 
+                  onClick={handleStatusUpdate}
+                  disabled={updateStatusMutation.isPending || !newStatus || newStatus === selectedTransaction.status}
+                  data-testid="button-confirm-status"
+                  className="flex-1 h-10 text-xs sm:text-sm font-bold rounded-xl"
+                >
+                  {updateStatusMutation.isPending ? (
+                    <span className="flex items-center gap-1.5">
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      در حال ثبت...
+                    </span>
+                  ) : "تایید و بروزرسانی"}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setDialogOpen(false)}
+                  data-testid="button-cancel-status"
+                  className="h-10 text-xs sm:text-sm font-medium rounded-xl border-border/80"
+                >
+                  لغو
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -10,7 +10,7 @@
 
 ```bash
 # ۱. کلون کردن مخزن از گیت‌هاب
-git clone https://github.com/ehsanbabavu/dargah2.git
+git clone https://github.com/ehsanbabagoli71/dargah2.git
 
 # ۲. ورود به پوشه پروژه
 cd dargah2

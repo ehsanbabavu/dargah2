@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import Home from "@/pages/home";
+import Home from "@/pages/landing/home";
 import { LogIn, UserPlus, Store } from "lucide-react";
 import { GuestChatWidget } from "@/components/guest-chat-widget";
 
