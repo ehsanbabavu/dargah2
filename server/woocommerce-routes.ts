@@ -31,9 +31,23 @@ export function registerWooCommerceRoutes(
     next();
   });
 
-  const requireLevel1 = (req: any, res: Response, next: NextFunction) => {
+  const requireLevel1 = async (req: any, res: Response, next: NextFunction) => {
     if (!req.user || (req.user.role !== "user_level_1" && req.user.role !== "admin")) {
       return res.status(403).json({ message: "دسترسی غیرمجاز. این امکان ویژه کاربران سطح ۱ است." });
+    }
+    if (req.user.role === "user_level_1") {
+      try {
+        const sub = await storage.getUserSubscription(req.user.id);
+        const isSubActive = sub && sub.status === "active" && (sub.remainingDays === undefined || sub.remainingDays > 0);
+        if (!isSubActive) {
+          return res.status(403).json({
+            code: "SUBSCRIPTION_EXPIRED",
+            message: "اشتراک شما به پایان رسیده است. جهت دسترسی، لطفاً نسبت به تمدید اشتراک اقدام نمایید."
+          });
+        }
+      } catch (err) {
+        console.error("Error verifying subscription:", err);
+      }
     }
     next();
   };

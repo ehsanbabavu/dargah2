@@ -57,9 +57,10 @@ import TelegramBotPage from "@/pages/admin/telegram-bot";
 import AdminGatewayManagementPage from "@/pages/admin/gateway-management";
 import PublicLanding from "@/components/public-landing";
 import BuySubscriptionPage from "@/pages/user/buy-subscription";
+import { ExpiredSubscriptionCard } from "@/components/expired-subscription-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Ticket, Send, Clock, Crown } from "lucide-react";
+import { Ticket, Send, Clock, Crown, User } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 interface MaintenanceStatus {
@@ -89,40 +90,8 @@ function MaintenanceCheck({ children, userRole }: { children: React.ReactNode; u
 function ExpiredSubscriptionPage() {
   return (
     <DashboardLayout title="اشتراک منقضی شده">
-      <div className="min-h-[60vh] flex items-center justify-center p-3 sm:p-4">
-        <Card className="w-full max-w-lg border-amber-200 dark:border-amber-900 rounded-2xl sm:rounded-3xl shadow-lg">
-          <CardHeader className="text-center pb-2">
-            <div className="mx-auto mb-3 rounded-2xl bg-amber-100 dark:bg-amber-950/60 p-3 text-amber-700 dark:text-amber-300 w-fit">
-              <Clock className="h-8 w-8" />
-            </div>
-            <CardTitle className="text-base sm:text-lg font-black">اشتراک شما به پایان رسیده است</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-center">
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              برای فعال شدن دوباره امکانات سامانه و درگاه، می‌توانید هم‌اکنون اشتراک خود را تمدید نمایید یا از طریق تیکت با پشتیبانی در ارتباط باشید.
-            </p>
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center pt-2">
-              <Button asChild className="h-10 text-xs font-bold rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white">
-                <Link href="/buy-subscription">
-                  <Crown className="ml-1.5 h-4 w-4" />
-                  خرید و تمدید اشتراک
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="h-10 text-xs font-bold rounded-xl">
-                <Link href="/send-ticket">
-                  <Send className="ml-1.5 h-4 w-4" />
-                  ارسال تیکت
-                </Link>
-              </Button>
-              <Button asChild variant="ghost" className="h-10 text-xs font-bold rounded-xl">
-                <Link href="/my-tickets">
-                  <Ticket className="ml-1.5 h-4 w-4" />
-                  تیکت‌های من
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="min-h-[60vh] md:min-h-0 flex items-center justify-center p-2 sm:p-4 md:py-8">
+        <ExpiredSubscriptionCard />
       </div>
     </DashboardLayout>
   );
@@ -136,8 +105,13 @@ function SubscriptionGate({ children }: { children: React.ReactNode }) {
     || location.startsWith("/my-tickets/")
     || location.startsWith("/send-ticket/")
     || location === "/profile"
+    || location.startsWith("/profile/")
+    || location.startsWith("/profile?")
+    || location.startsWith("/profile")
     || location === "/buy-subscription"
-    || location === "/subscriptions";
+    || location.startsWith("/buy-subscription")
+    || location === "/subscriptions"
+    || location.startsWith("/subscriptions");
 
   const { data: subscription, isLoading } = useQuery<{
     status: string;
@@ -153,8 +127,9 @@ function SubscriptionGate({ children }: { children: React.ReactNode }) {
       return response.json();
     },
     enabled: !!user && user.role === "user_level_1",
-    staleTime: 30000,
-    refetchInterval: 60000,
+    staleTime: 5000,
+    refetchOnMount: "always",
+    refetchInterval: 15000,
   });
 
   if (user?.role !== "user_level_1" || canUseTickets) {
@@ -361,7 +336,11 @@ function Level1Route({ component: Component }: { component: React.ComponentType 
     </div>;
   }
   
-  return <Component />;
+  return (
+    <SubscriptionGate>
+      <Component />
+    </SubscriptionGate>
+  );
 }
 
 function WithLayout(Component: React.ComponentType, title: string) {

@@ -1000,56 +1000,113 @@ export class MemStorage implements IStorage {
   }
 
   // User Subscriptions
-  async getUserSubscription(userId: string): Promise<UserSubscription & { subscriptionName?: string | null; subscriptionDescription?: string | null } | undefined> {
-    const userSub = Array.from(this.userSubscriptions.values())
-      .filter(sub => sub.userId === userId)
-      .sort((a, b) => (b.endDate?.getTime() || 0) - (a.endDate?.getTime() || 0))[0];
-    if (!userSub) return undefined;
+  private normalizeUserSubscription(userSub: UserSubscription): UserSubscription {
+    let endDate = userSub.endDate ? new Date(userSub.endDate) : null;
+    const startDate = userSub.startDate ? new Date(userSub.startDate) : (userSub.createdAt ? new Date(userSub.createdAt) : new Date());
 
-    const endDateTime = userSub.endDate ? new Date(userSub.endDate).getTime() : 0;
-    const remainingDays = endDateTime > 0 ? Math.max(0, Math.ceil((endDateTime - Date.now()) / (24 * 60 * 60 * 1000))) : 0;
-    const status = remainingDays > 0 ? 'active' : 'expired';
-    const currentSubscription = userSub.remainingDays === remainingDays && userSub.status === status
-      ? userSub
-      : {
-          ...userSub,
-          remainingDays,
-          status,
-          updatedAt: new Date(),
-        };
-
-    if (currentSubscription !== userSub) {
-      this.userSubscriptions.set(userSub.id, currentSubscription);
+    // If endDate is missing or invalid but remainingDays > 0, calculate endDate from now
+    if ((!endDate || isNaN(endDate.getTime())) && typeof userSub.remainingDays === 'number' && userSub.remainingDays > 0) {
+      endDate = new Date(Date.now() + userSub.remainingDays * 24 * 60 * 60 * 1000);
     }
+
+    const endDateTime = endDate && !isNaN(endDate.getTime()) ? endDate.getTime() : 0;
+    let remainingDays = 0;
+    if (endDateTime > 0) {
+      const diffMs = endDateTime - Date.now();
+      remainingDays = diffMs > 0 ? Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000))) : 0;
+    }
+
+    const status = remainingDays > 0 
+      ? (userSub.status === 'suspended' ? 'suspended' : 'active') 
+      : 'expired';
+
+    const normalized: UserSubscription = {
+      ...userSub,
+      startDate,
+      endDate: endDate || userSub.endDate,
+      remainingDays,
+      status,
+    };
+
+    if (
+      userSub.remainingDays !== remainingDays ||
+      userSub.status !== status ||
+      userSub.endDate !== normalized.endDate
+    ) {
+      normalized.updatedAt = new Date();
+      this.userSubscriptions.set(userSub.id, normalized);
+    }
+
+    return normalized;
+  }
+
+  async getUserSubscription(userId: string): Promise<UserSubscription & { subscriptionName?: string | null; subscriptionDescription?: string | null } | undefined> {
+    const rawSubs = Array.from(this.userSubscriptions.values())
+      .filter(sub => sub.userId === userId);
+    if (rawSubs.length === 0) return undefined;
+
+    // Normalize each subscription according to current real-time clock
+    const userSubs = rawSubs.map(sub => this.normalizeUserSubscription(sub));
+
+    // Prioritize active subscriptions with highest remaining days, then most recent
+    userSubs.sort((a, b) => {
+      const aActive = (a.status === 'active' && a.remainingDays > 0) ? 1 : 0;
+      const bActive = (b.status === 'active' && b.remainingDays > 0) ? 1 : 0;
+      if (aActive !== bActive) return bActive - aActive;
+      if (a.remainingDays !== b.remainingDays) return b.remainingDays - a.remainingDays;
+      const aTime = new Date(a.updatedAt || a.createdAt || a.startDate || 0).getTime();
+      const bTime = new Date(b.updatedAt || b.createdAt || b.startDate || 0).getTime();
+      return bTime - aTime;
+    });
+
+    const userSub = userSubs[0];
+    if (!userSub) return undefined;
 
     const subscription = this.subscriptions.get(userSub.subscriptionId);
     return {
-      ...currentSubscription,
+      ...userSub,
       subscriptionName: subscription?.name,
       subscriptionDescription: subscription?.description,
     };
   }
 
   async getUserSubscriptionsByUserId(userId: string): Promise<UserSubscription[]> {
-    return Array.from(this.userSubscriptions.values()).filter(sub => sub.userId === userId);
+    const rawSubs = Array.from(this.userSubscriptions.values()).filter(sub => sub.userId === userId);
+    return rawSubs.map(sub => this.normalizeUserSubscription(sub));
   }
 
   async getUserSubscriptionById(id: string): Promise<UserSubscription | undefined> {
-    return this.userSubscriptions.get(id);
+    const raw = this.userSubscriptions.get(id);
+    if (!raw) return undefined;
+    return this.normalizeUserSubscription(raw);
   }
 
   async getAllUserSubscriptions(): Promise<UserSubscription[]> {
-    return Array.from(this.userSubscriptions.values());
+    return Array.from(this.userSubscriptions.values()).map(sub => this.normalizeUserSubscription(sub));
   }
 
   async createUserSubscription(insertUserSubscription: InsertUserSubscription): Promise<UserSubscription> {
     const id = randomUUID();
+    const startDate = insertUserSubscription.startDate ? new Date(insertUserSubscription.startDate) : new Date();
+    let remainingDays = typeof insertUserSubscription.remainingDays === 'number' ? Math.max(0, Math.floor(insertUserSubscription.remainingDays)) : 0;
+    
+    let endDate = insertUserSubscription.endDate ? new Date(insertUserSubscription.endDate) : null;
+    if ((!endDate || isNaN(endDate.getTime())) && remainingDays > 0) {
+      endDate = new Date(Date.now() + remainingDays * 24 * 60 * 60 * 1000);
+    } else if (endDate && !isNaN(endDate.getTime())) {
+      const diffMs = endDate.getTime() - Date.now();
+      remainingDays = diffMs > 0 ? Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000))) : 0;
+    }
+
+    const status = remainingDays > 0 ? (insertUserSubscription.status || 'active') : 'expired';
+
     const userSubscription: UserSubscription = {
       ...insertUserSubscription,
       id,
-      status: insertUserSubscription.status || 'active',
-      startDate: insertUserSubscription.startDate || new Date(),
-      remainingDays: insertUserSubscription.remainingDays || 0,
+      status,
+      startDate,
+      endDate: endDate || new Date(),
+      remainingDays,
       isTrialPeriod: insertUserSubscription.isTrialPeriod || false,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -1059,12 +1116,37 @@ export class MemStorage implements IStorage {
   }
 
   async updateUserSubscription(id: string, updates: Partial<UserSubscription>): Promise<UserSubscription | undefined> {
-    const userSubscription = this.userSubscriptions.get(id);
-    if (!userSubscription) return undefined;
+    const existing = this.userSubscriptions.get(id);
+    if (!existing) return undefined;
     
-    const updatedUserSubscription = { 
-      ...userSubscription, 
+    let remainingDays = updates.remainingDays !== undefined ? updates.remainingDays : existing.remainingDays;
+    let endDate = updates.endDate !== undefined 
+      ? (updates.endDate ? new Date(updates.endDate) : null) 
+      : (existing.endDate ? new Date(existing.endDate) : null);
+
+    if (updates.remainingDays !== undefined && updates.endDate === undefined) {
+      if (remainingDays > 0) {
+        endDate = new Date(Date.now() + remainingDays * 24 * 60 * 60 * 1000);
+      } else {
+        endDate = new Date();
+      }
+    } else if (updates.endDate !== undefined && updates.remainingDays === undefined) {
+      if (endDate && !isNaN(endDate.getTime())) {
+        const diffMs = endDate.getTime() - Date.now();
+        remainingDays = diffMs > 0 ? Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000))) : 0;
+      }
+    }
+
+    const status = updates.status !== undefined 
+      ? updates.status 
+      : (remainingDays > 0 ? 'active' : 'expired');
+
+    const updatedUserSubscription: UserSubscription = { 
+      ...existing, 
       ...updates,
+      endDate: endDate || existing.endDate,
+      remainingDays,
+      status,
       updatedAt: new Date()
     };
     this.userSubscriptions.set(id, updatedUserSubscription);
@@ -1081,10 +1163,14 @@ export class MemStorage implements IStorage {
     
     const normalizedDays = Math.max(0, Math.floor(remainingDays));
     const status = normalizedDays <= 0 ? 'expired' : 'active';
-    const updatedUserSubscription = { 
+    const endDate = normalizedDays > 0 
+      ? new Date(Date.now() + normalizedDays * 24 * 60 * 60 * 1000)
+      : new Date();
+
+    const updatedUserSubscription: UserSubscription = { 
       ...userSubscription, 
       remainingDays: normalizedDays,
-      endDate: new Date(Date.now() + normalizedDays * 24 * 60 * 60 * 1000),
+      endDate,
       status,
       updatedAt: new Date()
     };
@@ -1093,11 +1179,13 @@ export class MemStorage implements IStorage {
   }
 
   async getActiveUserSubscriptions(): Promise<UserSubscription[]> {
-    return Array.from(this.userSubscriptions.values()).filter(sub => sub.status === 'active');
+    const all = await this.getAllUserSubscriptions();
+    return all.filter(sub => sub.status === 'active' && sub.remainingDays > 0);
   }
 
   async getExpiredUserSubscriptions(): Promise<UserSubscription[]> {
-    return Array.from(this.userSubscriptions.values()).filter(sub => sub.status === 'expired');
+    const all = await this.getAllUserSubscriptions();
+    return all.filter(sub => sub.status === 'expired' || sub.remainingDays <= 0);
   }
 
   // Categories

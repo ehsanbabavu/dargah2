@@ -31,7 +31,9 @@ export default function BuySubscriptionPage() {
       if (!res.ok) return null;
       return res.json();
     },
-    refetchInterval: 60000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchInterval: 15000,
   });
 
   // Active plans from admin management
@@ -42,6 +44,8 @@ export default function BuySubscriptionPage() {
       if (!res.ok) return [];
       return res.json();
     },
+    staleTime: 5000,
+    refetchOnMount: "always",
   });
 
   const subscribeMutation = useMutation({
@@ -121,7 +125,7 @@ export default function BuySubscriptionPage() {
               <Sparkles className="w-4 h-4 text-amber-500" />
               <span>پلن‌های فعال سیستم</span>
             </h2>
-            <Link href="/tickets">
+            <Link href="/send-ticket">
               <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1.5">
                 <TicketIcon className="w-3.5 h-3.5" />
                 <span>پشتیبانی و تیکت</span>
@@ -158,7 +162,11 @@ export default function BuySubscriptionPage() {
                 const originalPriceNum = sub.priceBeforeDiscount ? parseFloat(sub.priceBeforeDiscount) : 0;
                 const hasDiscount = originalPriceNum > 0 && originalPriceNum > priceNum;
                 const isMonthly = sub.duration === "monthly";
-                const features = Array.isArray(sub.features) ? sub.features : [];
+                const features: string[] = Array.isArray(sub.features) 
+                  ? sub.features 
+                  : typeof sub.features === "string" 
+                    ? (() => { try { return JSON.parse(sub.features); } catch { return [sub.features]; } })() 
+                    : [];
 
                 return (
                   <div

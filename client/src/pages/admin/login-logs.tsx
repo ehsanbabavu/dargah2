@@ -43,9 +43,12 @@ export default function LoginLogs() {
   });
 
   const filteredLogs = data?.logs?.filter(log => {
-    const matchesSearch = log.username.toLowerCase().includes(search.toLowerCase()) ||
-      log.ipAddress?.includes(search) ||
-      log.userAgent?.toLowerCase().includes(search.toLowerCase());
+    const q = (search || "").toLowerCase().trim();
+    const matchesSearch = !q || (
+      Boolean(log.username && log.username.toLowerCase().includes(q)) ||
+      Boolean(log.ipAddress && log.ipAddress.includes(search)) ||
+      Boolean(log.userAgent && log.userAgent.toLowerCase().includes(q))
+    );
     
     if (!selectedDate) return matchesSearch;
     

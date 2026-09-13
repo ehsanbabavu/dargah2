@@ -832,8 +832,36 @@ export class DbStorage implements IStorage {
   }
 
   // User Subscriptions
+  private normalizeUserSubscription(userSub: UserSubscription): UserSubscription {
+    let endDate = userSub.endDate ? new Date(userSub.endDate) : null;
+    const startDate = userSub.startDate ? new Date(userSub.startDate) : (userSub.createdAt ? new Date(userSub.createdAt) : new Date());
+
+    if ((!endDate || isNaN(endDate.getTime())) && typeof userSub.remainingDays === 'number' && userSub.remainingDays > 0) {
+      endDate = new Date(Date.now() + userSub.remainingDays * 24 * 60 * 60 * 1000);
+    }
+
+    const endDateTime = endDate && !isNaN(endDate.getTime()) ? endDate.getTime() : 0;
+    let remainingDays = 0;
+    if (endDateTime > 0) {
+      const diffMs = endDateTime - Date.now();
+      remainingDays = diffMs > 0 ? Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000))) : 0;
+    }
+
+    const status = remainingDays > 0 
+      ? (userSub.status === 'suspended' ? 'suspended' : 'active') 
+      : 'expired';
+
+    return {
+      ...userSub,
+      startDate,
+      endDate: endDate || userSub.endDate,
+      remainingDays,
+      status,
+    };
+  }
+
   async getUserSubscription(userId: string): Promise<UserSubscription & { subscriptionName?: string | null; subscriptionDescription?: string | null } | undefined> {
-    const result = await db.select({
+    const rawList = await db.select({
       id: userSubscriptions.id,
       userId: userSubscriptions.userId,
       subscriptionId: userSubscriptions.subscriptionId,
@@ -849,55 +877,123 @@ export class DbStorage implements IStorage {
     })
     .from(userSubscriptions)
     .innerJoin(subscriptions, eq(userSubscriptions.subscriptionId, subscriptions.id))
-    .where(eq(userSubscriptions.userId, userId))
-    .orderBy(desc(userSubscriptions.endDate))
-    .limit(1);
-    const userSubscription = result[0];
+    .where(eq(userSubscriptions.userId, userId));
+
+    if (rawList.length === 0) return undefined;
+
+    const list = rawList.map((item: typeof rawList[0]) => {
+      const normalized = this.normalizeUserSubscription(item as UserSubscription);
+      return {
+        ...normalized,
+        subscriptionName: item.subscriptionName,
+        subscriptionDescription: item.subscriptionDescription,
+      };
+    });
+
+    list.sort((a: UserSubscription, b: UserSubscription) => {
+      const aActive = (a.status === 'active' && a.remainingDays > 0) ? 1 : 0;
+      const bActive = (b.status === 'active' && b.remainingDays > 0) ? 1 : 0;
+      if (aActive !== bActive) return bActive - aActive;
+      if (a.remainingDays !== b.remainingDays) return b.remainingDays - a.remainingDays;
+      const aTime = new Date(a.updatedAt || a.createdAt || a.startDate || 0).getTime();
+      const bTime = new Date(b.updatedAt || b.createdAt || b.startDate || 0).getTime();
+      return bTime - aTime;
+    });
+
+    const userSubscription = list[0];
     if (!userSubscription) return undefined;
 
-    const endDateTime = userSubscription.endDate ? new Date(userSubscription.endDate).getTime() : 0;
-    const remainingDays = endDateTime > 0 ? Math.max(0, Math.ceil((endDateTime - Date.now()) / (24 * 60 * 60 * 1000))) : 0;
-    const status = remainingDays > 0 ? 'active' : 'expired';
-    if (userSubscription.remainingDays !== remainingDays || userSubscription.status !== status) {
-      const updated = await db.update(userSubscriptions)
-        .set({ remainingDays, status, updatedAt: new Date() })
-        .where(eq(userSubscriptions.id, userSubscription.id))
-        .returning();
-      if (updated[0]) {
-        return {
-          ...updated[0],
-          subscriptionName: userSubscription.subscriptionName,
-          subscriptionDescription: userSubscription.subscriptionDescription,
-        };
-      }
+    const rawMatch = rawList.find((r: typeof rawList[0]) => r.id === userSubscription.id);
+    if (rawMatch && (rawMatch.remainingDays !== userSubscription.remainingDays || rawMatch.status !== userSubscription.status)) {
+      await db.update(userSubscriptions)
+        .set({ 
+          remainingDays: userSubscription.remainingDays, 
+          status: userSubscription.status, 
+          endDate: userSubscription.endDate,
+          updatedAt: new Date() 
+        })
+        .where(eq(userSubscriptions.id, userSubscription.id));
     }
 
     return userSubscription;
   }
 
   async getUserSubscriptionsByUserId(userId: string): Promise<UserSubscription[]> {
-    return await db.select().from(userSubscriptions)
+    const rawList = await db.select().from(userSubscriptions)
       .where(eq(userSubscriptions.userId, userId))
       .orderBy(desc(userSubscriptions.createdAt));
+    return rawList.map((item: UserSubscription) => this.normalizeUserSubscription(item));
   }
 
   async getUserSubscriptionById(id: string): Promise<UserSubscription | undefined> {
     const result = await db.select().from(userSubscriptions).where(eq(userSubscriptions.id, id)).limit(1);
-    return result[0];
+    if (!result[0]) return undefined;
+    return this.normalizeUserSubscription(result[0]);
   }
 
   async getAllUserSubscriptions(): Promise<UserSubscription[]> {
-    return await db.select().from(userSubscriptions).orderBy(desc(userSubscriptions.createdAt));
+    const rawList = await db.select().from(userSubscriptions).orderBy(desc(userSubscriptions.createdAt));
+    return rawList.map((item: UserSubscription) => this.normalizeUserSubscription(item));
   }
 
   async createUserSubscription(insertUserSubscription: InsertUserSubscription): Promise<UserSubscription> {
-    const result = await db.insert(userSubscriptions).values(insertUserSubscription).returning();
+    const startDate = insertUserSubscription.startDate ? new Date(insertUserSubscription.startDate) : new Date();
+    let remainingDays = typeof insertUserSubscription.remainingDays === 'number' ? Math.max(0, Math.floor(insertUserSubscription.remainingDays)) : 0;
+    
+    let endDate = insertUserSubscription.endDate ? new Date(insertUserSubscription.endDate) : null;
+    if ((!endDate || isNaN(endDate.getTime())) && remainingDays > 0) {
+      endDate = new Date(Date.now() + remainingDays * 24 * 60 * 60 * 1000);
+    } else if (endDate && !isNaN(endDate.getTime())) {
+      const diffMs = endDate.getTime() - Date.now();
+      remainingDays = diffMs > 0 ? Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000))) : 0;
+    }
+
+    const status = remainingDays > 0 ? (insertUserSubscription.status || 'active') : 'expired';
+
+    const result = await db.insert(userSubscriptions).values({
+      ...insertUserSubscription,
+      startDate,
+      endDate: endDate || new Date(),
+      remainingDays,
+      status,
+    }).returning();
     return result[0];
   }
 
   async updateUserSubscription(id: string, updates: Partial<UserSubscription>): Promise<UserSubscription | undefined> {
+    const existing = await this.getUserSubscriptionById(id);
+    if (!existing) return undefined;
+
+    let remainingDays = updates.remainingDays !== undefined ? updates.remainingDays : existing.remainingDays;
+    let endDate = updates.endDate !== undefined 
+      ? (updates.endDate ? new Date(updates.endDate) : null) 
+      : (existing.endDate ? new Date(existing.endDate) : null);
+
+    if (updates.remainingDays !== undefined && updates.endDate === undefined) {
+      if (remainingDays > 0) {
+        endDate = new Date(Date.now() + remainingDays * 24 * 60 * 60 * 1000);
+      } else {
+        endDate = new Date();
+      }
+    } else if (updates.endDate !== undefined && updates.remainingDays === undefined) {
+      if (endDate && !isNaN(endDate.getTime())) {
+        const diffMs = endDate.getTime() - Date.now();
+        remainingDays = diffMs > 0 ? Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000))) : 0;
+      }
+    }
+
+    const status = updates.status !== undefined 
+      ? updates.status 
+      : (remainingDays > 0 ? 'active' : 'expired');
+
     const result = await db.update(userSubscriptions)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ 
+        ...updates, 
+        endDate: endDate || existing.endDate,
+        remainingDays,
+        status,
+        updatedAt: new Date() 
+      })
       .where(eq(userSubscriptions.id, id))
       .returning();
     return result[0];
@@ -911,10 +1007,14 @@ export class DbStorage implements IStorage {
   async updateRemainingDays(id: string, remainingDays: number): Promise<UserSubscription | undefined> {
     const normalizedDays = Math.max(0, Math.floor(remainingDays));
     const status = normalizedDays <= 0 ? 'expired' : 'active';
+    const endDate = normalizedDays > 0
+      ? new Date(Date.now() + normalizedDays * 24 * 60 * 60 * 1000)
+      : new Date();
+
     const result = await db.update(userSubscriptions)
       .set({ 
         remainingDays: normalizedDays,
-        endDate: new Date(Date.now() + normalizedDays * 24 * 60 * 60 * 1000),
+        endDate,
         status,
         updatedAt: new Date()
       })
@@ -924,15 +1024,13 @@ export class DbStorage implements IStorage {
   }
 
   async getActiveUserSubscriptions(): Promise<UserSubscription[]> {
-    return await db.select().from(userSubscriptions)
-      .where(eq(userSubscriptions.status, 'active'))
-      .orderBy(desc(userSubscriptions.createdAt));
+    const all = await this.getAllUserSubscriptions();
+    return all.filter(sub => sub.status === 'active' && sub.remainingDays > 0);
   }
 
   async getExpiredUserSubscriptions(): Promise<UserSubscription[]> {
-    return await db.select().from(userSubscriptions)
-      .where(eq(userSubscriptions.status, 'expired'))
-      .orderBy(desc(userSubscriptions.createdAt));
+    const all = await this.getAllUserSubscriptions();
+    return all.filter(sub => sub.status === 'expired' || sub.remainingDays <= 0);
   }
 
   // Categories

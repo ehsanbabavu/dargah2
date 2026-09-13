@@ -60,6 +60,9 @@ export function useAuth() {
     onSuccess: (data) => {
       localStorage.setItem("token", data.token);
       queryClient.setQueryData(["/api/auth/me"], data.user);
+      queryClient.invalidateQueries({ queryKey: ["/api/user-subscriptions/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user-subscriptions"] });
+      queryClient.refetchQueries({ queryKey: ["/api/user-subscriptions/me"] });
       setLocation("/");
     },
     onError: (error) => {
@@ -75,6 +78,8 @@ export function useAuth() {
     onSuccess: (data) => {
       localStorage.setItem("token", data.token);
       queryClient.setQueryData(["/api/auth/me"], data.user);
+      queryClient.invalidateQueries({ queryKey: ["/api/user-subscriptions/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user-subscriptions"] });
       setLocation("/");
     },
     onError: (error) => {

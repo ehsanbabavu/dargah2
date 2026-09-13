@@ -31,7 +31,7 @@ export default function Profile() {
   const queryClient = useQueryClient();
 
   // User subscription info
-  const { data: userSubscription, isLoading: subscriptionLoading } = useQuery<UserSubscriptionWithDetails | null>({
+  const { data: userSubscription, isLoading: subscriptionLoading, refetch: refetchSubscription, isRefetching } = useQuery<UserSubscriptionWithDetails | null>({
     queryKey: ["/api/user-subscriptions/me"],
     enabled: !!user,
     queryFn: async () => {
@@ -40,7 +40,10 @@ export default function Profile() {
       if (!res.ok) return null;
       return res.json();
     },
-    refetchInterval: 60000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 15000,
   });
 
   // Real subscriptions list directly from management section
@@ -172,6 +175,22 @@ export default function Profile() {
                             {userSubscription.subscriptionName || 'پلن درگاه پرداخت'}
                           </h4>
                           <span className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              refetchSubscription();
+                              toast({
+                                title: "بروزرسانی",
+                                description: "وضعیت اشتراک مجدداً بررسی شد",
+                              });
+                            }}
+                            disabled={isRefetching}
+                            className="p-1 text-indigo-200 hover:text-white bg-white/10 hover:bg-white/20 rounded-md transition-colors mr-1"
+                            title="بروزرسانی وضعیت اشتراک"
+                            data-testid="button-refresh-subscription"
+                          >
+                            <RefreshCw className={`h-3 w-3 ${isRefetching ? 'animate-spin text-white' : ''}`} />
+                          </button>
                         </div>
                         <p className="text-[10px] sm:text-[11px] text-indigo-200 mt-0.5 font-bold truncate">
                           {isActive ? 'دسترسی فعال به امکانات پلتفرم و درگاه' : 'اشتراک شما منقضی شده است'}
@@ -219,7 +238,7 @@ export default function Profile() {
                         <Crown className="w-3.5 h-3.5 text-amber-100 shrink-0" />
                         <span className="whitespace-nowrap">خرید اشتراک</span>
                       </Button>
-                      <Link href="/tickets">
+                      <Link href="/send-ticket">
                         <Button size="sm" variant="ghost" className="text-[11px] text-indigo-200 hover:text-white hover:bg-white/10 h-8 px-2.5 rounded-lg shrink-0">
                           ارسال تیکت
                         </Button>

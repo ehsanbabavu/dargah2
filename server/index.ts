@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { cleanupService } from "./cleanup-service";
+import { subscriptionSyncService } from "./subscription-service";
 import { storage } from "./storage";
 import path from "path";
 import fs from "fs";
@@ -115,5 +116,7 @@ app.use((req, res, next) => {
     await storage.initializeDefaultPlugins();
     // سرویس پاکسازی فایل‌های موقت رو شروع کن
     cleanupService.start();
+    // سرویس همگام‌سازی و شمارش معکوس اشتراک‌ها رو شروع کن
+    subscriptionSyncService.start();
   });
 })();

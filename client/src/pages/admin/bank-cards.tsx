@@ -62,12 +62,14 @@ export default function BankCardsManagement() {
   });
 
   const filteredCards = bankCards.filter(card => {
+    const q = (search || "").toLowerCase().trim();
+    if (!q) return true;
     const matchesSearch = 
-      card.firstName.toLowerCase().includes(search.toLowerCase()) ||
-      card.lastName.toLowerCase().includes(search.toLowerCase()) ||
-      card.username.toLowerCase().includes(search.toLowerCase()) ||
-      card.bankCardNumber.includes(search) ||
-      card.bankCardHolderName.toLowerCase().includes(search.toLowerCase());
+      Boolean(card.firstName && card.firstName.toLowerCase().includes(q)) ||
+      Boolean(card.lastName && card.lastName.toLowerCase().includes(q)) ||
+      Boolean(card.username && card.username.toLowerCase().includes(q)) ||
+      Boolean(card.bankCardNumber && card.bankCardNumber.includes(search)) ||
+      Boolean(card.bankCardHolderName && card.bankCardHolderName.toLowerCase().includes(q));
     return matchesSearch;
   });
 

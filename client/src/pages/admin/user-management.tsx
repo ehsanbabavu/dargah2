@@ -17,7 +17,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Search, Edit, Trash2, Ban, ShieldCheck, UserX, UserCheck, KeyRound, User, Eye, EyeOff, Crown, Sparkles, Clock } from "lucide-react";
@@ -51,7 +50,6 @@ export default function UserManagement() {
   const [userToBlock, setUserToBlock] = useState<UserWithSubscription | null>(null);
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [activeEditTab, setActiveEditTab] = useState("profile");
 
   // Subscription management state for edit user modal
   const [selectedSubscriptionId, setSelectedSubscriptionId] = useState<string>("");
@@ -115,13 +113,23 @@ export default function UserManagement() {
       if (!response.ok) throw new Error("خطا در بروزرسانی کاربر");
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (updatedUser) => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user-subscriptions/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user-subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
+      if (updatedUser?.id) {
+        queryClient.setQueryData(["/api/users"], (oldUsers: any) => {
+          if (!Array.isArray(oldUsers)) return oldUsers;
+          return oldUsers.map((u) => u.id === updatedUser.id ? { ...u, ...updatedUser } : u);
+        });
+      }
       setIsEditDialogOpen(false);
       setEditingUser(null);
       toast({
         title: "موفقیت",
-        description: "کاربر با موفقیت بروزرسانی شد",
+        description: "کاربر و وضعیت اشتراک با موفقیت بروزرسانی شد",
       });
     },
     onError: () => {
@@ -193,10 +201,20 @@ export default function UserManagement() {
   });
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.firstName.toLowerCase().includes(search.toLowerCase()) ||
-                         user.lastName.toLowerCase().includes(search.toLowerCase()) ||
-                         (user.username && user.username.toLowerCase().includes(search.toLowerCase())) ||
-                         (user.phone && user.phone.includes(search));
+    const q = (search || "").toLowerCase().trim();
+    const firstName = user.firstName ? user.firstName.toLowerCase() : "";
+    const lastName = user.lastName ? user.lastName.toLowerCase() : "";
+    const username = user.username ? user.username.toLowerCase() : "";
+    const email = user.email ? user.email.toLowerCase() : "";
+    const phone = user.phone || "";
+
+    const matchesSearch = !q || (
+      firstName.includes(q) ||
+      lastName.includes(q) ||
+      username.includes(q) ||
+      email.includes(q) ||
+      phone.includes(q)
+    );
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
     const matchesStatus = statusFilter === "all" || 
                          (statusFilter === "blocked" && user.isBlocked) || 
@@ -235,7 +253,6 @@ export default function UserManagement() {
   const handleEditUser = (user: UserWithSubscription) => {
     setEditingUser(user);
     setShowPassword(false);
-    setActiveEditTab("profile");
 
     const currentSub = user.subscription;
     const defaultPlan = subscriptionPlans.find((p) => p.isDefault) || subscriptionPlans[0];
@@ -424,7 +441,7 @@ export default function UserManagement() {
                         {user.username || '-'}
                       </TableCell>
                       <TableCell className="font-medium" data-testid={`text-user-name-${user.id}`}>
-                        {user.firstName} {user.lastName}
+                        {[user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || "-"}
                       </TableCell>
                       <TableCell className="text-muted-foreground" data-testid={`text-user-phone-${user.id}`}>
                         {user.phone}
@@ -531,7 +548,7 @@ export default function UserManagement() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-bold text-lg" data-testid={`text-user-name-${user.id}`}>
-                        {user.firstName} {user.lastName}
+                        {[user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || "کاربر"}
                       </h3>
                       {getStatusBadge(user.isBlocked)}
                     </div>
@@ -758,7 +775,7 @@ export default function UserManagement() {
                   {editingUser && (
                     <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground pt-1">
                       <span className="font-medium text-foreground">
-                        {editingUser.firstName} {editingUser.lastName}
+                        {[editingUser.firstName, editingUser.lastName].filter(Boolean).join(" ") || editingUser.username || "کاربر"}
                       </span>
                       <span>•</span>
                       <span dir="ltr">{editingUser.phone}</span>
@@ -776,402 +793,401 @@ export default function UserManagement() {
 
             {editingUser && (
               <form onSubmit={handleUpdateUser} className="flex flex-col flex-1 overflow-hidden">
-                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
-                  <Tabs value={activeEditTab} onValueChange={setActiveEditTab} className="w-full" dir="rtl">
-                    {/* Responsive Tabs Navigation */}
-                    <div className="pb-1">
-                      <TabsList className="grid grid-cols-3 w-full h-auto p-1 bg-muted/60 gap-1 rounded-lg">
-                        <TabsTrigger 
-                          value="profile" 
-                          className="flex items-center justify-center gap-1 sm:gap-1.5 py-2.5 px-1 sm:px-2 text-xs sm:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
-                        >
-                          <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-primary" />
-                          <span className="hidden sm:inline">مشخصات فردی</span>
-                          <span className="sm:hidden">مشخصات</span>
-                        </TabsTrigger>
-                        <TabsTrigger 
-                          value="security" 
-                          className="flex items-center justify-center gap-1 sm:gap-1.5 py-2.5 px-1 sm:px-2 text-xs sm:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
-                        >
-                          <KeyRound className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-amber-500" />
-                          <span className="hidden sm:inline">رمز و دسترسی</span>
-                          <span className="sm:hidden">امنیت</span>
-                        </TabsTrigger>
-                        <TabsTrigger 
-                          value="subscription" 
-                          className="flex items-center justify-center gap-1 sm:gap-1.5 py-2.5 px-1 sm:px-2 text-xs sm:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
-                          data-testid="tab-edit-subscription"
-                        >
-                          <Crown className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-emerald-500" />
-                          <span className="hidden sm:inline">تغییر اشتراک</span>
-                          <span className="sm:hidden">اشتراک</span>
-                        </TabsTrigger>
-                      </TabsList>
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6" dir="rtl">
+                  
+                  {/* Section 1: Profile & Contact */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 pb-2.5 border-b border-border">
+                      <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <User className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm sm:text-base text-foreground">مشخصات فردی و ارتباطی</h3>
+                        <p className="text-xs text-muted-foreground">نام، نام کاربری و راه‌های تماس با کاربر</p>
+                      </div>
                     </div>
 
-                    {/* Tab 1: Profile & Contact */}
-                    <TabsContent value="profile" className="space-y-4 pt-3 focus-visible:outline-none">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <div className="space-y-1.5">
-                          <Label htmlFor="edit-firstName" className="text-xs sm:text-sm font-medium">نام <span className="text-destructive">*</span></Label>
-                          <Input
-                            id="edit-firstName"
-                            name="firstName"
-                            defaultValue={editingUser.firstName}
-                            required
-                            className="h-10 sm:h-11 text-sm"
-                            data-testid="input-edit-firstName"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="edit-lastName" className="text-xs sm:text-sm font-medium">نام خانوادگی <span className="text-destructive">*</span></Label>
-                          <Input
-                            id="edit-lastName"
-                            name="lastName"
-                            defaultValue={editingUser.lastName}
-                            required
-                            className="h-10 sm:h-11 text-sm"
-                            data-testid="input-edit-lastName"
-                          />
-                        </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="edit-firstName" className="text-xs sm:text-sm font-medium">نام <span className="text-destructive">*</span></Label>
+                        <Input
+                          id="edit-firstName"
+                          name="firstName"
+                          defaultValue={editingUser.firstName || ""}
+                          required
+                          className="h-10 sm:h-11 text-sm"
+                          data-testid="input-edit-firstName"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="edit-lastName" className="text-xs sm:text-sm font-medium">نام خانوادگی <span className="text-destructive">*</span></Label>
+                        <Input
+                          id="edit-lastName"
+                          name="lastName"
+                          defaultValue={editingUser.lastName || ""}
+                          required
+                          className="h-10 sm:h-11 text-sm"
+                          data-testid="input-edit-lastName"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="edit-username" className="text-xs sm:text-sm font-medium">نام کاربری <span className="text-destructive">*</span></Label>
+                        <Input
+                          id="edit-username"
+                          name="username"
+                          defaultValue={editingUser.username || ""}
+                          required
+                          dir="ltr"
+                          className="h-10 sm:h-11 text-sm text-left"
+                          placeholder="username"
+                          data-testid="input-edit-username"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="edit-phone" className="text-xs sm:text-sm font-medium">شماره تلفن همراه <span className="text-destructive">*</span></Label>
+                        <Input
+                          id="edit-phone"
+                          name="phone"
+                          defaultValue={editingUser.phone || ""}
+                          required
+                          dir="ltr"
+                          className="h-10 sm:h-11 text-sm text-left"
+                          placeholder="09123456789"
+                          data-testid="input-edit-phone"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="edit-email" className="text-xs sm:text-sm font-medium">آدرس ایمیل</Label>
+                        <Input
+                          id="edit-email"
+                          name="email"
+                          type="email"
+                          defaultValue={editingUser.email || ""}
+                          dir="ltr"
+                          className="h-10 sm:h-11 text-sm text-left"
+                          placeholder="user@example.com"
+                          data-testid="input-edit-email"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 2: Security & Role */}
+                  <div className="space-y-4 pt-1">
+                    <div className="flex items-center gap-2 pb-2.5 border-b border-border">
+                      <div className="h-7 w-7 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                        <KeyRound className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm sm:text-base text-foreground">امنیت، سطح دسترسی و رمز عبور</h3>
+                        <p className="text-xs text-muted-foreground">تعیین نقش کاربری، وضعیت انسداد و بازنشانی رمز عبور</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="edit-role" className="text-xs sm:text-sm font-medium">نقش کاربر</Label>
+                        <Select name="role" defaultValue={editingUser.role}>
+                          <SelectTrigger id="edit-role" className="h-10 sm:h-11 text-sm" data-testid="select-edit-role">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">مدیر سیستم</SelectItem>
+                            <SelectItem value="user_level_1">کاربر سطح ۱</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      {editingUser.role !== "admin" ? (
                         <div className="space-y-1.5">
-                          <Label htmlFor="edit-username" className="text-xs sm:text-sm font-medium">نام کاربری <span className="text-destructive">*</span></Label>
-                          <Input
-                            id="edit-username"
-                            name="username"
-                            defaultValue={editingUser.username || ""}
-                            required
-                            dir="ltr"
-                            className="h-10 sm:h-11 text-sm text-left"
-                            placeholder="username"
-                            data-testid="input-edit-username"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="edit-phone" className="text-xs sm:text-sm font-medium">شماره تلفن همراه <span className="text-destructive">*</span></Label>
-                          <Input
-                            id="edit-phone"
-                            name="phone"
-                            defaultValue={editingUser.phone || ""}
-                            required
-                            dir="ltr"
-                            className="h-10 sm:h-11 text-sm text-left"
-                            placeholder="09123456789"
-                            data-testid="input-edit-phone"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <div className="space-y-1.5">
-                          <Label htmlFor="edit-email" className="text-xs sm:text-sm font-medium">آدرس ایمیل</Label>
-                          <Input
-                            id="edit-email"
-                            name="email"
-                            type="email"
-                            defaultValue={editingUser.email || ""}
-                            dir="ltr"
-                            className="h-10 sm:h-11 text-sm text-left"
-                            placeholder="user@example.com"
-                            data-testid="input-edit-email"
-                          />
-                        </div>
-                      </div>
-                    </TabsContent>
-
-                    {/* Tab 2: Security, Password & Role */}
-                    <TabsContent value="security" className="space-y-4 pt-3 focus-visible:outline-none">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <div className="space-y-1.5">
-                          <Label htmlFor="edit-role" className="text-xs sm:text-sm font-medium">نقش کاربر</Label>
-                          <Select name="role" defaultValue={editingUser.role}>
-                            <SelectTrigger id="edit-role" className="h-10 sm:h-11 text-sm" data-testid="select-edit-role">
+                          <Label htmlFor="edit-isBlocked" className="text-xs sm:text-sm font-medium">وضعیت حساب کاربری</Label>
+                          <Select name="isBlocked" defaultValue={editingUser.isBlocked ? "blocked" : "active"}>
+                            <SelectTrigger id="edit-isBlocked" className="h-10 sm:h-11 text-sm" data-testid="select-edit-status">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="admin">مدیر سیستم</SelectItem>
-                              <SelectItem value="user_level_1">کاربر سطح ۱</SelectItem>
+                              <SelectItem value="active">فعال (دسترسی به پنل مجاز)</SelectItem>
+                              <SelectItem value="blocked">مسدود شده (عدم دسترسی به پنل)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col justify-center p-2.5 rounded-lg border border-border bg-muted/20">
+                          <span className="text-xs text-muted-foreground font-medium">وضعیت حساب کاربری</span>
+                          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-1">حساب مدیر سیستم همواره فعال است.</span>
+                          <input type="hidden" name="isBlocked" value="active" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Password Change Box */}
+                    <div className="p-3.5 sm:p-4 rounded-xl border border-border bg-muted/30 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="h-7 w-7 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                            <KeyRound className="h-3.5 w-3.5" />
+                          </div>
+                          <span className="font-semibold text-xs sm:text-sm">تغییر رمز عبور کاربر</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="text-xs h-8 px-2.5 gap-1.5 bg-background"
+                        >
+                          {showPassword ? (
+                            <>
+                              <EyeOff className="h-3.5 w-3.5" />
+                              <span>مخفی کردن</span>
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="h-3.5 w-3.5" />
+                              <span>نمایش رمز</span>
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        در صورت تمایل به تغییر رمز عبور کاربر، فیلدهای زیر را پر کنید؛ در غیر این صورت خالی بگذارید.
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-1">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="edit-password" className="text-xs sm:text-sm font-medium">رمز عبور جدید</Label>
+                          <Input
+                            id="edit-password"
+                            name="password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="حداقل ۶ کاراکتر"
+                            dir="ltr"
+                            className="h-10 sm:h-11 text-sm text-left"
+                            data-testid="input-edit-password"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="edit-confirmPassword" className="text-xs sm:text-sm font-medium">تکرار رمز عبور جدید</Label>
+                          <Input
+                            id="edit-confirmPassword"
+                            name="confirmPassword"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="تکرار رمز عبور جدید"
+                            dir="ltr"
+                            className="h-10 sm:h-11 text-sm text-left"
+                            data-testid="input-edit-confirm-password"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 3: Subscription Management */}
+                  <div className="space-y-4 pt-1" data-testid="section-edit-subscription">
+                    <div className="flex items-center gap-2 pb-2.5 border-b border-border">
+                      <div className="h-7 w-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                        <Crown className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm sm:text-base text-foreground">وضعیت و تنظیمات اشتراک</h3>
+                        <p className="text-xs text-muted-foreground">مشاهده پلن فعال، تمدید روزها و اختصاص اشتراک جدید</p>
+                      </div>
+                    </div>
+
+                    {/* Current Subscription Status Card */}
+                    <div className="p-3.5 sm:p-4 rounded-xl border border-border bg-gradient-to-br from-emerald-500/5 via-muted/30 to-muted/10 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                            <Crown className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-xs sm:text-sm">اطلاعات اشتراک فعلی کاربر</h4>
+                            <p className="text-[11px] text-muted-foreground">وضعیت پلن و اعتبار فعلی حساب</p>
+                          </div>
+                        </div>
+                        {editingUser.subscription ? (
+                          <Badge variant={editingUser.subscription.status === 'active' ? 'default' : 'destructive'} className="text-xs">
+                            {editingUser.subscription.status === 'active' ? 'فعال' : 'منقضی شده'}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs text-muted-foreground">بدون اشتراک</Badge>
+                        )}
+                      </div>
+
+                      {editingUser.subscription ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1 text-xs">
+                          <div className="p-2.5 bg-background rounded-lg border border-border/60">
+                            <span className="text-muted-foreground block text-[11px]">پلن فعلی:</span>
+                            <span className="font-bold text-foreground mt-0.5 block">{editingUser.subscription.name}</span>
+                          </div>
+                          <div className="p-2.5 bg-background rounded-lg border border-border/60">
+                            <span className="text-muted-foreground block text-[11px]">اعتبار باقیمانده:</span>
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 block">
+                              {editingUser.subscription.remainingDays} روز
+                            </span>
+                          </div>
+                          <div className="p-2.5 bg-background rounded-lg border border-border/60 col-span-2 sm:col-span-1">
+                            <span className="text-muted-foreground block text-[11px]">نوع پلن:</span>
+                            <span className="font-bold text-foreground mt-0.5 block">
+                              {editingUser.subscription.isTrialPeriod ? "آزمایشی" : "اصلی"}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2.5 rounded-lg">
+                          این کاربر در حال حاضر اشتراک فعال ندارد. می‌توانید از بخش زیر برای کاربر اشتراک جدید تعریف یا اختصاص دهید.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Subscription Change Controls */}
+                    <div className="p-3.5 sm:p-4 rounded-xl border border-border bg-card space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                        <h4 className="font-semibold text-xs sm:text-sm">تغییر یا اختصاص اشتراک جدید</h4>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        {/* Plan Selector */}
+                        <div className="space-y-1.5">
+                          <Label htmlFor="edit-subscriptionPlan" className="text-xs sm:text-sm font-medium">
+                            نوع پلن اشتراک <span className="text-destructive">*</span>
+                          </Label>
+                          <Select value={selectedSubscriptionId} onValueChange={setSelectedSubscriptionId}>
+                            <SelectTrigger id="edit-subscriptionPlan" className="h-10 sm:h-11 text-sm" data-testid="select-edit-subscription-plan">
+                              <SelectValue placeholder="انتخاب پلن اشتراک" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {subscriptionPlans.length === 0 ? (
+                                <SelectItem value="none" disabled>هیچ پلنی یافت نشد</SelectItem>
+                              ) : (
+                                subscriptionPlans.map((plan) => (
+                                  <SelectItem key={plan.id} value={plan.id}>
+                                    {plan.name} ({plan.duration === "monthly" ? "ماهانه" : "سالانه"}) {plan.isDefault ? " [پیش‌فرض]" : ""}
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
                         </div>
 
-                        {editingUser.role !== "admin" ? (
-                          <div className="space-y-1.5">
-                            <Label htmlFor="edit-isBlocked" className="text-xs sm:text-sm font-medium">وضعیت حساب کاربری</Label>
-                            <Select name="isBlocked" defaultValue={editingUser.isBlocked ? "blocked" : "active"}>
-                              <SelectTrigger id="edit-isBlocked" className="h-10 sm:h-11 text-sm" data-testid="select-edit-status">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="active">فعال (دسترسی به پنل مجاز)</SelectItem>
-                                <SelectItem value="blocked">مسدود شده (عدم دسترسی به پنل)</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col justify-center p-2.5 rounded-lg border border-border bg-muted/20">
-                            <span className="text-xs text-muted-foreground font-medium">وضعیت حساب کاربری</span>
-                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-1">حساب مدیر سیستم همواره فعال است.</span>
-                            <input type="hidden" name="isBlocked" value="active" />
-                          </div>
-                        )}
+                        {/* Subscription Status */}
+                        <div className="space-y-1.5">
+                          <Label htmlFor="edit-subscriptionStatus" className="text-xs sm:text-sm font-medium">وضعیت اشتراک</Label>
+                          <Select value={subscriptionStatus} onValueChange={setSubscriptionStatus}>
+                            <SelectTrigger id="edit-subscriptionStatus" className="h-10 sm:h-11 text-sm" data-testid="select-edit-subscription-status">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="active">فعال (Active)</SelectItem>
+                              <SelectItem value="expired">منقضی شده (Expired)</SelectItem>
+                              <SelectItem value="inactive">غیرفعال (Inactive)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
 
-                      {/* Password Change Box */}
-                      <div className="p-3.5 sm:p-4 rounded-xl border border-border bg-muted/30 space-y-3">
+                      {/* Custom Remaining Days & Quick Presets */}
+                      <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="h-7 w-7 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                              <KeyRound className="h-3.5 w-3.5" />
-                            </div>
-                            <span className="font-semibold text-xs sm:text-sm">تغییر رمز عبور کاربر</span>
-                          </div>
+                          <Label htmlFor="edit-remainingDays" className="text-xs sm:text-sm font-medium">
+                            تعداد روزهای اعتبار (روزهای باقیمانده)
+                          </Label>
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {customRemainingDays} روز
+                          </span>
+                        </div>
+                        <Input
+                          id="edit-remainingDays"
+                          type="number"
+                          min="0"
+                          max="3650"
+                          value={customRemainingDays}
+                          onChange={(e) => setCustomRemainingDays(Math.max(0, parseInt(e.target.value) || 0))}
+                          className="h-10 sm:h-11 text-sm text-left"
+                          dir="ltr"
+                          data-testid="input-edit-remaining-days"
+                        />
+
+                        {/* Quick Duration Preset Buttons */}
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          <span className="text-[11px] text-muted-foreground ml-1">میانبرهای زمان:</span>
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="text-xs h-8 px-2.5 gap-1.5 bg-background"
+                            onClick={() => setCustomRemainingDays(7)}
+                            className={`h-7 px-2 text-xs ${customRemainingDays === 7 ? 'bg-primary/10 text-primary border-primary/30' : ''}`}
                           >
-                            {showPassword ? (
-                              <>
-                                <EyeOff className="h-3.5 w-3.5" />
-                                <span>مخفی کردن</span>
-                              </>
-                            ) : (
-                              <>
-                                <Eye className="h-3.5 w-3.5" />
-                                <span>نمایش رمز</span>
-                              </>
-                            )}
+                            ۷ روز
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCustomRemainingDays(30)}
+                            className={`h-7 px-2 text-xs ${customRemainingDays === 30 ? 'bg-primary/10 text-primary border-primary/30' : ''}`}
+                          >
+                            ۳۰ روز (۱ ماه)
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCustomRemainingDays(90)}
+                            className={`h-7 px-2 text-xs ${customRemainingDays === 90 ? 'bg-primary/10 text-primary border-primary/30' : ''}`}
+                          >
+                            ۹۰ روز (۳ ماه)
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCustomRemainingDays(180)}
+                            className={`h-7 px-2 text-xs ${customRemainingDays === 180 ? 'bg-primary/10 text-primary border-primary/30' : ''}`}
+                          >
+                            ۱۸۰ روز (۶ ماه)
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCustomRemainingDays(365)}
+                            className={`h-7 px-2 text-xs ${customRemainingDays === 365 ? 'bg-primary/10 text-primary border-primary/30' : ''}`}
+                          >
+                            ۳۶۵ روز (۱ سال)
                           </Button>
                         </div>
-                        
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          در صورت تمایل به تغییر رمز عبور کاربر، فیلدهای زیر را پر کنید؛ در غیر این صورت خالی بگذارید.
-                        </p>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-1">
-                          <div className="space-y-1.5">
-                            <Label htmlFor="edit-password" className="text-xs sm:text-sm font-medium">رمز عبور جدید</Label>
-                            <Input
-                              id="edit-password"
-                              name="password"
-                              type={showPassword ? "text" : "password"}
-                              placeholder="حداقل ۶ کاراکتر"
-                              dir="ltr"
-                              className="h-10 sm:h-11 text-sm text-left"
-                              data-testid="input-edit-password"
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label htmlFor="edit-confirmPassword" className="text-xs sm:text-sm font-medium">تکرار رمز عبور جدید</Label>
-                            <Input
-                              id="edit-confirmPassword"
-                              name="confirmPassword"
-                              type={showPassword ? "text" : "password"}
-                              placeholder="تکرار رمز عبور جدید"
-                              dir="ltr"
-                              className="h-10 sm:h-11 text-sm text-left"
-                              data-testid="input-edit-confirm-password"
-                            />
-                          </div>
-                        </div>
                       </div>
-                    </TabsContent>
 
-                    {/* Tab 3: Subscription Management */}
-                    <TabsContent value="subscription" className="space-y-4 pt-3 focus-visible:outline-none">
-                      {/* Current Subscription Status Card */}
-                      <div className="p-3.5 sm:p-4 rounded-xl border border-border bg-gradient-to-br from-emerald-500/5 via-muted/30 to-muted/10 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                              <Crown className="h-4 w-4" />
-                            </div>
-                            <div>
-                              <h4 className="font-semibold text-xs sm:text-sm">اطلاعات اشتراک فعلی کاربر</h4>
-                              <p className="text-[11px] text-muted-foreground">وضعیت پلن و اعتبار فعلی حساب</p>
-                            </div>
-                          </div>
-                          {editingUser.subscription ? (
-                            <Badge variant={editingUser.subscription.status === 'active' ? 'default' : 'destructive'} className="text-xs">
-                              {editingUser.subscription.status === 'active' ? 'فعال' : 'منقضی شده'}
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-xs text-muted-foreground">بدون اشتراک</Badge>
-                          )}
-                        </div>
-
-                        {editingUser.subscription ? (
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1 text-xs">
-                            <div className="p-2.5 bg-background rounded-lg border border-border/60">
-                              <span className="text-muted-foreground block text-[11px]">پلن فعلی:</span>
-                              <span className="font-bold text-foreground mt-0.5 block">{editingUser.subscription.name}</span>
-                            </div>
-                            <div className="p-2.5 bg-background rounded-lg border border-border/60">
-                              <span className="text-muted-foreground block text-[11px]">اعتبار باقیمانده:</span>
-                              <span className="font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 block">
-                                {editingUser.subscription.remainingDays} روز
-                              </span>
-                            </div>
-                            <div className="p-2.5 bg-background rounded-lg border border-border/60 col-span-2 sm:col-span-1">
-                              <span className="text-muted-foreground block text-[11px]">نوع پلن:</span>
-                              <span className="font-bold text-foreground mt-0.5 block">
-                                {editingUser.subscription.isTrialPeriod ? "آزمایشی" : "اصلی"}
-                              </span>
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2.5 rounded-lg">
-                            این کاربر در حال حاضر اشتراک فعال ندارد. می‌توانید از بخش زیر برای کاربر اشتراک جدید تعریف یا اختصاص دهید.
+                      {/* Trial Period Switch */}
+                      <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="edit-isTrial" className="text-xs sm:text-sm font-medium cursor-pointer">
+                            علامت‌گذاری به عنوان اشتراک آزمایشی
+                          </Label>
+                          <p className="text-[11px] text-muted-foreground">
+                            در صورت فعال بودن، این اشتراک به عنوان دوره آزمایشی در نظر گرفته می‌شود.
                           </p>
-                        )}
+                        </div>
+                        <Switch
+                          id="edit-isTrial"
+                          checked={isTrialPeriod}
+                          onCheckedChange={setIsTrialPeriod}
+                          data-testid="switch-edit-is-trial"
+                        />
                       </div>
+                    </div>
+                  </div>
 
-                      {/* Subscription Change Controls */}
-                      <div className="p-3.5 sm:p-4 rounded-xl border border-border bg-card space-y-4">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="h-4 w-4 text-primary" />
-                          <h4 className="font-semibold text-xs sm:text-sm">تغییر یا اختصاص اشتراک جدید</h4>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                          {/* Plan Selector */}
-                          <div className="space-y-1.5">
-                            <Label htmlFor="edit-subscriptionPlan" className="text-xs sm:text-sm font-medium">
-                              نوع پلن اشتراک <span className="text-destructive">*</span>
-                            </Label>
-                            <Select value={selectedSubscriptionId} onValueChange={setSelectedSubscriptionId}>
-                              <SelectTrigger id="edit-subscriptionPlan" className="h-10 sm:h-11 text-sm" data-testid="select-edit-subscription-plan">
-                                <SelectValue placeholder="انتخاب پلن اشتراک" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {subscriptionPlans.length === 0 ? (
-                                  <SelectItem value="none" disabled>هیچ پلنی یافت نشد</SelectItem>
-                                ) : (
-                                  subscriptionPlans.map((plan) => (
-                                    <SelectItem key={plan.id} value={plan.id}>
-                                      {plan.name} ({plan.duration === "monthly" ? "ماهانه" : "سالانه"}) {plan.isDefault ? " [پیش‌فرض]" : ""}
-                                    </SelectItem>
-                                  ))
-                                )}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          {/* Subscription Status */}
-                          <div className="space-y-1.5">
-                            <Label htmlFor="edit-subscriptionStatus" className="text-xs sm:text-sm font-medium">وضعیت اشتراک</Label>
-                            <Select value={subscriptionStatus} onValueChange={setSubscriptionStatus}>
-                              <SelectTrigger id="edit-subscriptionStatus" className="h-10 sm:h-11 text-sm" data-testid="select-edit-subscription-status">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="active">فعال (Active)</SelectItem>
-                                <SelectItem value="expired">منقضی شده (Expired)</SelectItem>
-                                <SelectItem value="inactive">غیرفعال (Inactive)</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        {/* Custom Remaining Days & Quick Presets */}
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="edit-remainingDays" className="text-xs sm:text-sm font-medium">
-                              تعداد روزهای اعتبار (روزهای باقیمانده)
-                            </Label>
-                            <span className="text-xs text-muted-foreground font-mono">
-                              {customRemainingDays} روز
-                            </span>
-                          </div>
-                          <Input
-                            id="edit-remainingDays"
-                            type="number"
-                            min="0"
-                            max="3650"
-                            value={customRemainingDays}
-                            onChange={(e) => setCustomRemainingDays(Math.max(0, parseInt(e.target.value) || 0))}
-                            className="h-10 sm:h-11 text-sm text-left"
-                            dir="ltr"
-                            data-testid="input-edit-remaining-days"
-                          />
-
-                          {/* Quick Duration Preset Buttons */}
-                          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                            <span className="text-[11px] text-muted-foreground ml-1">میانبرهای زمان:</span>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setCustomRemainingDays(7)}
-                              className={`h-7 px-2 text-xs ${customRemainingDays === 7 ? 'bg-primary/10 text-primary border-primary/30' : ''}`}
-                            >
-                              ۷ روز
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setCustomRemainingDays(30)}
-                              className={`h-7 px-2 text-xs ${customRemainingDays === 30 ? 'bg-primary/10 text-primary border-primary/30' : ''}`}
-                            >
-                              ۳۰ روز (۱ ماه)
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setCustomRemainingDays(90)}
-                              className={`h-7 px-2 text-xs ${customRemainingDays === 90 ? 'bg-primary/10 text-primary border-primary/30' : ''}`}
-                            >
-                              ۹۰ روز (۳ ماه)
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setCustomRemainingDays(180)}
-                              className={`h-7 px-2 text-xs ${customRemainingDays === 180 ? 'bg-primary/10 text-primary border-primary/30' : ''}`}
-                            >
-                              ۱۸۰ روز (۶ ماه)
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setCustomRemainingDays(365)}
-                              className={`h-7 px-2 text-xs ${customRemainingDays === 365 ? 'bg-primary/10 text-primary border-primary/30' : ''}`}
-                            >
-                              ۳۶۵ روز (۱ سال)
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* Trial Period Switch */}
-                        <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="edit-isTrial" className="text-xs sm:text-sm font-medium cursor-pointer">
-                              علامت‌گذاری به عنوان اشتراک آزمایشی
-                            </Label>
-                            <p className="text-[11px] text-muted-foreground">
-                              در صورت فعال بودن، این اشتراک به عنوان دوره آزمایشی در نظر گرفته می‌شود.
-                            </p>
-                          </div>
-                          <Switch
-                            id="edit-isTrial"
-                            checked={isTrialPeriod}
-                            onCheckedChange={setIsTrialPeriod}
-                            data-testid="switch-edit-is-trial"
-                          />
-                        </div>
-                      </div>
-                    </TabsContent>
-                  </Tabs>
                 </div>
 
                 {/* Fixed Bottom Action Bar for Mobile & Desktop */}
@@ -1219,11 +1235,11 @@ export default function UserManagement() {
               <AlertDialogDescription className="text-right leading-relaxed">
                 {userToBlock?.isBlocked ? (
                   <>
-                    آیا از رفع مسدودیت کاربر «{userToBlock?.firstName} {userToBlock?.lastName}» ({userToBlock?.username || userToBlock?.phone}) اطمینان دارید؟ با رفع مسدودیت، کاربر می‌تواند مجدداً وارد پنل کاربری خود شده و از امکانات استفاده کند.
+                    آیا از رفع مسدودیت کاربر «{[userToBlock?.firstName, userToBlock?.lastName].filter(Boolean).join(" ") || userToBlock?.username || "کاربر"}» ({userToBlock?.username || userToBlock?.phone}) اطمینان دارید؟ با رفع مسدودیت، کاربر می‌تواند مجدداً وارد پنل کاربری خود شده و از امکانات استفاده کند.
                   </>
                 ) : (
                   <>
-                    آیا از مسدود کردن کاربر «{userToBlock?.firstName} {userToBlock?.lastName}» ({userToBlock?.username || userToBlock?.phone}) اطمینان دارید؟ پس از مسدودسازی، دسترسی کاربر به پنل کاربری مسدود شده و تا زمان رفع مسدودیت امکان ورود نخواهد داشت.
+                    آیا از مسدود کردن کاربر «{[userToBlock?.firstName, userToBlock?.lastName].filter(Boolean).join(" ") || userToBlock?.username || "کاربر"}» ({userToBlock?.username || userToBlock?.phone}) اطمینان دارید؟ پس از مسدودسازی، دسترسی کاربر به پنل کاربری مسدود شده و تا زمان رفع مسدودیت امکان ورود نخواهد داشت.
                   </>
                 )}
               </AlertDialogDescription>
@@ -1269,7 +1285,7 @@ export default function UserManagement() {
             <AlertDialogHeader>
               <AlertDialogTitle>حذف کاربر</AlertDialogTitle>
               <AlertDialogDescription>
-                آیا از حذف کاربر «{userToDelete?.firstName} {userToDelete?.lastName}» ({userToDelete?.username || userToDelete?.phone}) اطمینان دارید؟ تمام داده‌های مرتبط با این کاربر حذف خواهند شد و این عملیات غیرقابل بازگشت است.
+                آیا از حذف کاربر «{[userToDelete?.firstName, userToDelete?.lastName].filter(Boolean).join(" ") || userToDelete?.username || "کاربر"}» ({userToDelete?.username || userToDelete?.phone}) اطمینان دارید؟ تمام داده‌های مرتبط با این کاربر حذف خواهند شد و این عملیات غیرقابل بازگشت است.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="gap-2">

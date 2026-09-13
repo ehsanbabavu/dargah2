@@ -96,8 +96,9 @@ export function AppSidebar() {
       return response.json();
     },
     enabled: !!user && user.role === "user_level_1",
-    staleTime: 30000,
-    refetchInterval: 60000,
+    staleTime: 5000,
+    refetchOnMount: true,
+    refetchInterval: 15000,
   });
   const hasActiveLevel1Subscription = user?.role !== "user_level_1"
     || (userSubscription?.status === "active" && userSubscription.remainingDays > 0);
@@ -170,7 +171,7 @@ export function AppSidebar() {
 
   const [isUsersOpen, setIsUsersOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isTicketsOpen, setIsTicketsOpen] = useState(false);
+  const [isTicketsOpen, setIsTicketsOpen] = useState(true);
 
   const ticketItems = [
     { path: "/my-tickets", label: "تیکت‌های من", icon: Ticket },
@@ -337,9 +338,25 @@ export function AppSidebar() {
             </>
           )}
 
-          {user?.role !== "admin" && userMenuItems.map(renderMenuItem)}
+          {/* Non-admin, non-level1 fallback */}
+          {user?.role !== "admin" && user?.role !== "user_level_1" && userMenuItems.map(renderMenuItem)}
 
-           {user?.role === "user_level_1" && hasActiveLevel1Subscription && level1MenuItems.map(renderMenuItem)}
+          {/* Level 1 user with ACTIVE subscription: show all normal menus */}
+          {user?.role === "user_level_1" && hasActiveLevel1Subscription && (
+            <>
+              {userMenuItems.map(renderMenuItem)}
+              {level1MenuItems.map(renderMenuItem)}
+              {renderCollapsibleMenu("تیکت‌ها", ticketItems, isTicketsOpen, setIsTicketsOpen)}
+            </>
+          )}
+
+          {/* Level 1 user with EXPIRED/INACTIVE subscription: ONLY show Tickets and Profile, hide all others */}
+          {user?.role === "user_level_1" && !hasActiveLevel1Subscription && (
+            <>
+              {renderCollapsibleMenu("تیکت‌ها", ticketItems, isTicketsOpen, setIsTicketsOpen)}
+              {renderMenuItem({ path: "/profile", label: "پروفایل", icon: User })}
+            </>
+          )}
 
           {user?.role === "admin" && (
             <>
@@ -382,12 +399,6 @@ export function AppSidebar() {
                   </Button>
                 </Link>
               </li>
-            </>
-          )}
-
-           {user?.role === "user_level_1" && (
-            <>
-              {renderCollapsibleMenu("تیکت‌ها", ticketItems, isTicketsOpen, setIsTicketsOpen)}
             </>
           )}
         </SidebarMenu>

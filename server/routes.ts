@@ -287,15 +287,19 @@ const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunc
     req.user = user;
 
     // A level 1 user's subscription is checked server-side on every request.
-    // Tickets and subscription renewal remain available after expiry.
+    // Tickets, profile, and subscription renewal remain available after expiry.
     if (user.role === "user_level_1") {
       const isTicketRoute = req.path === "/api/tickets"
         || req.path.startsWith("/api/tickets/")
         || req.path === "/api/my-tickets";
       const isSubscriptionRoute = req.path === "/api/auth/me"
-        || req.path.startsWith("/api/user-subscriptions");
+        || req.path.startsWith("/api/user-subscriptions")
+        || req.path === "/api/subscriptions"
+        || req.path.startsWith("/api/subscriptions/");
+      const isProfileRoute = req.path === "/api/profile"
+        || req.path.startsWith("/api/profile/");
 
-      if (!isTicketRoute && !isSubscriptionRoute) {
+      if (!isTicketRoute && !isSubscriptionRoute && !isProfileRoute) {
         const subscription = await storage.getUserSubscription(user.id);
         if (!subscription || subscription.status !== "active" || subscription.remainingDays <= 0) {
           return res.status(402).json({
@@ -2174,19 +2178,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (updates.subscription && typeof updates.subscription === 'object') {
         const { subscriptionId, remainingDays, isTrialPeriod, status } = updates.subscription;
         if (subscriptionId) {
-          const userSub = await storage.getUserSubscription(id);
+          const userSubs = await storage.getUserSubscriptionsByUserId(id);
           const remDays = typeof remainingDays === 'number' ? Math.max(0, Math.floor(remainingDays)) : 30;
           const endDt = new Date(Date.now() + remDays * 24 * 60 * 60 * 1000);
           const subStatus = status || (remDays > 0 ? 'active' : 'expired');
 
-          if (userSub) {
-            await storage.updateUserSubscription(userSub.id, {
+          if (userSubs.length > 0) {
+            const primarySub = userSubs[0];
+            await storage.updateUserSubscription(primarySub.id, {
               subscriptionId,
               remainingDays: remDays,
               isTrialPeriod: Boolean(isTrialPeriod),
               status: subStatus,
               endDate: endDt,
             });
+            // Expire any other subscriptions for this user to avoid stale plan conflicts
+            for (let i = 1; i < userSubs.length; i++) {
+              await storage.updateUserSubscription(userSubs[i].id, {
+                status: 'expired',
+                remainingDays: 0,
+              });
+            }
           } else {
             await storage.createUserSubscription({
               userId: id,
@@ -2207,7 +2219,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "خطا در بروزرسانی کاربر" });
       }
 
-      res.json({ ...user, password: undefined });
+      // Fetch the updated subscription to include in response
+      const updatedUserSub = await storage.getUserSubscription(id);
+      let subscriptionInfo = null;
+      if (updatedUserSub) {
+        const plan = await storage.getSubscription(updatedUserSub.subscriptionId);
+        subscriptionInfo = {
+          id: updatedUserSub.id,
+          subscriptionId: updatedUserSub.subscriptionId,
+          name: plan?.name || updatedUserSub.subscriptionName || 'نامشخص',
+          remainingDays: updatedUserSub.remainingDays,
+          status: updatedUserSub.status,
+          isTrialPeriod: updatedUserSub.isTrialPeriod,
+          startDate: updatedUserSub.startDate,
+          endDate: updatedUserSub.endDate,
+        };
+      }
+
+      res.json({ ...user, password: undefined, subscription: subscriptionInfo });
     } catch (error: any) {
       console.error("Error updating user:", error);
       res.status(500).json({ message: error?.message || "خطا در بروزرسانی کاربر" });
@@ -3241,7 +3270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/user-subscriptions/me", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userSubscription = await storage.getUserSubscription(req.user!.id);
-      res.json(userSubscription);
+      res.json(userSubscription || null);
     } catch (error) {
       res.status(500).json({ message: "خطا در دریافت اشتراک کاربر" });
     }
@@ -4505,6 +4534,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "دسترسی به درگاه پرداخت اختصاصی فقط برای کاربران سطح ۱ مجاز است." });
       }
 
+      const sub = await storage.getUserSubscription(req.user.id);
+      const isSubActive = sub && sub.status === "active" && (sub.remainingDays === undefined || sub.remainingDays > 0);
+      if (!isSubActive) {
+        return res.status(403).json({
+          code: "SUBSCRIPTION_EXPIRED",
+          message: "اشتراک شما به پایان رسیده است. جهت دسترسی به تنظیمات درگاه، لطفاً اشتراک خود را تمدید فرمایید."
+        });
+      }
+
       let gateway = await storage.getBlupalGateway(req.user.id);
       if (!gateway) {
         gateway = await storage.saveBlupalGateway(req.user.id, {
@@ -4527,6 +4565,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (req.user?.role !== "user_level_1" && req.user?.role !== "admin") {
         return res.status(403).json({ message: "دسترسی به درگاه پرداخت اختصاصی فقط برای کاربران سطح ۱ مجاز است." });
+      }
+
+      if (req.user?.role === "user_level_1") {
+        const sub = await storage.getUserSubscription(req.user.id);
+        const isSubActive = sub && sub.status === "active" && (sub.remainingDays === undefined || sub.remainingDays > 0);
+        if (!isSubActive) {
+          return res.status(403).json({
+            code: "SUBSCRIPTION_EXPIRED",
+            message: "اشتراک شما به پایان رسیده است. جهت ذخیره تنظیمات درگاه، لطفاً اشتراک خود را تمدید فرمایید."
+          });
+        }
       }
 
       const existing = await storage.getBlupalGateway(req.user.id);
