@@ -5,9 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { User, Save, LogOut, Crown, Ticket as TicketIcon, Check, RefreshCw, Sparkles, AlertCircle, ShoppingCart } from "lucide-react";
+import { User, Save, LogOut, Crown, Ticket as TicketIcon, Check, RefreshCw, Sparkles, AlertCircle, ShoppingCart, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { createAuthenticatedRequest } from "@/lib/auth";
@@ -27,8 +27,23 @@ export default function Profile() {
     phone: user?.phone || "",
   });
   const [buySubscriptionOpen, setBuySubscriptionOpen] = useState(false);
+  const [selectedPlanForDomain, setSelectedPlanForDomain] = useState<any | null>(null);
+  const [websiteDomainInput, setWebsiteDomainInput] = useState("");
+  const [domainModalOpen, setDomainModalOpen] = useState(false);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // User's gateway info
+  const { data: gateway } = useQuery<any>({
+    queryKey: ["/api/blupal/gateway"],
+    queryFn: async () => {
+      const res = await createAuthenticatedRequest("/api/blupal/gateway");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!user,
+  });
 
   // User subscription info
   const { data: userSubscription, isLoading: subscriptionLoading, refetch: refetchSubscription, isRefetching } = useQuery<UserSubscriptionWithDetails | null>({
@@ -57,10 +72,10 @@ export default function Profile() {
   });
 
   const subscribeMutation = useMutation({
-    mutationFn: async (subscriptionId: string | number) => {
+    mutationFn: async ({ subscriptionId, domain }: { subscriptionId: string | number; domain?: string }) => {
       const res = await createAuthenticatedRequest("/api/user-subscriptions/subscribe", {
         method: "POST",
-        body: JSON.stringify({ subscriptionId }),
+        body: JSON.stringify({ subscriptionId, domain }),
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -83,6 +98,7 @@ export default function Profile() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/user-subscriptions/me"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/blupal/gateway"] });
       setBuySubscriptionOpen(false);
     },
     onError: (error: any) => {
@@ -93,6 +109,30 @@ export default function Profile() {
       });
     },
   });
+
+  const handleOpenDomainModal = (sub: any) => {
+    setSelectedPlanForDomain(sub);
+    setWebsiteDomainInput(gateway?.wpAuthorizedDomain || "");
+    setDomainModalOpen(true);
+  };
+
+  const handleConfirmDomainAndSubscribe = () => {
+    if (!selectedPlanForDomain) return;
+    const domainToSubmit = websiteDomainInput.trim();
+    if (!domainToSubmit) {
+      toast({
+        title: "ورود نام یا آدرس وب‌سایت الزامی است",
+        description: "لطفاً آدرس یا نام سایت مورد نظر جهت فعال‌سازی درگاه را وارد نمایید.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setDomainModalOpen(false);
+    subscribeMutation.mutate({
+      subscriptionId: selectedPlanForDomain.id,
+      domain: domainToSubmit,
+    });
+  };
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -505,9 +545,9 @@ export default function Profile() {
 
                           <Button
                             size="sm"
-                            onClick={() => subscribeMutation.mutate(sub.id)}
+                            onClick={() => handleOpenDomainModal(sub)}
                             disabled={subscribeMutation.isPending}
-                            className="h-8 sm:h-8.5 px-3 sm:px-4 text-[11px] sm:text-xs font-bold rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-sm flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap active:scale-95 transition-all"
+                            className="h-8 sm:h-8.5 px-3 sm:px-4 text-[11px] sm:text-xs font-bold rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-sm flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap active:scale-95 transition-all cursor-pointer"
                             data-testid={`button-subscribe-plan-${sub.id}`}
                           >
                             <Check className="w-3.5 h-3.5 shrink-0" />
@@ -532,6 +572,91 @@ export default function Profile() {
                 انصراف
               </Button>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Website Domain Entry Popup Dialog */}
+        <Dialog open={domainModalOpen} onOpenChange={setDomainModalOpen}>
+          <DialogContent className="w-[calc(100%-24px)] sm:w-full sm:max-w-md p-4 sm:p-6 font-sans rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-zinc-800 shadow-2xl" dir="rtl">
+            <DialogHeader className="text-right pb-3 border-b border-slate-100 dark:border-zinc-800">
+              <DialogTitle className="text-sm sm:text-base font-extrabold flex items-center gap-2 text-slate-900 dark:text-zinc-100">
+                <div className="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                  <Globe className="w-4 h-4" />
+                </div>
+                <span>نام و دامنه وب‌سایت جهت فعال‌سازی</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500 dark:text-zinc-400 mt-1.5 leading-relaxed">
+                لطفاً نام یا دامنه اصلی وب‌سایت خود را وارد نمایید. پس از پرداخت موفق، این دامنه در تنظیمات درگاه به عنوان دامنه مجاز ثبت خواهد شد.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3.5 py-3 text-right">
+              <div className="space-y-1.5">
+                <Label htmlFor="domain-input-profile" className="text-xs font-bold text-slate-800 dark:text-zinc-200 block text-right">
+                  نام یا آدرس وب‌سایت (دامنه مجاز):
+                </Label>
+                <div className="relative flex items-center" dir="ltr">
+                  <Globe className="absolute left-3 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <Input
+                    id="domain-input-profile"
+                    type="text"
+                    placeholder="مثال: mydomain.com"
+                    value={websiteDomainInput}
+                    onChange={(e) => setWebsiteDomainInput(e.target.value)}
+                    className="text-xs sm:text-sm h-11 pl-9 pr-3 rounded-xl font-mono text-left border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500"
+                    dir="ltr"
+                    autoFocus
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 dark:text-zinc-500 pt-0.5">
+                  می‌توانید دامنه را همراه با پسوند (مانند myshop.ir) یا آدرس کامل سایت وارد کنید.
+                </p>
+              </div>
+
+              {selectedPlanForDomain && (
+                <div className="p-3 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 rounded-xl text-xs space-y-1">
+                  <div className="flex items-center justify-between text-amber-900 dark:text-amber-200 font-bold">
+                    <span>پلن انتخابی:</span>
+                    <span>{selectedPlanForDomain.name}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-amber-800/80 dark:text-amber-300/80 text-[11px]">
+                    <span>مبلغ پرداختی:</span>
+                    <span className="font-mono font-bold">
+                      {Number(selectedPlanForDomain.priceAfterDiscount || selectedPlanForDomain.priceBeforeDiscount || selectedPlanForDomain.price || 0).toLocaleString("fa-IR")} تومان
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="pt-3 border-t border-slate-100 dark:border-zinc-800 flex flex-row items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDomainModalOpen(false)}
+                className="h-10 px-4 text-xs font-bold rounded-xl border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300"
+              >
+                انصراف
+              </Button>
+              <Button
+                type="button"
+                onClick={handleConfirmDomainAndSubscribe}
+                disabled={subscribeMutation.isPending}
+                className="h-10 px-5 text-xs font-bold rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white shadow-md gap-1.5 cursor-pointer"
+              >
+                {subscribeMutation.isPending ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>در حال صدور فاکتور...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>تایید و صدور فاکتور</span>
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

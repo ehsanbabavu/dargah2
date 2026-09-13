@@ -350,7 +350,7 @@ export default function AdminDashboard() {
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    دریافت مستقیم واریزی‌های کاربران، اتصال به وب‌سرویس بلوپال و صدور فاکتور اختصاصی
+                    دریافت مستقیم واریزی‌های کاربران، اتصال به وب‌سرویس بلو بانک و صدور فاکتور اختصاصی
                   </p>
                 </div>
               </div>

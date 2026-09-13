@@ -82,6 +82,23 @@ const getBankNameFromCard = (cardNum: string): string => {
   return banks[prefix] || "";
 };
 
+const formatNumberWithCommas = (value: string | number | undefined | null) => {
+  if (value === undefined || value === null || value === "") return "";
+  const normalized = String(value)
+    .replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d).toString())
+    .replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d).toString());
+  const clean = normalized.replace(/\D/g, "");
+  if (!clean) return "";
+  return clean.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+};
+
+const parseCommaNumber = (formattedValue: string) => {
+  const normalized = String(formattedValue)
+    .replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d).toString())
+    .replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d).toString());
+  return normalized.replace(/\D/g, "");
+};
+
 export default function GatewaySettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -260,7 +277,7 @@ export default function GatewaySettingsPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || "خطا در تست اتصال به بلوپال");
+        throw new Error(data.message || "خطا در تست اتصال به بلو بانک");
       }
       return data;
     },
@@ -274,13 +291,13 @@ export default function GatewaySettingsPage() {
         }));
       }
       toast({
-        title: "اتصال موفق به بلوپال",
-        description: data.message || "کلید API معتبر است و ارتباط با وب‌سرویس بلوپال برقرار شد.",
+        title: "اتصال موفق به بلو بانک",
+        description: data.message || "کلید API معتبر است و ارتباط با وب‌سرویس بلو بانک برقرار شد.",
       });
     },
     onError: (err: any) => {
       toast({
-        title: "خطای اتصال به بلوپال",
+        title: "خطای اتصال به بلو بانک",
         description: err.message,
         variant: "destructive",
       });
@@ -294,7 +311,7 @@ export default function GatewaySettingsPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || "خطا در دریافت اطلاعات کارت از بلوپال");
+        throw new Error(data.message || "خطا در دریافت اطلاعات کارت از بلو بانک");
       }
       return data;
     },
@@ -309,8 +326,8 @@ export default function GatewaySettingsPage() {
       }
       queryClient.invalidateQueries({ queryKey: ["/api/blupal/gateway"] });
       toast({
-        title: "شماره کارت از بلوپال دریافت شد",
-        description: data.message || "شماره کارت با موفقیت از سرور بلوپال استعلام و ثبت گردید.",
+        title: "شماره کارت از بلو بانک دریافت شد",
+        description: data.message || "شماره کارت با موفقیت از سرور بلو بانک استعلام و ثبت گردید.",
       });
     },
     onError: (err: any) => {
@@ -405,7 +422,7 @@ export default function GatewaySettingsPage() {
     setCopiedWebhook(true);
     toast({
       title: "کپی شد",
-      description: "آدرس وب‌هوک بلوپال کپی شد.",
+      description: "آدرس وب‌هوک بلو بانک کپی شد.",
     });
     setTimeout(() => setCopiedWebhook(false), 2500);
   };
@@ -429,88 +446,6 @@ export default function GatewaySettingsPage() {
     <DashboardLayout title="تنظیمات درگاه پرداخت">
       <div className="w-full max-w-3xl lg:max-w-6xl xl:max-w-7xl mx-auto space-y-4 lg:space-y-6 pb-10 sm:pb-12 text-right" dir="rtl">
         
-        {/* Compact Header & Share Bar - Responsive for Desktop */}
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200/80 dark:border-zinc-800 shadow-sm text-right transition-all">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-3.5 lg:mb-5">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold shrink-0 shadow-xs">
-                <CreditCard className="w-5 h-5 lg:w-6 lg:h-6" />
-              </div>
-              <div className="text-right">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="font-bold text-sm sm:text-base lg:text-lg text-slate-900 dark:text-zinc-100 text-right">
-                    درگاه پرداخت کارت به کارت
-                  </h1>
-                  <Badge 
-                    variant="outline"
-                    className={isGatewayActive 
-                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60 text-xs px-2.5 py-0.5 flex items-center gap-1.5" 
-                      : "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800/60 text-xs px-2.5 py-0.5 flex items-center gap-1.5"}
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full ${isGatewayActive ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
-                    <span>{isGatewayActive ? "درگاه فعال" : "درگاه غیرفعال"}</span>
-                  </Badge>
-                </div>
-                <p className="text-[11px] lg:text-xs text-slate-500 dark:text-zinc-400 text-right mt-0.5">
-                  اتصال مستقیم به وب‌سرویس بلوپال با تایید آنی کارت به کارت واریزی‌ها
-                </p>
-              </div>
-            </div>
-
-            {/* Desktop quick save button */}
-            <div className="hidden lg:flex items-center gap-3 shrink-0">
-              <Button
-                type="button"
-                onClick={() => saveMutation.mutate(formData)}
-                disabled={saveMutation.isPending}
-                className="h-10 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold text-xs gap-2 shadow-sm shadow-indigo-500/20 cursor-pointer"
-              >
-                {saveMutation.isPending ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>در حال ذخیره...</span>
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-3.5 h-3.5" />
-                    <span>ذخیره تغییرات</span>
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-
-          {/* Quick Payment Link Bar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-slate-50 dark:bg-zinc-800/60 p-2 sm:p-2.5 lg:p-3 rounded-xl border border-slate-200/70 dark:border-zinc-700/60 text-right">
-            <div className="flex-1 px-2.5 overflow-hidden text-right">
-              <span className="text-[10px] lg:text-[11px] text-slate-400 block text-right font-medium">لینک عمومی صفحه پرداخت شما:</span>
-              <span className="font-mono text-xs lg:text-sm text-indigo-600 dark:text-indigo-400 font-semibold truncate block text-left" dir="ltr">
-                {publicPaymentUrl}
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0 justify-end">
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={copyPaymentLink}
-                className="h-8 lg:h-9 px-3 text-xs rounded-lg border-slate-200 dark:border-zinc-700 shrink-0 gap-1.5 cursor-pointer"
-              >
-                {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                <span className="text-[11px] lg:text-xs">{copiedLink ? "کپی شد" : "کپی لینک"}</span>
-              </Button>
-              <Button 
-                size="sm" 
-                variant="default"
-                onClick={() => window.open(publicPaymentUrl, "_blank")}
-                className="h-8 lg:h-9 px-3.5 text-xs rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shrink-0 gap-1.5 cursor-pointer"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span className="text-[11px] lg:text-xs">مشاهده صفحه</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-
         {/* Clean Segmented Tabs (2 rows on mobile, 4 columns on desktop) */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full text-right" dir="rtl">
           <TabsList className="grid grid-cols-2 lg:grid-cols-4 h-auto p-1.5 lg:p-2 bg-slate-100 dark:bg-zinc-800/80 rounded-xl lg:rounded-2xl w-full border border-slate-200/60 dark:border-zinc-700/50 gap-1.5 lg:gap-2">
@@ -555,7 +490,7 @@ export default function GatewaySettingsPage() {
                     <div className="space-y-1.5 text-right">
                       <div className="flex items-center justify-between">
                         <Label htmlFor="apiKey" className="text-xs lg:text-sm font-bold text-slate-800 dark:text-zinc-200 text-right">
-                          کلید دسترسی (API Key بلوپال) <span className="text-red-500">*</span>
+                          کلید دسترسی (API Key بلو بانک) <span className="text-red-500">*</span>
                         </Label>
                       </div>
                       
@@ -587,7 +522,7 @@ export default function GatewaySettingsPage() {
                       {/* Test Connection Button */}
                       <div className="flex items-center justify-between pt-1">
                         <span className="text-[11px] lg:text-xs text-slate-500 dark:text-zinc-400 text-right">
-                          از پنل کاربری بلوپال دریافت کنید
+                          از پنل کاربری بلو بانک دریافت کنید
                         </span>
                         <Button
                           type="button"
@@ -605,7 +540,7 @@ export default function GatewaySettingsPage() {
                           ) : (
                             <>
                               <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
-                              <span>تست اتصال به بلوپال</span>
+                              <span>تست اتصال به بلو بانک</span>
                             </>
                           )}
                         </Button>
@@ -626,7 +561,7 @@ export default function GatewaySettingsPage() {
                           if (checked && !formData.apiKey.trim()) {
                             toast({
                               title: "کلید API لازم است",
-                              description: "لطفاً ابتدا کلید API بلوپال را وارد کنید.",
+                              description: "لطفاً ابتدا کلید API بلو بانک را وارد کنید.",
                               variant: "destructive",
                             });
                             return;
@@ -639,7 +574,7 @@ export default function GatewaySettingsPage() {
                     {/* Webhook URL with 1-click copy */}
                     <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-zinc-800 text-right">
                       <Label className="text-xs lg:text-sm font-bold text-slate-800 dark:text-zinc-200 block text-right">
-                        آدرس وب‌هوک بلوپال (Webhook URL)
+                        آدرس وب‌هوک بلو بانک (Webhook URL)
                       </Label>
                       <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-slate-100 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700/60">
                         <input
@@ -661,7 +596,7 @@ export default function GatewaySettingsPage() {
                         </Button>
                       </div>
                       <p className="text-[10px] lg:text-[11px] text-slate-400 text-right">
-                        این آدرس را در پنل بلوپال بخش وب‌هوک وارد کنید تا تراکنش‌ها آنی تایید شوند.
+                        این آدرس را در پنل بلو بانک بخش وب‌هوک وارد کنید تا تراکنش‌ها آنی تایید شوند.
                       </p>
                     </div>
                   </CardContent>
@@ -687,7 +622,7 @@ export default function GatewaySettingsPage() {
                         <div className="text-right">
                           <p className="font-semibold text-slate-800 dark:text-zinc-200 text-right">دریافت API Key</p>
                           <p className="text-[11px] text-slate-500 dark:text-zinc-400 text-right leading-relaxed">
-                            در پنل بلوپال وارد بخش وب‌سرویس شوید و کلید دسترسی اختصاصی خود را تولید کنید.
+                            در پنل بلو بانک وارد بخش وب‌سرویس شوید و کلید دسترسی اختصاصی خود را تولید کنید.
                           </p>
                         </div>
                       </div>
@@ -699,7 +634,7 @@ export default function GatewaySettingsPage() {
                         <div className="text-right">
                           <p className="font-semibold text-slate-800 dark:text-zinc-200 text-right">تنظیم وب‌هوک (Webhook)</p>
                           <p className="text-[11px] text-slate-500 dark:text-zinc-400 text-right leading-relaxed">
-                            آدرس وب‌هوک بالا را کپی کرده و در پنل بلوپال ثبت کنید تا واریزها خودکار تایید شوند.
+                            آدرس وب‌هوک بالا را کپی کرده و در پنل بلو بانک ثبت کنید تا واریزها خودکار تایید شوند.
                           </p>
                         </div>
                       </div>
@@ -751,12 +686,12 @@ export default function GatewaySettingsPage() {
                         <div className="flex items-center gap-1.5">
                           <CreditCard className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           <span className="text-xs lg:text-sm font-bold text-slate-800 dark:text-zinc-200">
-                            دریافت شماره کارت از بلوپال
+                            دریافت شماره کارت از بلو بانک
                           </span>
                         </div>
                         {formData.cardNumber ? (
                           <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] gap-1 font-medium">
-                            <Lock className="w-3 h-3" /> متصل به بلوپال
+                            <Lock className="w-3 h-3" /> متصل به بلو بانک
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[10px] gap-1 font-medium">
@@ -766,7 +701,7 @@ export default function GatewaySettingsPage() {
                       </div>
 
                       <p className="text-[11px] lg:text-xs text-slate-600 dark:text-zinc-400 leading-relaxed text-right">
-                        شماره کارت مقصد منحصراً از حساب بلوپال شما دریافت می‌شود و جهت حفظ امنیت و تطابق وب‌هوک واریزی‌ها، امکان ویرایش دستی آن وجود ندارد.
+                        شماره کارت مقصد منحصراً از حساب بلو بانک شما دریافت می‌شود و جهت حفظ امنیت و تطابق وب‌هوک واریزی‌ها، امکان ویرایش دستی آن وجود ندارد.
                       </p>
 
                       <Button
@@ -778,12 +713,12 @@ export default function GatewaySettingsPage() {
                         {syncCardMutation.isPending ? (
                           <>
                             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                            <span>در حال دریافت شماره کارت از سرور بلوپال...</span>
+                            <span>در حال دریافت شماره کارت از سرور بلو بانک...</span>
                           </>
                         ) : (
                           <>
                             <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                            <span>دریافت / به‌روزرسانی شماره کارت از بلوپال</span>
+                            <span>دریافت / به‌روزرسانی شماره کارت از بلو بانک</span>
                           </>
                         )}
                       </Button>
@@ -809,7 +744,7 @@ export default function GatewaySettingsPage() {
                           id="cardNumber"
                           type="text"
                           maxLength={19}
-                          placeholder="۶۰۳۷-۹۹۱۸-۱۲۳۴-۵۶۷۸ یا روی دکمه دریافت از بلوپال کلیک کنید"
+                          placeholder="۶۰۳۷-۹۹۱۸-۱۲۳۴-۵۶۷۸ یا روی دکمه دریافت از بلو بانک کلیک کنید"
                           value={formData.cardNumber ? formatCardDisplay(formData.cardNumber) : ""}
                           onChange={(e) => {
                             const raw = e.target.value.replace(/\D/g, "").slice(0, 16);
@@ -826,7 +761,7 @@ export default function GatewaySettingsPage() {
                         <CreditCard className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
                       </div>
                       <p className="text-[10px] lg:text-[11px] text-slate-500 dark:text-zinc-500 text-right">
-                        می‌توانید شماره کارت ۱۶ رقمی خود را دستی وارد کنید یا با دکمه بالا مستقیماً از بلوپال دریافت و ذخیره فرمایید.
+                        می‌توانید شماره کارت ۱۶ رقمی خود را دستی وارد کنید یا با دکمه بالا مستقیماً از بلو بانک دریافت و ذخیره فرمایید.
                       </p>
                     </div>
 
@@ -917,12 +852,13 @@ export default function GatewaySettingsPage() {
                     </Badge>
                   </div>
 
-                  {/* Smart Chip graphic */}
-                  <div className="w-10 h-7 rounded bg-amber-400/80 border border-amber-300 shadow-inner flex items-center justify-center relative z-10 mb-4 opacity-90">
-                    <div className="w-full h-full border border-amber-600/40 rounded grid grid-cols-2 gap-0.5 p-0.5">
-                      <div className="border border-amber-700/30 rounded-xs" />
-                      <div className="border border-amber-700/30 rounded-xs" />
-                    </div>
+                  {/* Blu Bank Logo */}
+                  <div className="relative z-10 mb-4 flex items-center">
+                    <img 
+                      src="/images/blubank.webp" 
+                      alt="بلو بانک" 
+                      className="w-10 h-10 rounded-xl object-contain shadow-md border border-white/20" 
+                    />
                   </div>
 
                   {/* 16 Digit Card Number */}
@@ -945,7 +881,7 @@ export default function GatewaySettingsPage() {
                       <span className="text-[10px] text-indigo-200/70 block text-left">تایید وب‌سرویس</span>
                       <span className="inline-flex items-center gap-1 text-[11px] text-emerald-300 font-medium">
                         <CheckCircle2 className="w-3 h-3" />
-                        {formData.cardNumber ? "بلوپال" : "نیازمند استعلام"}
+                        {formData.cardNumber ? "بلو بانک" : "نیازمند استعلام"}
                       </span>
                     </div>
                   </div>
@@ -961,7 +897,7 @@ export default function GatewaySettingsPage() {
                       </h4>
                     </div>
                     <p className="text-[11px] text-slate-500 dark:text-zinc-400 leading-relaxed text-right">
-                      هنگام پرداخت، خریدار موظف به انتقال به همین شماره کارت است. به محض انتقال، سیستم به صورت وب‌هوک و هوشمند اطلاعات تراکنش را از بلوپال دریافت کرده و سفارش را تکمیل می‌کند.
+                      هنگام پرداخت, خریدار موظف به انتقال به همین شماره کارت است. به محض انتقال، سیستم به صورت وب‌هوک و هوشمند اطلاعات تراکنش را از بلو بانک دریافت کرده و سفارش را تکمیل می‌کند.
                     </p>
                   </CardContent>
                 </Card>
@@ -971,9 +907,9 @@ export default function GatewaySettingsPage() {
 
           {/* TAB 3: PAYMENT PAGE CUSTOMIZATION */}
           <TabsContent value="appearance" className="mt-3 lg:mt-5 space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-start">
+            <div className="w-full space-y-4">
               {/* Form fields */}
-              <div className="lg:col-span-7 xl:col-span-7 space-y-4">
+              <div className="w-full space-y-4">
                 <Card className="rounded-2xl border-slate-200 dark:border-zinc-800 shadow-sm bg-white dark:bg-zinc-900 overflow-hidden text-right">
                   <CardContent className="p-4 sm:p-5 lg:p-6 space-y-4 lg:space-y-5 text-right">
                     {/* Title & Slug (2 columns on desktop) */}
@@ -1009,6 +945,45 @@ export default function GatewaySettingsPage() {
                             dir="ltr"
                           />
                         </div>
+
+                        {/* Direct Payment Link Box */}
+                        <div className="mt-2.5 p-2.5 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/40 space-y-1.5 text-right" dir="rtl">
+                          <span className="text-[11px] text-indigo-700 dark:text-indigo-300 font-bold block text-right">
+                            لینک مستقیم صفحه پرداخت شما:
+                          </span>
+                          <div className="flex items-center gap-1.5" dir="ltr">
+                            <a
+                              href={publicPaymentUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex-1 font-mono text-xs text-indigo-600 dark:text-indigo-400 hover:underline truncate bg-white dark:bg-zinc-900 px-2.5 py-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-800 text-left block"
+                              title="مشاهده مستقیم صفحه پرداخت"
+                            >
+                              {publicPaymentUrl}
+                            </a>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={copyPaymentLink}
+                              className="h-8 px-2.5 text-[11px] rounded-lg border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shrink-0 gap-1 cursor-pointer"
+                            >
+                              {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                              <span>{copiedLink ? "کپی شد" : "کپی"}</span>
+                            </Button>
+                            <a href={publicPaymentUrl} target="_blank" rel="noreferrer">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="default"
+                                className="h-8 px-2.5 text-[11px] rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shrink-0 gap-1 cursor-pointer"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                <span>مشاهده صفحه</span>
+                              </Button>
+                            </a>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -1020,11 +995,19 @@ export default function GatewaySettingsPage() {
                         </Label>
                         <Input
                           id="minAmount"
-                          type="number"
-                          value={formData.minAmount}
-                          onChange={(e) => handleInputChange("minAmount", e.target.value)}
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="۱۰,۰۰۰"
+                          value={formatNumberWithCommas(formData.minAmount)}
+                          onChange={(e) => handleInputChange("minAmount", parseCommaNumber(e.target.value))}
                           className="text-xs lg:text-sm h-10 lg:h-11 rounded-xl font-mono text-center"
+                          dir="ltr"
                         />
+                        {formData.minAmount && !isNaN(Number(formData.minAmount)) && (
+                          <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold block text-right pr-1">
+                            {Number(formData.minAmount).toLocaleString("fa-IR")} تومان
+                          </span>
+                        )}
                       </div>
                       <div className="space-y-1.5 text-right">
                         <Label htmlFor="maxAmount" className="text-xs lg:text-sm font-bold text-slate-800 dark:text-zinc-200 block text-right">
@@ -1032,11 +1015,19 @@ export default function GatewaySettingsPage() {
                         </Label>
                         <Input
                           id="maxAmount"
-                          type="number"
-                          value={formData.maxAmount}
-                          onChange={(e) => handleInputChange("maxAmount", e.target.value)}
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="۵۰,۰۰۰,۰۰۰"
+                          value={formatNumberWithCommas(formData.maxAmount)}
+                          onChange={(e) => handleInputChange("maxAmount", parseCommaNumber(e.target.value))}
                           className="text-xs lg:text-sm h-10 lg:h-11 rounded-xl font-mono text-center"
+                          dir="ltr"
                         />
+                        {formData.maxAmount && !isNaN(Number(formData.maxAmount)) && (
+                          <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold block text-right pr-1">
+                            {Number(formData.maxAmount).toLocaleString("fa-IR")} تومان
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -1070,62 +1061,6 @@ export default function GatewaySettingsPage() {
                         className="text-xs lg:text-sm rounded-xl resize-none text-right"
                         dir="rtl"
                       />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Desktop Live Preview Card */}
-              <div className="lg:col-span-5 xl:col-span-5 space-y-4">
-                <Card className="rounded-2xl border-slate-200 dark:border-zinc-800 shadow-sm bg-white dark:bg-zinc-900 overflow-hidden text-right">
-                  <div className="p-3 bg-slate-100 dark:bg-zinc-800/80 border-b border-slate-200 dark:border-zinc-700 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-500 dark:text-zinc-400" dir="ltr">
-                      /pay/{activeSlug}
-                    </span>
-                    <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">
-                      پیش‌نمایش زنده
-                    </span>
-                  </div>
-
-                  <CardContent className="p-4 sm:p-5 space-y-4 text-right">
-                    {/* Simulated Payment Page View */}
-                    <div className="border border-slate-100 dark:border-zinc-800 rounded-xl p-3.5 bg-slate-50/50 dark:bg-zinc-800/30 space-y-3">
-                      <div className="text-center pb-2 border-b border-slate-200/60 dark:border-zinc-700/60">
-                        <h4 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-zinc-100">
-                          {formData.title || "عنوان درگاه پرداخت"}
-                        </h4>
-                        <p className="text-[10px] text-slate-500 dark:text-zinc-400 mt-1 line-clamp-2">
-                          {formData.description || "توضیحات راهنما برای پرداخت‌کننده"}
-                        </p>
-                      </div>
-
-                      {/* Card Preview Box */}
-                      <div className="bg-white dark:bg-zinc-900 p-2.5 rounded-lg border border-slate-200 dark:border-zinc-700 space-y-1 text-center">
-                        <span className="text-[9px] text-slate-400 block">شماره کارت مقصد</span>
-                        <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400 tracking-wider block" dir="ltr">
-                          {formData.cardNumber ? formatCardDisplay(formData.cardNumber) : "۶۰۳۷ - ۹۹۱۸ - •••• - ••••"}
-                        </span>
-                        <span className="text-[10px] text-slate-600 dark:text-zinc-300 font-medium block">
-                          به نام {formData.cardHolderName || "صاحب حساب"} ({formData.bankName || "بانک"})
-                        </span>
-                      </div>
-
-                      {/* Limits info */}
-                      <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-zinc-400 px-1">
-                        <span>حداقل: {Number(formData.minAmount || 0).toLocaleString()} تومان</span>
-                        <span>حداکثر: {Number(formData.maxAmount || 0).toLocaleString()} تومان</span>
-                      </div>
-
-                      {formData.supportPhone && (
-                        <div className="text-center pt-1 text-[10px] text-slate-500 dark:text-zinc-400">
-                          پشتیبانی: <span className="font-mono text-slate-700 dark:text-zinc-200">{formData.supportPhone}</span>
-                        </div>
-                      )}
                     </div>
                   </CardContent>
                 </Card>

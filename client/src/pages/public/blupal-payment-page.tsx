@@ -636,10 +636,14 @@ export default function BlupalPaymentPage() {
                       <div className="relative">
                         <Input
                           id="amount"
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
                           placeholder="مثال: ۵۰,۰۰۰"
-                          value={amount}
-                          onChange={(e) => setAmount(e.target.value)}
+                          value={amount ? Number(amount.replace(/\D/g, "")).toLocaleString("en-US") : ""}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/\D/g, "");
+                            setAmount(raw);
+                          }}
                           className="h-10 text-sm font-bold font-mono text-center rounded-lg border-slate-200 dark:border-slate-700 text-blue-700 dark:text-blue-400 pr-3 pl-12 focus-visible:ring-1 focus-visible:ring-blue-600"
                         />
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-medium">

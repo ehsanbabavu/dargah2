@@ -145,7 +145,7 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-2 font-bold text-[#4B5563] dark:text-slate-300 text-[13px] sm:text-[14px] lg:text-[13.5px] xl:text-[15px] whitespace-nowrap">
               <span className="material-symbols-outlined text-[#002db6] dark:text-[#bac3ff] text-xl sm:text-2xl shrink-0">api</span>
-              <span>وب‌سرویس بلوپال</span>
+              <span>وب‌سرویس بلو بانک</span>
             </div>
             <div className="flex items-center gap-2 font-bold text-[#4B5563] dark:text-slate-300 text-[13px] sm:text-[14px] lg:text-[13.5px] xl:text-[15px] whitespace-nowrap">
               <span className="material-symbols-outlined text-[#002db6] dark:text-[#bac3ff] text-xl sm:text-2xl shrink-0">shopping_cart</span>
@@ -187,7 +187,7 @@ export default function Home() {
                 درگاه کارت به کارت خودکار
               </h3>
               <p className="text-[13px] sm:text-[14px] text-[#4B5563] dark:text-slate-400 leading-relaxed">
-                اتصال مستقیم به وب‌سرویس بلوپال با ثبت API Key، تشخیص خودکار نام بانک از شماره کارت، استعلام لحظه‌ای و تایید خودکار واریز مشتریان.
+                اتصال مستقیم به وب‌سرویس بلو بانک با ثبت API Key، تشخیص خودکار نام بانک از شماره کارت، استعلام لحظه‌ای و تایید خودکار واریز مشتریان.
               </p>
             </div>
 
@@ -242,10 +242,10 @@ export default function Home() {
                   پیشخوان مالی و درگاه شتابی رخش پی
                 </div>
                 <h2 className="text-[22px] sm:text-[28px] lg:text-[32px] leading-[34px] sm:leading-[42px] lg:leading-[46px] text-[#111827] dark:text-white font-extrabold">
-                  گزارش‌گیری زنده و استعلام آنی تراکنش‌های بلوپال
+                  گزارش‌گیری زنده و استعلام آنی تراکنش‌های بلو بانک
                 </h2>
                 <p className="text-[13px] sm:text-[15px] lg:text-[16px] leading-[24px] sm:leading-[27px] lg:leading-[28px] text-[#4B5563] dark:text-slate-400 leading-relaxed">
-                  در پیشخوان فروشندگان، وضعیت لحظه‌ای تراکنش‌های دریافتی، مبالغ کل فروش، درآمد امروز، تعداد تراکنش‌های موفق و تراکنش‌های معلق نمایش داده می‌شود. در صورت نیاز به بررسی مجدد هر فاکتور، دکمه استعلام و تایید دستی از سرور بلوپال در اختیار شما قرار دارد.
+                  در پیشخوان فروشندگان، وضعیت لحظه‌ای تراکنش‌های دریافتی، مبالغ کل فروش، درآمد امروز، تعداد تراکنش‌های موفق و تراکنش‌های معلق نمایش داده می‌شود. در صورت نیاز به بررسی مجدد هر فاکتور، دکمه استعلام و تایید دستی از سرور بلو بانک در اختیار شما قرار دارد.
                 </p>
 
                 {/* Bullet Matrix */}
@@ -264,7 +264,7 @@ export default function Home() {
                   </div>
                   <div className="flex items-center gap-2 text-[#111827] dark:text-slate-200 font-medium text-[13px] sm:text-[14px]">
                     <span className="material-symbols-outlined text-[#2848d3] dark:text-[#bac3ff] text-xl font-bold shrink-0">check</span>
-                    <span>تست اتصال به بلوپال</span>
+                    <span>تست اتصال به بلو بانک</span>
                   </div>
                 </div>
               </div>
@@ -437,7 +437,7 @@ export default function Home() {
               <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#E5E7EB] dark:border-slate-800 text-[13px] sm:text-[14px] text-[#4B5563] dark:text-slate-400 leading-relaxed space-y-2">
                 <p>فروشندگان و پذیرندگان به امکانات کامل زیر دسترسی دارند:</p>
                 <ul className="list-disc pr-5 space-y-1">
-                  <li>درگاه پرداخت کارت به کارت متصل به وب‌سرویس بلوپال</li>
+                  <li>درگاه پرداخت کارت به کارت متصل به وب‌سرویس بلو بانک</li>
                   <li>تنظیمات شماره کارت مقصد، نام صاحب حساب و سقف و کف پرداخت</li>
                   <li>لینک اشتراک‌گذاری صفحه پرداخت عمومی با اسلاگ اختصاصی</li>
                   <li>دانلود افزونه ووکامرس اختصاصی وردپرس با صدور کلید WP API</li>

@@ -1897,9 +1897,9 @@ export default function TelegramBotPage() {
                       <ShoppingCart className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-gray-800">تراکنش موفق بلوپال هر کاربر سطح ۱</h4>
+                      <h4 className="text-xs font-bold text-gray-800">تراکنش موفق بلو بانک هر کاربر سطح ۱</h4>
                       <p className="text-[10px] text-gray-400 mt-0.5">
-                        ارسال پیامک تراکنش موفق بلوپال هر کاربر سطح ۱ به شماره موبایل ثبت شده در سامانه
+                        ارسال پیامک تراکنش موفق بلو بانک هر کاربر سطح ۱ به شماره موبایل ثبت شده در سامانه
                       </p>
                     </div>
                   </div>

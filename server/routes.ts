@@ -3387,7 +3387,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Subscribe to plan endpoint (issues invoice on Admin Card-to-Card gateway for paid plans)
   app.post("/api/user-subscriptions/subscribe", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const { subscriptionId } = req.body;
+      const { subscriptionId, domain, websiteDomain } = req.body;
+      const targetDomain = (domain || websiteDomain || "").toString().trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
       
       if (!subscriptionId) {
         return res.status(400).json({ message: "شناسه اشتراک مورد نیاز است" });
@@ -3408,6 +3409,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // If genuinely free plan (price <= 0), directly activate
       if (priceNum <= 0) {
+        if (targetDomain) {
+          try {
+            await storage.saveBlupalGateway(req.user!.id, { wpAuthorizedDomain: targetDomain });
+          } catch (dErr) {
+            console.error("Failed to save domain for free subscription:", dErr);
+          }
+        }
         const durationInDays = subscription.duration === 'monthly' ? 30 : 365;
         const existingSubscription = await storage.getUserSubscription(req.user!.id);
         if (existingSubscription) {
@@ -3520,6 +3528,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const payerName = `${req.user!.firstName || ''} ${req.user!.lastName || ''}`.trim() || req.user!.username;
       const payerPhone = req.user!.phone || "09120000000";
 
+      const orderIdString = targetDomain
+        ? `SUB:${subscription.id}:${req.user!.id}:${encodeURIComponent(targetDomain)}`
+        : `SUB:${subscription.id}:${req.user!.id}`;
+
       const tx = await storage.createBlupalTransaction({
         userId: adminUser.id, // Linked to Admin so Admin receives the money and sees it in transactions
         invoiceId: primaryInvoiceId,
@@ -3533,8 +3545,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         destCardNumber: destCard,
         destCardHolder: destHolder,
         status: "pending",
-        description: `خرید اشتراک ${subscription.name} - کاربر ${req.user!.username}`,
-        orderId: `SUB:${subscription.id}:${req.user!.id}`,
+        description: `خرید اشتراک ${subscription.name} - کاربر ${req.user!.username}${targetDomain ? ` (دامنه: ${targetDomain})` : ""}`,
+        orderId: orderIdString,
         expiresAt,
       });
 
@@ -5378,6 +5390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (parts.length < 3) return;
       const subscriptionId = parts[1];
       const targetUserId = parts[2];
+      const domainFromOrder = parts[3] ? decodeURIComponent(parts[3]).trim() : "";
 
       const subscription = await storage.getSubscription(subscriptionId);
       if (!subscription) {
@@ -5408,6 +5421,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: "active",
         });
         console.log(`[Subscription Activated] Created new subscription for user ${targetUserId} (${durationInDays} days).`);
+      }
+
+      // If website domain was included in transaction, save it as authorized domain (wpAuthorizedDomain) in user's gateway
+      if (domainFromOrder) {
+        const cleanDomain = domainFromOrder.toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").trim();
+        if (cleanDomain) {
+          try {
+            await storage.saveBlupalGateway(targetUserId, { wpAuthorizedDomain: cleanDomain });
+            console.log(`[Subscription Activated] Saved wpAuthorizedDomain '${cleanDomain}' for user ${targetUserId}`);
+          } catch (domainErr) {
+            console.error("Error saving wpAuthorizedDomain on subscription activation:", domainErr);
+          }
+        }
       }
     } catch (err) {
       console.error("Error activating subscription from paid transaction:", err);

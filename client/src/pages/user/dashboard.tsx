@@ -168,7 +168,7 @@ export default function UserDashboard() {
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.message || "خطا در استعلام وضعیت از بلوپال");
+        throw new Error(data.message || "خطا در استعلام وضعیت از بلو بانک");
       }
       return data;
     },
@@ -177,7 +177,7 @@ export default function UserDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/blupal/stats"] });
       if (data.verified) {
         toast({
-          title: "تایید واریزی توسط بلوپال",
+          title: "تایید واریزی توسط بلو بانک",
           description: data.message,
         });
         if (data.transaction) {
@@ -185,7 +185,7 @@ export default function UserDashboard() {
         }
       } else {
         toast({
-          title: "وضعیت درگاه بلوپال",
+          title: "وضعیت درگاه بلو بانک",
           description: data.message,
         });
       }
@@ -458,64 +458,6 @@ export default function UserDashboard() {
 
           return (
             <div className="space-y-4">
-              {/* Gateway Status & Share Card (shown when configured) */}
-              {isConfigured && (
-                <div className="rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-900/10 via-slate-900/5 to-transparent dark:bg-zinc-900/60 p-4 space-y-3 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-indigo-600/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                        <CreditCard className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-slate-800 dark:text-zinc-100">درگاه پرداخت کارت به کارت</span>
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        </div>
-                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">بلوپال (کارت به کارت شتاب)</span>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] px-2 py-0.5">
-                      فعال
-                    </Badge>
-                  </div>
-
-                  {/* Public Link Share Box */}
-                  <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-zinc-800/80 p-1.5 rounded-xl border border-slate-200/80 dark:border-zinc-700/60">
-                    <div className="flex-1 text-left px-2 truncate font-mono text-[11px] text-indigo-600 dark:text-indigo-300" dir="ltr">
-                      {publicUrl}
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={handleCopyLink}
-                      className="h-8 px-2.5 text-[11px] rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shrink-0 flex items-center gap-1 shadow-sm"
-                    >
-                      {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedLink ? "کپی شد" : "کپی لینک"}</span>
-                    </Button>
-                    <a href={publicUrl} target="_blank" rel="noreferrer">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 px-2 text-[11px] rounded-lg shrink-0"
-                        title="مشاهده صفحه پرداخت"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </Button>
-                    </a>
-                  </div>
-
-                  {/* Quick button to settings */}
-                  <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5 px-1">
-                    <span>پذیرنده: <b className="text-slate-700 dark:text-zinc-300">{blupalGateway?.sellerName || user.username}</b></span>
-                    <Link href="/level1/settings" className="text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5 font-bold">
-                      <Settings className="w-3 h-3" />
-                      تنظیمات و شماره کارت
-                    </Link>
-                  </div>
-                </div>
-              )}
-
               {/* Financial Metrics Grid: Amounts */}
               <div className="grid grid-cols-2 gap-2.5">
                 <div className="p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 shadow-sm">
@@ -564,7 +506,7 @@ export default function UserDashboard() {
                   <div className="text-base sm:text-lg font-bold text-amber-600 dark:text-amber-400 font-mono">
                     {formatFa(blupalStats?.pendingCount || 0)}
                   </div>
-                  <div className="text-[9px] sm:text-[10px] text-slate-400 mt-0.5 truncate">در انتظار بلوپال</div>
+                  <div className="text-[9px] sm:text-[10px] text-slate-400 mt-0.5 truncate">در انتظار بلو بانک</div>
                 </div>
 
                 {/* تراکنش ناموفق */}
@@ -971,7 +913,7 @@ export default function UserDashboard() {
                           className="w-full h-10 rounded-xl text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-2"
                         >
                           <RefreshCw className={`w-3.5 h-3.5 ${verifyTxMutation.isPending ? "animate-spin" : ""}`} />
-                          {verifyTxMutation.isPending ? "در حال استعلام واقعی از بلوپال..." : "استعلام مجدد وضعیت از بلوپال"}
+                          {verifyTxMutation.isPending ? "در حال استعلام واقعی از بلو بانک..." : "استعلام مجدد وضعیت از بلو بانک"}
                         </Button>
                       )}
 
