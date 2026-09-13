@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
-import { insertUserSchema, insertSubUserSchema, insertTicketSchema, insertSubscriptionSchema, insertProductSchema, insertSentMessageSchema, insertReceivedMessageSchema, insertUserSubscriptionSchema, insertCategorySchema, insertCartItemSchema, insertAddressSchema, updateAddressSchema, insertOrderSchema, insertOrderItemSchema, insertTransactionSchema, updateCategoryOrderSchema, ticketReplySchema, insertInternalChatSchema, insertFaqSchema, updateFaqSchema, maintenanceMode, type User, users, receivedMessages, sentMessages, sslCertificates, sslLogs, insertSslCertificateSchema, updateSslCertificateSchema, type SslCertificate, type SslLog } from "@shared/schema";
+import { insertUserSchema, insertSubUserSchema, insertTicketSchema, insertSubscriptionSchema, insertProductSchema, insertSentMessageSchema, insertReceivedMessageSchema, insertUserSubscriptionSchema, insertCategorySchema, insertCartItemSchema, insertAddressSchema, updateAddressSchema, insertOrderSchema, insertOrderItemSchema, insertTransactionSchema, updateCategoryOrderSchema, ticketReplySchema, insertInternalChatSchema, insertFaqSchema, updateFaqSchema, maintenanceMode, type User, type Transaction, users, receivedMessages, sentMessages, sslCertificates, sslLogs, insertSslCertificateSchema, updateSslCertificateSchema, type SslCertificate, type SslLog } from "@shared/schema";
 import { z } from "zod";
 import fs from "fs";
 import { generateAndSaveInvoice } from "./invoice-service";
@@ -5121,6 +5121,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting Blupal transactions:", error);
       res.status(500).json({ message: "خطا در دریافت تراکنش‌ها" });
+    }
+  });
+
+  // Get User's own deposits and payments made TO Admin / Management (خرید اشتراک و واریزی‌های به مدیریت)
+  app.get("/api/user/deposits-to-admin", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "احراز هویت الزامی است" });
+      }
+
+      const limit = req.query.limit ? parseInt(String(req.query.limit), 10) : 50;
+      const deposits = await storage.getUserDepositsToAdmin(req.user.id, limit);
+      res.json(deposits);
+    } catch (error) {
+      console.error("Error getting user deposits to admin:", error);
+      res.status(500).json({ message: "خطا در دریافت واریزی‌های کاربر به مدیریت" });
     }
   });
 

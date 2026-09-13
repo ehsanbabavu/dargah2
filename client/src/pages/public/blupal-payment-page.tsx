@@ -58,6 +58,7 @@ interface InvoiceResponse {
   mode?: string;
   expiresAt: string;
   sellerTitle?: string;
+  description?: string;
 }
 
 interface TransactionStatus {

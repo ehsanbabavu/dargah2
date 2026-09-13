@@ -60,7 +60,7 @@ export default function UserDashboard() {
     refetchInterval: 10000,
   });
 
-  // Latest 10 Blupal Transactions for level 1 users
+  // Latest 10 Blupal Transactions for level 1 users (واریزی‌های مشتریان به درگاه کاربر)
   const { data: latestTransactions = [], isLoading: txLoading, refetch: refetchTx } = useQuery<any[]>({
     queryKey: ["/api/blupal/transactions", { limit: 10 }],
     enabled: !!user && user.role === "user_level_1",
@@ -72,12 +72,12 @@ export default function UserDashboard() {
     refetchInterval: 8000,
   });
 
-  // Latest 10 Successful Deposits for level 1 user (واریزی‌های کاربر - فقط موفق)
+  // Latest Deposits/Payments made by Level 1 user TO Admin (واریزی‌های کاربر به مدیریت)
   const { data: userDeposits = [], isLoading: depositsLoading, refetch: refetchDeposits } = useQuery<any[]>({
-    queryKey: ["/api/blupal/transactions", { limit: 10, status: "paid" }],
+    queryKey: ["/api/user/deposits-to-admin", { limit: 10 }],
     enabled: !!user && user.role === "user_level_1",
     queryFn: async () => {
-      const res = await createAuthenticatedRequest("/api/blupal/transactions?limit=10&status=paid");
+      const res = await createAuthenticatedRequest("/api/user/deposits-to-admin?limit=10");
       if (!res.ok) return [];
       return res.json();
     },
@@ -709,7 +709,7 @@ export default function UserDashboard() {
                 )}
               </div>
 
-              {/* USER DEPOSITS (واریزی های کاربر - فقط واریزی های موفق) */}
+              {/* USER DEPOSITS (واریزی‌های کاربر به مدیریت - سوابق پرداخت‌ها و خرید اشتراک به مدیریت) */}
               <div className="space-y-3 pt-2">
                 <div className="flex items-center justify-between px-1">
                   <div className="flex items-center gap-2">
@@ -720,14 +720,14 @@ export default function UserDashboard() {
                       <h3 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-zinc-200">
                         واریزی‌های کاربر
                       </h3>
-                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-                        فقط واریزی‌های موفق و تایید شده بانکی
+                      <p className="text-[10px] text-slate-500 dark:text-zinc-400 font-medium">
+                        واریزی‌ها و خرید اشتراک کاربر به مدیریت سامانه
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 font-bold px-2 py-0.5">
-                      {userDeposits.length} واریز موفق
+                      {userDeposits.length} واریزی
                     </Badge>
                     <Button
                       variant="ghost"
@@ -746,82 +746,105 @@ export default function UserDashboard() {
                 {depositsLoading ? (
                   <div className="p-8 text-center bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
                     <RefreshCw className="w-5 h-5 animate-spin mx-auto text-emerald-500 mb-2" />
-                    <span className="text-xs text-slate-500">در حال بارگذاری واریزی‌های موفق...</span>
+                    <span className="text-xs text-slate-500">در حال بارگذاری واریزی‌ها...</span>
                   </div>
                 ) : userDeposits.length === 0 ? (
                   <div className="p-6 text-center bg-white dark:bg-zinc-900 rounded-2xl border border-emerald-500/20 dark:border-emerald-950/40 bg-emerald-50/20 dark:bg-emerald-950/10 space-y-2">
                     <div className="w-11 h-11 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
                       <CheckCircle2 className="w-5 h-5" />
                     </div>
-                    <h4 className="text-xs font-bold text-slate-700 dark:text-zinc-300">هنوز واریزی موفقی ثبت نشده است</h4>
+                    <h4 className="text-xs font-bold text-slate-700 dark:text-zinc-300">هنوز پرداختی به مدیریت ثبت نشده است</h4>
                     <p className="text-[11px] text-slate-500 dark:text-zinc-400 leading-relaxed max-w-xs mx-auto">
-                      کلیه پرداخت‌های کارت‌به‌کارت که توسط سیستم بانکی بلوپال تایید و قطعی می‌شوند در این کارت لیست خواهند شد.
+                      سوابق پرداخت‌های حق اشتراک و سایر واریزی‌های شما به حساب مدیریت سامانه در این بخش نمایش داده می‌شود.
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {userDeposits.map((tx: any) => (
-                      <div
-                        key={`deposit-${tx.id}`}
-                        onClick={() => setSelectedTx(tx)}
-                        className="p-3.5 rounded-2xl bg-white dark:bg-zinc-900 border border-emerald-500/30 dark:border-emerald-900/50 shadow-xs hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer flex items-center justify-between gap-3 group"
-                      >
-                        {/* Right: Icon + Payer Info */}
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 ring-2 ring-emerald-500/20 group-hover:scale-105 transition-transform">
-                            <CheckCircle2 className="w-4 h-4" />
-                          </div>
+                    {userDeposits.map((tx: any) => {
+                      const isPaid = tx.status === "paid" || tx.status === "completed";
+                      const isPending = tx.status === "pending" || tx.status === "verifying";
 
-                          <div className="min-w-0">
-                            <div className="text-xs font-bold text-slate-800 dark:text-zinc-100 truncate flex items-center gap-1.5">
-                              <span>{tx.payerName || "کاربر ناشناس"}</span>
-                              {tx.trackingCode && (
-                                <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-900/50">
-                                  پیگیری: {tx.trackingCode}
-                                </span>
+                      return (
+                        <div
+                          key={`deposit-${tx.id}`}
+                          onClick={() => setSelectedTx(tx)}
+                          className="p-3.5 rounded-2xl bg-white dark:bg-zinc-900 border border-emerald-500/30 dark:border-emerald-900/50 shadow-xs hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer flex items-center justify-between gap-3 group"
+                        >
+                          {/* Right: Icon + Description / Info */}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ring-2 group-hover:scale-105 transition-transform ${
+                              isPaid 
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20" 
+                                : isPending
+                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-amber-500/20"
+                                : "bg-rose-500/10 text-rose-600 dark:text-rose-400 ring-rose-500/20"
+                            }`}>
+                              {isPaid ? (
+                                <CheckCircle2 className="w-4 h-4" />
+                              ) : isPending ? (
+                                <Clock className="w-4 h-4" />
+                              ) : (
+                                <XCircle className="w-4 h-4" />
                               )}
                             </div>
-                            <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                              <span>{formatPersianDate(tx.paidAt || tx.createdAt)}</span>
-                              {tx.payerPhone && (
-                                <>
-                                  <span>•</span>
-                                  <span className="font-mono">{tx.payerPhone}</span>
-                                </>
-                              )}
-                              {tx.cardLastFour && (
-                                <>
-                                  <span>•</span>
-                                  <span className="font-mono">کارت: ****{tx.cardLastFour}</span>
-                                </>
+
+                            <div className="min-w-0">
+                              <div className="text-xs font-bold text-slate-800 dark:text-zinc-100 truncate flex items-center gap-1.5">
+                                <span>{tx.description || "واریز به مدیریت سامانه"}</span>
+                                {tx.trackingCode && (
+                                  <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-900/50">
+                                    پیگیری: {tx.trackingCode}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                <span>{formatPersianDate(tx.paidAt || tx.createdAt)}</span>
+                                <span>•</span>
+                                <span className="text-slate-500 dark:text-zinc-400">واریز به: {tx.destCardHolder || "مدیریت سامانه"}</span>
+                                {tx.cardLastFour && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="font-mono">کارت: ****{tx.cardLastFour}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Left: Amount + Paid Badge */}
+                          <div className="text-left shrink-0">
+                            <div className="text-xs sm:text-sm font-extrabold font-mono text-emerald-600 dark:text-emerald-400 flex items-baseline justify-end gap-1">
+                              <span>{formatFa(tx.amount)}</span>
+                              <span className="text-[10px] font-sans font-normal text-slate-400">تومان</span>
+                            </div>
+                            <div className="mt-1">
+                              {isPaid ? (
+                                <Badge variant="outline" className="text-[9px] px-2 py-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-bold">
+                                  پرداخت موفق به مدیریت
+                                </Badge>
+                              ) : isPending ? (
+                                <Badge variant="outline" className="text-[9px] px-2 py-0 bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 font-bold">
+                                  در انتظار پرداخت
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[9px] px-2 py-0 bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 font-bold">
+                                  پرداخت ناموفق
+                                </Badge>
                               )}
                             </div>
                           </div>
                         </div>
-
-                        {/* Left: Amount + Paid Badge */}
-                        <div className="text-left shrink-0">
-                          <div className="text-xs sm:text-sm font-extrabold font-mono text-emerald-600 dark:text-emerald-400 flex items-baseline justify-end gap-1">
-                            <span>+{formatFa(tx.amount)}</span>
-                            <span className="text-[10px] font-sans font-normal text-slate-400">تومان</span>
-                          </div>
-                          <div className="mt-1">
-                            <Badge variant="outline" className="text-[9px] px-2 py-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-bold">
-                              واریز موفق شتاب
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
 
                     {/* Total Summary Footer */}
                     <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20 flex items-center justify-between text-xs text-slate-700 dark:text-zinc-300">
                       <span className="font-bold flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
                         <Wallet className="w-3.5 h-3.5" />
-                        مجموع ۱۰ واریزی موفق اخیر:
+                        مجموع واریزی‌های اخیر به مدیریت:
                       </span>
                       <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
-                        {formatFa(userDeposits.reduce((sum: number, item: any) => sum + (parseFloat(item.amount) || 0), 0))} تومان
+                        {formatFa(userDeposits.filter((d: any) => d.status === "paid" || d.status === "completed").reduce((sum: number, item: any) => sum + (parseFloat(item.amount) || 0), 0))} تومان
                       </span>
                     </div>
                   </div>
@@ -899,6 +922,20 @@ export default function UserDashboard() {
                           <div className="flex justify-between items-center">
                             <span className="text-slate-500">۴ رقم آخر کارت:</span>
                             <span className="font-mono text-slate-700 dark:text-zinc-300">**** - {selectedTx.cardLastFour}</span>
+                          </div>
+                        )}
+
+                        {selectedTx.destCardHolder && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-500">حساب مقصد:</span>
+                            <span className="font-bold text-slate-700 dark:text-zinc-300">{selectedTx.destCardHolder}</span>
+                          </div>
+                        )}
+
+                        {selectedTx.paymentMethod && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-500">روش پرداخت:</span>
+                            <span className="text-slate-700 dark:text-zinc-300">{selectedTx.paymentMethod}</span>
                           </div>
                         )}
 

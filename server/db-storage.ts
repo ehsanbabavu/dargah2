@@ -1676,6 +1676,87 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
+  async getAllTransactions(): Promise<Transaction[]> {
+    try {
+      return await db.select().from(transactions).orderBy(desc(transactions.createdAt));
+    } catch (error) {
+      console.error("Error getting all transactions:", error);
+      return [];
+    }
+  }
+
+  async getUserDepositsToAdmin(userId: string, limit = 50): Promise<any[]> {
+    try {
+      const list: any[] = [];
+      const user = await this.getUser(userId);
+
+      // 1. Blupal transactions where this user is the payer (e.g. subscription purchases or payments to admin)
+      const blupalList = await db.select().from(blupalTransactions).orderBy(desc(blupalTransactions.createdAt));
+      for (const tx of blupalList) {
+        const isPayerSub = tx.orderId?.includes(userId) || tx.orderId?.startsWith(`SUB:`) || tx.orderId?.startsWith(`USER_UPGRADE:`);
+        const isPayerPhone = user?.phone && tx.payerPhone === user.phone;
+        const isPayerDesc = user?.username && (tx.description?.includes(user.username) || tx.description?.includes(user.phone || ''));
+
+        if (isPayerSub || isPayerPhone || isPayerDesc) {
+          list.push({
+            id: tx.id,
+            invoiceId: tx.invoiceId,
+            amount: tx.amount,
+            finalAmount: tx.finalAmount,
+            payerName: tx.payerName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.username,
+            payerPhone: tx.payerPhone || user?.phone,
+            destCardNumber: tx.destCardNumber,
+            destCardHolder: tx.destCardHolder || "مدیریت سامانه",
+            destBankName: (tx as any).destBankName || tx.payerBankName || null,
+            cardLastFour: tx.cardLastFour,
+            trackingCode: tx.trackingCode || tx.invoiceId,
+            status: tx.status,
+            description: tx.description || "خرید اشتراک / واریز به مدیریت",
+            orderId: tx.orderId,
+            paymentMethod: "کارت به کارت شتاب",
+            paidAt: tx.paidAt,
+            createdAt: tx.createdAt,
+          });
+        }
+      }
+
+      // 2. Standard deposits
+      const stdList = await db.select().from(transactions).where(eq(transactions.userId, userId)).orderBy(desc(transactions.createdAt));
+      for (const t of stdList) {
+        if (t.type === "deposit" || t.type === "subscription" || t.orderId?.startsWith("SUB:")) {
+          const exists = list.some(item => item.trackingCode === t.referenceId || item.invoiceId === t.referenceId || item.id === t.id);
+          if (!exists) {
+            list.push({
+              id: t.id,
+              invoiceId: t.referenceId || `TX-${t.id}`,
+              amount: t.amount,
+              finalAmount: t.amount,
+              payerName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.username,
+              payerPhone: user?.phone,
+              destCardNumber: null,
+              destCardHolder: "مدیریت سامانه",
+              destBankName: null,
+              cardLastFour: null,
+              trackingCode: t.referenceId,
+              status: t.status === "completed" ? "paid" : t.status,
+              description: t.accountSource || (t.type === "subscription" ? "خرید اشتراک" : "واریز به حساب مدیریت"),
+              orderId: t.orderId,
+              paymentMethod: t.paymentMethod || "کارت به کارت شتاب",
+              paidAt: t.approvedAt || t.createdAt,
+              createdAt: t.createdAt,
+            });
+          }
+        }
+      }
+
+      list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      return list.slice(0, limit);
+    } catch (error) {
+      console.error("Error getting user deposits to admin:", error);
+      return [];
+    }
+  }
+
   // Internal Chat methods
   async getInternalChatById(id: string): Promise<InternalChat | undefined> {
     const result = await db.select().from(internalChats).where(eq(internalChats.id, id)).limit(1);

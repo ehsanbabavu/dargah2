@@ -218,6 +218,7 @@ export interface IStorage {
   generateWpApiKey(userId: string): Promise<string>;
   saveBlupalGateway(userId: string, data: Partial<InsertBlupalGateway>): Promise<BlupalGateway>;
   getBlupalTransactions(userId: string, limit?: number, status?: string): Promise<BlupalTransaction[]>;
+  getUserDepositsToAdmin(userId: string, limit?: number): Promise<any[]>;
   getBlupalTransactionByInvoiceId(invoiceId: string): Promise<BlupalTransaction | undefined>;
   createBlupalTransaction(tx: InsertBlupalTransaction): Promise<BlupalTransaction>;
   updateBlupalTransaction(invoiceId: string, updates: Partial<BlupalTransaction>): Promise<BlupalTransaction | undefined>;
@@ -2757,6 +2758,79 @@ export class MemStorage implements IStorage {
     }
     return list
       .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0))
+      .slice(0, limit);
+  }
+
+  async getUserDepositsToAdmin(userId: string, limit = 50): Promise<any[]> {
+    const list: any[] = [];
+    const user = this.users.get(userId);
+    const userPhone = user?.phone?.trim();
+    const twentyMinutesAgo = Date.now() - 20 * 60 * 1000;
+
+    // 1. Blupal invoices created for purchasing subscription or payments directed to admin
+    for (const tx of this.blupalTransactions.values()) {
+      const isPayerSub = Boolean(tx.orderId && (tx.orderId.endsWith(`:${userId}`) || tx.orderId.includes(`:${userId}:`) || (tx.orderId.startsWith("SUB:") && tx.orderId.includes(userId))));
+      const isPayerPhone = Boolean(userPhone && tx.payerPhone && tx.payerPhone.trim() === userPhone && tx.userId !== userId);
+      const isPayerDesc = Boolean(user?.username && tx.description && tx.description.includes(user.username) && tx.userId !== userId);
+
+      if (isPayerSub || isPayerPhone || isPayerDesc) {
+        if ((tx.status === "pending" || tx.status === "verifying") && tx.createdAt) {
+          if (new Date(tx.createdAt).getTime() < twentyMinutesAgo) {
+            tx.status = "failed";
+          }
+        }
+        list.push({
+          id: tx.id,
+          invoiceId: tx.invoiceId,
+          amount: tx.amount,
+          finalAmount: tx.finalAmount,
+          payerName: tx.payerName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.username,
+          payerPhone: tx.payerPhone || user?.phone,
+          destCardNumber: tx.destCardNumber,
+          destCardHolder: tx.destCardHolder || "مدیریت سامانه",
+          destBankName: (tx as any).destBankName || tx.payerBankName || null,
+          cardLastFour: tx.cardLastFour,
+          trackingCode: tx.trackingCode || tx.invoiceId,
+          status: tx.status,
+          description: tx.description || "خرید اشتراک / واریز به مدیریت",
+          orderId: tx.orderId,
+          paymentMethod: "کارت به کارت شتاب",
+          paidAt: tx.paidAt,
+          createdAt: tx.createdAt,
+        });
+      }
+    }
+
+    // 2. Standard deposits / transactions of this user to admin
+    for (const t of this.transactions.values()) {
+      if (t.userId === userId && (t.type === "deposit" || t.type === "subscription" || t.orderId?.startsWith("SUB:"))) {
+        const exists = list.some(item => item.trackingCode === t.referenceId || item.invoiceId === t.referenceId || item.id === t.id);
+        if (!exists) {
+          list.push({
+            id: t.id,
+            invoiceId: t.referenceId || t.id,
+            amount: t.amount,
+            finalAmount: t.amount,
+            payerName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.username,
+            payerPhone: user?.phone,
+            destCardNumber: t.accountSource || null,
+            destCardHolder: "مدیریت سامانه",
+            destBankName: null,
+            cardLastFour: null,
+            trackingCode: t.referenceId || null,
+            status: t.status === "completed" ? "paid" : t.status,
+            description: t.type === "subscription" ? "خرید و تمدید اشتراک سامانه" : (t.accountSource || "واریز به مدیریت"),
+            orderId: t.orderId,
+            paymentMethod: t.paymentMethod || "کارت به کارت بانکی",
+            paidAt: t.approvedAt || t.createdAt,
+            createdAt: t.createdAt,
+          });
+        }
+      }
+    }
+
+    return list
+      .sort((a, b) => new Date(b.paidAt || b.createdAt || 0).getTime() - new Date(a.paidAt || a.createdAt || 0).getTime())
       .slice(0, limit);
   }
 
