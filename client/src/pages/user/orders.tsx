@@ -729,13 +729,9 @@ export default function OrdersPage() {
               textAlign: 'right',
               fontSize: '14px'
             }}>
-              {(invoiceData as any).vatSettings?.isEnabled ? (
-                `نام شرکت: ${(invoiceData as any).vatSettings?.companyName || '-'} - شناسه ملی: ${(invoiceData as any).vatSettings?.nationalId || '-'} - کد اقتصادی: ${(invoiceData as any).vatSettings?.economicCode || '-'} - تلفن: ${(invoiceData as any).vatSettings?.phoneNumber || '-'} - آدرس: ${(invoiceData as any).vatSettings?.address || '-'}`
-              ) : (
-                `نام شخص / سازمان : ${invoiceData.sellerFirstName && invoiceData.sellerLastName 
-                  ? `${invoiceData.sellerFirstName} ${invoiceData.sellerLastName}` 
-                  : 'فروشنده'}`
-              )}
+              نام شخص / سازمان : {invoiceData.sellerFirstName && invoiceData.sellerLastName 
+                ? `${invoiceData.sellerFirstName} ${invoiceData.sellerLastName}` 
+                : 'فروشنده'}
             </div>
             
             {/* Customer Section Header */}
@@ -770,19 +766,16 @@ export default function OrdersPage() {
                   <th style={{ width: '8%', backgroundColor: '#d3d3d3', border: '1px solid #000', padding: '10px', textAlign: 'center', fontWeight: 'bold', fontSize: '14px', verticalAlign: 'middle' }}>
                     ردیف
                   </th>
-                  <th style={{ width: '36%', backgroundColor: '#d3d3d3', border: '1px solid #000', padding: '10px', textAlign: 'center', fontWeight: 'bold', fontSize: '14px', verticalAlign: 'middle' }}>
+                  <th style={{ width: '44%', backgroundColor: '#d3d3d3', border: '1px solid #000', padding: '10px', textAlign: 'center', fontWeight: 'bold', fontSize: '14px', verticalAlign: 'middle' }}>
                     شرح کالا یا خدمات
                   </th>
-                  <th style={{ width: '10%', backgroundColor: '#d3d3d3', border: '1px solid #000', padding: '10px', textAlign: 'center', fontWeight: 'bold', fontSize: '14px', verticalAlign: 'middle' }}>
+                  <th style={{ width: '12%', backgroundColor: '#d3d3d3', border: '1px solid #000', padding: '10px', textAlign: 'center', fontWeight: 'bold', fontSize: '14px', verticalAlign: 'middle' }}>
                     تعداد
                   </th>
-                  <th style={{ width: '15%', backgroundColor: '#d3d3d3', border: '1px solid #000', padding: '10px', textAlign: 'center', fontWeight: 'bold', fontSize: '14px', verticalAlign: 'middle' }}>
+                  <th style={{ width: '18%', backgroundColor: '#d3d3d3', border: '1px solid #000', padding: '10px', textAlign: 'center', fontWeight: 'bold', fontSize: '14px', verticalAlign: 'middle' }}>
                     قیمت واحد<br />(ریال)
                   </th>
-                  <th style={{ width: '15%', backgroundColor: '#d3d3d3', border: '1px solid #000', padding: '10px', textAlign: 'center', fontWeight: 'bold', fontSize: '14px', verticalAlign: 'middle' }}>
-                    ارزش افزوده<br />(ریال)
-                  </th>
-                  <th style={{ width: '16%', backgroundColor: '#d3d3d3', border: '1px solid #000', padding: '10px', textAlign: 'center', fontWeight: 'bold', fontSize: '14px', verticalAlign: 'middle' }}>
+                  <th style={{ width: '18%', backgroundColor: '#d3d3d3', border: '1px solid #000', padding: '10px', textAlign: 'center', fontWeight: 'bold', fontSize: '14px', verticalAlign: 'middle' }}>
                     قیمت کل<br />(ریال)
                   </th>
                 </tr>
@@ -793,13 +786,7 @@ export default function OrdersPage() {
                   const isLargeOrder = invoiceData.items!.length > 8;
                   const fontSize = isLargeOrder ? '12px' : '14px';
                   const padding = isLargeOrder ? '6px' : '8px';
-                  
-                  const vatPercentage = (invoiceData as any).vatSettings?.isEnabled 
-                    ? parseFloat((invoiceData as any).vatSettings.vatPercentage) 
-                    : 0;
-                  const itemSubtotal = parseFloat(item.totalPrice);
-                  const itemVat = vatPercentage > 0 ? Math.round(itemSubtotal * (vatPercentage / 100)) : 0;
-                  const itemTotal = itemSubtotal + itemVat;
+                  const itemTotal = parseFloat(item.totalPrice);
                   
                   return (
                     <tr key={item.id}>
@@ -816,9 +803,6 @@ export default function OrdersPage() {
                         {formatPriceRial(item.unitPrice)}
                       </td>
                       <td style={{ textAlign: 'center', border: '1px solid #000', padding, fontSize, verticalAlign: 'middle' }}>
-                        {vatPercentage > 0 ? formatPriceRial(itemVat) : '-'}
-                      </td>
-                      <td style={{ textAlign: 'center', border: '1px solid #000', padding, fontSize, verticalAlign: 'middle' }}>
                         {formatPriceRial(itemTotal)}
                       </td>
                     </tr>
@@ -826,21 +810,13 @@ export default function OrdersPage() {
                 })}
                 {/* Total Row */}
                 {(() => {
-                  const vatPercentage = (invoiceData as any).vatSettings?.isEnabled 
-                    ? parseFloat((invoiceData as any).vatSettings.vatPercentage) 
-                    : 0;
                   const subtotal = invoiceData.items?.reduce((sum, item) => sum + parseFloat(item.totalPrice), 0) || 0;
-                  const vatAmount = Math.round(subtotal * (vatPercentage / 100));
-                  const totalWithVat = subtotal + vatAmount;
                   
                   return (
                     <tr style={{ backgroundColor: '#d3d3d3', fontWeight: 'bold' }}>
-                      <td colSpan={4} style={{ textAlign: 'right', border: '1px solid #000', padding: '12px', verticalAlign: 'middle' }}></td>
+                      <td colSpan={4} style={{ textAlign: 'right', border: '1px solid #000', padding: '12px', verticalAlign: 'middle' }}>جمع کل</td>
                       <td style={{ textAlign: 'center', border: '1px solid #000', padding: '12px', verticalAlign: 'middle' }}>
-                        {vatPercentage > 0 ? formatPriceRial(vatAmount).replace(' ریال', '') : '-'}
-                      </td>
-                      <td style={{ textAlign: 'center', border: '1px solid #000', padding: '12px', verticalAlign: 'middle' }}>
-                        {formatPriceRial(vatPercentage > 0 ? totalWithVat : subtotal).replace(' ریال', '')}
+                        {formatPriceRial(subtotal).replace(' ریال', '')}
                       </td>
                     </tr>
                   );
@@ -850,12 +826,7 @@ export default function OrdersPage() {
             
             {/* Total in Words */}
             {(() => {
-              const vatPercentage = (invoiceData as any).vatSettings?.isEnabled 
-                ? parseFloat((invoiceData as any).vatSettings.vatPercentage) 
-                : 0;
               const subtotal = invoiceData.items?.reduce((sum, item) => sum + parseFloat(item.totalPrice), 0) || 0;
-              const vatAmount = Math.round(subtotal * (vatPercentage / 100));
-              const totalWithVat = subtotal + vatAmount;
               
               return (
                 <div style={{
@@ -864,14 +835,13 @@ export default function OrdersPage() {
                   fontSize: '14px',
                   borderBottom: '1px solid #000'
                 }}>
-                  {vatPercentage > 0 ? 'مبلغ قابل پرداخت' : 'جمع کل'} به حروف: {numberToPersianWords((vatPercentage > 0 ? totalWithVat : subtotal) * 10)} ریال
+                  جمع کل به حروف: {numberToPersianWords(subtotal * 10)} ریال
                 </div>
               );
             })()}
             
             {/* Thank You Message */}
             <div style={{
-              position: 'relative',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -887,53 +857,6 @@ export default function OrdersPage() {
               }}>
                 از خرید شما متشکریم
               </div>
-              {(invoiceData as any).vatSettings?.isEnabled && (
-                <div style={{
-                  position: 'absolute',
-                  left: '40px',
-                  top: '-80px',
-                  width: '150px',
-                  height: '150px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  textAlign: 'center',
-                  zIndex: 10,
-                  pointerEvents: 'none'
-                }}>
-                  {(invoiceData as any).vatSettings?.stampImage ? (
-                    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                      <img 
-                        src={(invoiceData as any).vatSettings.stampImage} 
-                        alt="مهر و امضا" 
-                        style={{ 
-                          width: '100%', 
-                          height: '100%', 
-                          objectFit: 'contain',
-                          opacity: 0.5,
-                          filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
-                        }}
-                      />
-                      <div style={{ 
-                        position: 'absolute',
-                        top: '60%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        fontSize: '12px', 
-                        color: '#333',
-                        fontWeight: 'bold',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        مهر و امضا شرکت
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: '14px', color: '#999', opacity: 0.3 }}>
-                      مهر و امضا شرکت
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         )}

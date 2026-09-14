@@ -1,0 +1,146 @@
+const fs = require('fs');
+const puppeteer = require('puppeteer');
+
+// Exact vector representation of output_transparent.png
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Hair Gradient -->
+    <linearGradient id="hairGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#242b3a" />
+      <stop offset="100%" stop-color="#141824" />
+    </linearGradient>
+
+    <!-- Face / Skin Gradient -->
+    <linearGradient id="skinGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fed7aa" />
+      <stop offset="60%" stop-color="#fdba74" />
+      <stop offset="100%" stop-color="#fba15d" />
+    </linearGradient>
+
+    <!-- Headset Blue Gradient -->
+    <linearGradient id="headsetGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+
+    <!-- Mic Foam Gradient -->
+    <linearGradient id="micGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+
+    <!-- Shirt Gradient -->
+    <linearGradient id="shirtGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+
+    <!-- Collar Gradient -->
+    <linearGradient id="collarGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+
+    <!-- Boom Arm Gradient -->
+    <linearGradient id="armGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#cbd5e1" />
+      <stop offset="100%" stop-color="#94a3b8" />
+    </linearGradient>
+
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-opacity="0.12" />
+    </filter>
+  </defs>
+
+  <!-- Headset Arch Behind Head -->
+  <path d="M 145 200 C 145 95, 367 95, 367 200" fill="none" stroke="url(#headsetGrad)" stroke-width="26" stroke-linecap="round" />
+
+  <!-- Body / Royal Blue Shirt -->
+  <path d="M 82 492 C 82 360, 150 286, 256 286 C 362 286, 430 360, 430 492 Z" fill="url(#shirtGrad)" />
+
+  <!-- Center Seam / Placket Line -->
+  <rect x="250" y="372" width="12" height="120" rx="6" fill="#1e40af" />
+
+  <!-- White Name Badge on Viewer's Left -->
+  <rect x="140" y="405" width="56" height="22" rx="11" fill="#ffffff" filter="url(#shadow)" />
+
+  <!-- Neck -->
+  <path d="M 214 260 L 214 375 C 214 398, 298 398, 298 375 L 298 260 Z" fill="url(#skinGrad)" />
+
+  <!-- Collar Wings -->
+  <!-- Left Wing -->
+  <path d="M 162 372 C 158 302, 256 302, 256 372 C 234 372, 192 378, 162 372 Z" fill="url(#collarGrad)" />
+  <!-- Right Wing -->
+  <path d="M 350 372 C 354 302, 256 302, 256 372 C 278 372, 320 378, 350 372 Z" fill="url(#collarGrad)" />
+
+  <!-- Head / Face (Faceless) -->
+  <path d="M 160 170 C 160 85, 352 85, 352 170 C 352 240, 322 308, 256 308 C 190 308, 160 240, 160 170 Z" fill="url(#skinGrad)" />
+
+  <!-- Hair Shape -->
+  <path d="M 160 155 
+           C 160 55, 205 0, 315 0 
+           C 390 0, 385 105, 385 155 
+           C 375 140, 360 130, 350 120 
+           C 350 95, 305 95, 275 95 
+           C 220 95, 175 125, 160 155 Z" 
+        fill="url(#hairGrad)" />
+  <path d="M 160 155 
+           C 165 110, 200 65, 275 95 
+           C 255 105, 235 118, 220 135 
+           C 200 120, 180 130, 160 155 Z" 
+        fill="url(#hairGrad)" />
+  <path d="M 300 0 
+           C 345 5, 385 50, 385 130 
+           C 370 95, 340 95, 310 95 
+           C 290 95, 250 85, 300 0 Z" 
+        fill="url(#hairGrad)" />
+
+  <!-- Headset Ear Cushion Left -->
+  <rect x="115" y="128" width="45" height="85" rx="22.5" fill="url(#headsetGrad)" filter="url(#shadow)" />
+  
+  <!-- Headset Ear Cushion Right -->
+  <rect x="352" y="128" width="45" height="85" rx="22.5" fill="url(#headsetGrad)" filter="url(#shadow)" />
+
+  <!-- Microphone Boom Arm -->
+  <path d="M 374 195 L 374 235 C 374 255, 350 255, 300 255 L 265 255" 
+        fill="none" stroke="url(#armGrad)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Microphone Capsule -->
+  <rect x="245" y="224" width="64" height="42" rx="21" fill="url(#micGrad)" filter="url(#shadow)" />
+</svg>`;
+
+async function saveAll() {
+  const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+  const page = await browser.newPage();
+  
+  // Set viewport for high resolution rendering
+  await page.setViewport({ width: 512, height: 512, deviceScaleFactor: 2 });
+  await page.setContent('<!DOCTYPE html><html><body style="margin:0;padding:0;background:transparent;">' + svg + '</body></html>');
+  
+  const pngBuffer = await page.screenshot({ type: 'png', omitBackground: true });
+  
+  // Save as both chat_support_icon.png and output_transparent.png in all relevant locations
+  const targetPngs = [
+    'client/public/images/chat_support_icon.png',
+    'public/images/chat_support_icon.png',
+    'attached_assets/chat_support_icon.png',
+    'client/public/images/output_transparent.png',
+    'public/images/output_transparent.png',
+    'attached_assets/output_transparent.png',
+  ];
+
+  for (const p of targetPngs) {
+    fs.writeFileSync(p, pngBuffer);
+  }
+
+  // Also write SVG versions
+  fs.writeFileSync('client/public/images/chat_support_icon.svg', svg);
+  fs.writeFileSync('public/images/chat_support_icon.svg', svg);
+  fs.writeFileSync('client/public/images/output_transparent.svg', svg);
+  fs.writeFileSync('public/images/output_transparent.svg', svg);
+
+  console.log('Successfully saved output_transparent.png and chat_support_icon.png to all asset locations!');
+  await browser.close();
+}
+
+saveAll().catch(e => { console.error(e); process.exit(1); });

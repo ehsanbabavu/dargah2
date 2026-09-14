@@ -1110,7 +1110,7 @@ export default function AdminLandingPage() {
           type: "default" as const,
           entryFile: "index.html",
           folderName: "default",
-          entryUrl: "/public-landing?preview_template=default",
+          entryUrl: "/",
           previewImage: config?.defaultPreviewImage || "/landing-previews/default.png",
           uploadedAt: null,
           fileSize: 0,
@@ -1627,6 +1627,16 @@ export default function AdminLandingPage() {
                                 : "قالب سفارشی نصب شده"}
                             </p>
 
+                            <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5 border-t border-border/40">
+                              <span className="flex items-center gap-1 font-medium">
+                                <Globe className="w-3 h-3 text-primary/70" />
+                                <span>آدرس ورودی:</span>
+                              </span>
+                              <code className="font-mono text-[9.5px] bg-muted px-1.5 py-0.5 rounded text-primary font-bold dir-ltr">
+                                {tpl.isDefault ? "/ (صفحه اول سایت)" : (tpl.entryUrl || `/${tpl.folderName}`)}
+                              </code>
+                            </div>
+
                             {/* Complementary Settings: Only shown when this template is active */}
                             {isActive && (
                               <div className="pt-1.5 pb-0.5 space-y-1.5 border-t border-border/60 bg-muted/20 rounded-md px-2 py-1.5 animate-in fade-in duration-200">
@@ -1711,7 +1721,7 @@ export default function AdminLandingPage() {
                               <a
                                 href={
                                   tpl.isDefault
-                                    ? "/public-landing?preview_template=default"
+                                    ? "/?preview_template=default"
                                     : `/public-landing?preview_template=${tpl.id}`
                                 }
                                 target="_blank"

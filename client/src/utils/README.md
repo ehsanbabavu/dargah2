@@ -90,21 +90,13 @@ const username = generateUsernameFromPhone("989123456789");
 
 ### 4️⃣ `calculations.ts` - محاسبات مالی
 
-توابع محاسبه VAT، تخفیف و مجموع سبد خرید
+توابع تخفیف و مجموع سبد خرید
 
 ```typescript
 import { 
-  calculateVat, 
   calculateCartTotal,
   calculateDiscountPercentage 
 } from '@/utils/calculations';
-
-// محاسبه VAT
-const vatResult = calculateVat(100000, { 
-  isEnabled: true, 
-  vatPercentage: "9" 
-});
-// نتیجه: { subtotal: 100000, vatAmount: 9000, totalWithVat: 109000, vatPercentage: 9 }
 
 // محاسبه مجموع سبد خرید
 const total = calculateCartTotal(cartItems);
@@ -173,28 +165,7 @@ function RegisterForm() {
 
 ---
 
-### مثال ۳: محاسبه سبد خرید با VAT
-
-```typescript
-import { calculateCartTotal, calculateVat, formatPriceRial } from '@/utils';
-
-function CartSummary({ items, vatSettings }) {
-  const subtotal = calculateCartTotal(items);
-  const { vatAmount, totalWithVat } = calculateVat(subtotal, vatSettings);
-  
-  return (
-    <div>
-      <p>جمع کل: {formatPriceRial(subtotal)} تومان</p>
-      <p>مالیات: {formatPriceRial(vatAmount)} تومان</p>
-      <p>مبلغ نهایی: {formatPriceRial(totalWithVat)} تومان</p>
-    </div>
-  );
-}
-```
-
----
-
-### مثال ۴: نمایش مبلغ به حروف در فاکتور
+### مثال ۳: نمایش مبلغ به حروف در فاکتور
 
 ```typescript
 import { numberToPersianWords, formatPriceRial } from '@/utils';

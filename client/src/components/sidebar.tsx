@@ -30,17 +30,6 @@ export function AppSidebar() {
     if (sidebar) sidebar.setOpenMobile(false);
   };
 
-  const { data: vatPluginData } = useQuery<{ isEnabled: boolean }>({
-    queryKey: ['/api/plugins/vat/status'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/plugins/vat/status');
-      return response.json();
-    },
-    enabled: !!user,
-    staleTime: 30000,
-  });
-  const isVatPluginEnabled = vatPluginData?.isEnabled ?? true;
-
   const { data: backupPluginData } = useQuery<{ isEnabled: boolean }>({
     queryKey: ['/api/plugins/backup/status'],
     queryFn: async () => {
@@ -195,7 +184,6 @@ export function AppSidebar() {
     { path: "/admin/sms-settings", label: "تنظیمات پیامک و OTP", icon: MessageSquare },
     ...(isSeoPluginEnabled ? [{ path: "/admin/seo", label: "سئو و گوگل", icon: Search }] : []),
     ...(isSslPluginEnabled ? [{ path: "/admin/ssl", label: "ssl", icon: Lock }] : []),
-    ...(isVatPluginEnabled ? [{ path: "/vat-settings", label: "مالیات", icon: Receipt }] : []),
     ...(isLoginLogsPluginEnabled ? [{ path: "/login-logs", label: "لاگ ورود", icon: History }] : []),
     ...(isBackupPluginEnabled ? [{ path: "/database-backup", label: "پشتیبان‌گیری", icon: Database }] : []),
   ];
@@ -397,18 +385,6 @@ export function AppSidebar() {
               </li>
               {renderCollapsibleMenu("مدیریت کاربران", usersManagementItems, isUsersOpen, setIsUsersOpen)}
               {renderCollapsibleMenu("تنظیمات", settingsItems, isSettingsOpen, setIsSettingsOpen)}
-              <li key="/plugins">
-                <Link href="/plugins">
-                  <Button 
-                    variant={isActive("/plugins") ? "default" : "ghost"} 
-                    className={cn("w-full justify-start", isActive("/plugins") && "bg-primary text-primary-foreground")}
-                    onClick={() => handleNavigate("/plugins")}
-                  >
-                    <Plus className="w-5 h-5 ml-2" />
-                    پلاگین‌ها
-                  </Button>
-                </Link>
-              </li>
               <li key="/admin/landing">
                 <Link href="/admin/landing">
                   <Button 

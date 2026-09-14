@@ -12,7 +12,6 @@ import {
   validatePhoneNumber,
   validatePostalCode,
   validatePrice,
-  calculateVat,
   calculateDiscountPercentage
 } from '../index';
 
@@ -70,15 +69,6 @@ console.assert(validatePrice(100000, 100000) === false, 'validatePrice(equal) fa
 console.assert(validatePrice(100000, 120000) === false, 'validatePrice(higher discount) failed');
 console.assert(validatePrice(0, 10000) === false, 'validatePrice(zero price) failed');
 console.log('✅ validatePrice passed');
-
-// Test calculateVat
-console.log('Testing calculateVat...');
-const vatResult = calculateVat(100000, { isEnabled: true, vatPercentage: "9" });
-console.assert(vatResult.subtotal === 100000, 'calculateVat subtotal failed');
-console.assert(vatResult.vatAmount === 9000, 'calculateVat vatAmount failed');
-console.assert(vatResult.totalWithVat === 109000, 'calculateVat totalWithVat failed');
-console.assert(vatResult.vatPercentage === 9, 'calculateVat vatPercentage failed');
-console.log('✅ calculateVat passed');
 
 // Test calculateDiscountPercentage
 console.log('Testing calculateDiscountPercentage...');

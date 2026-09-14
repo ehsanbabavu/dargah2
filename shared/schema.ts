@@ -226,22 +226,6 @@ export const passwordResetOtps = pgTable("password_reset_otps", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const vatSettings = pgTable("vat_settings", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().unique().references(() => users.id), // کاربر سطح 1 فروشنده
-  vatPercentage: decimal("vat_percentage", { precision: 5, scale: 2 }).notNull().default("9"), // درصد ارزش افزوده (پیش‌فرض 9%)
-  isEnabled: boolean("is_enabled").notNull().default(false), // فعال/غیرفعال
-  companyName: text("company_name"), // نام شرکت
-  address: text("address"), // آدرس
-  phoneNumber: varchar("phone_number", { length: 20 }), // شماره تلفن ثابت
-  nationalId: varchar("national_id", { length: 20 }), // شناسه ملی
-  economicCode: varchar("economic_code", { length: 20 }), // کد اقتصادی
-  stampImage: text("stamp_image"), // عکس مهر و امضا شرکت
-  thankYouMessage: text("thank_you_message").default("از خرید شما متشکریم"), // متن تشکر در فاکتور
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
 export const maintenanceMode = pgTable("maintenance_mode", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   isEnabled: boolean("is_enabled").notNull().default(false), // فعال/غیرفعال
@@ -415,50 +399,6 @@ export const insertPasswordResetOtpSchema = createInsertSchema(passwordResetOtps
   createdAt: true,
 });
 
-export const insertVatSettingsSchema = createInsertSchema(vatSettings).omit({
-  id: true,
-  userId: true, // Server controls this field
-  createdAt: true,
-  updatedAt: true,
-}).extend({
-  vatPercentage: z.union([z.string(), z.number()]).transform(val => String(val)),
-  companyName: z.string().optional(),
-  address: z.string().optional(),
-  phoneNumber: z.string().optional(),
-  nationalId: z.string().optional(),
-  economicCode: z.string().optional(),
-}).refine((data) => {
-  // اگر ارزش افزوده فعال باشد، باید تمام فیلدها پر شوند
-  if (data.isEnabled) {
-    return !!(data.companyName && data.address && data.phoneNumber && data.nationalId && data.economicCode);
-  }
-  return true;
-}, {
-  message: "هنگام فعال‌سازی ارزش افزوده، تمام فیلدهای اطلاعات شرکت باید پر شوند",
-});
-
-export const updateVatSettingsSchema = createInsertSchema(vatSettings).omit({
-  id: true,
-  userId: true, // Cannot change owner
-  createdAt: true,
-  updatedAt: true,
-}).extend({
-  vatPercentage: z.union([z.string(), z.number()]).transform(val => String(val)),
-  companyName: z.string().optional(),
-  address: z.string().optional(),
-  phoneNumber: z.string().optional(),
-  nationalId: z.string().optional(),
-  economicCode: z.string().optional(),
-}).partial().refine((data) => {
-  // اگر ارزش افزوده فعال باشد، باید تمام فیلدها پر شوند
-  if (data.isEnabled) {
-    return !!(data.companyName && data.address && data.phoneNumber && data.nationalId && data.economicCode);
-  }
-  return true;
-}, {
-  message: "هنگام فعال‌سازی ارزش افزوده، تمام فیلدهای اطلاعات شرکت باید پر شوند",
-});
-
 export const updateCategoryOrderSchema = z.object({
   categoryId: z.string().uuid(),
   newOrder: z.number().int().min(0),
@@ -539,10 +479,6 @@ export type UpdateFaq = z.infer<typeof updateFaqSchema>;
 
 export type PasswordResetOtp = typeof passwordResetOtps.$inferSelect;
 export type InsertPasswordResetOtp = z.infer<typeof insertPasswordResetOtpSchema>;
-
-export type VatSettings = typeof vatSettings.$inferSelect;
-export type InsertVatSettings = z.infer<typeof insertVatSettingsSchema>;
-export type UpdateVatSettings = z.infer<typeof updateVatSettingsSchema>;
 
 // Content Management for Website
 export const contentSections = pgTable("content_sections", {

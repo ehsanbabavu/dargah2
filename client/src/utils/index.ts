@@ -33,16 +33,12 @@ export {
 
 // Calculations
 export {
-  calculateVat,
   calculateCartTotal,
   groupCartItemsBySeller,
   calculateDiscountPercentage,
   calculatePriceAfterDiscount,
   calculateDiscountAmount,
-  calculateCartTotalWithVat,
-  type VatSettings,
   type CartItem,
-  type VatCalculation
 } from './calculations';
 
 // Counters (برای شمارنده‌های منو)

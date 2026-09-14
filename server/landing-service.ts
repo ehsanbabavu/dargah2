@@ -232,7 +232,7 @@ export class LandingService {
       type: "default",
       entryFile: "home",
       folderName: "default",
-      entryUrl: "/public-landing?preview_template=default",
+      entryUrl: "/",
       previewImage: this.getDefaultPreviewImage(),
       uploadedAt: null,
       fileSize: 0,
@@ -309,11 +309,12 @@ export class LandingService {
           templates.unshift(defaultTemplate);
         }
 
-        // Sync preview URLs for all templates
+        // Sync preview URLs and entryUrl for all templates
         templates = templates.map((t) => {
           if (t.isDefault || t.id === "default") {
             return {
               ...t,
+              entryUrl: "/",
               previewImage: this.getDefaultPreviewImage(),
             };
           }
@@ -1527,8 +1528,8 @@ export class LandingService {
       entryFileName = "index.html";
       template.entryFile = "index.html";
       template.folderName = "default";
-      template.entryUrl = "/landing-templates/default/index.html";
-      template.type = "html";
+      template.entryUrl = "/";
+      template.type = "default";
       template.customHtml = htmlContent;
     } else {
       targetDir = path.join(TEMPLATES_ROOT_DIR, template.folderName);

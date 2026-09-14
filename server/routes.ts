@@ -4112,13 +4112,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sellerOrder.totalAmount += parseFloat(item.totalPrice);
       }
 
-      // محاسبه مبلغ کل با VAT
-      for (const [sellerId, orderData] of Array.from(ordersBySeller.entries())) {
-        const vatSettings = await storage.getVatSettings(sellerId);
-        const vatPercentage = vatSettings?.isEnabled ? parseFloat(vatSettings.vatPercentage) : 0;
-        const subtotal = orderData.totalAmount;
-        const vatAmount = Math.round(subtotal * (vatPercentage / 100));
-        totalCartAmount += subtotal + vatAmount;
+      // محاسبه مبلغ کل سبد خرید
+      for (const [_, orderData] of Array.from(ordersBySeller.entries())) {
+        totalCartAmount += orderData.totalAmount;
       }
 
       // بررسی موجودی کاربر
@@ -4136,17 +4132,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // ایجاد سفارش برای هر فروشنده با وضعیت pending
       for (const [sellerId, orderData] of Array.from(ordersBySeller.entries())) {
-        const vatSettings = await storage.getVatSettings(sellerId);
-        const vatPercentage = vatSettings?.isEnabled ? parseFloat(vatSettings.vatPercentage) : 0;
-        
         const subtotal = orderData.totalAmount;
-        const vatAmount = Math.round(subtotal * (vatPercentage / 100));
-        const totalWithVat = subtotal + vatAmount;
         
         const order = await storage.createOrder({
           userId: req.user!.id,
           sellerId,
-          totalAmount: totalWithVat.toString(),
+          totalAmount: subtotal.toString(),
           status: 'pending', // در انتظار تایید
           addressId: req.body.addressId || null,
           shippingMethod: req.body.shippingMethod || null,
@@ -4170,7 +4161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: req.user!.id,
           orderId: order.id,
           type: 'order_payment',
-          amount: `-${totalWithVat}`,
+          amount: `-${subtotal}`,
           status: 'completed',
           transactionDate: new Date().toLocaleDateString('fa-IR'),
           transactionTime: new Date().toLocaleTimeString('fa-IR'),
@@ -4239,19 +4230,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create separate order for each seller
       for (const [sellerId, orderData] of Array.from(ordersBySeller.entries())) {
-        // دریافت تنظیمات VAT فروشنده
-        const vatSettings = await storage.getVatSettings(sellerId);
-        const vatPercentage = vatSettings?.isEnabled ? parseFloat(vatSettings.vatPercentage) : 0;
-        
-        // محاسبه VAT و مبلغ نهایی
         const subtotal = orderData.totalAmount;
-        const vatAmount = Math.round(subtotal * (vatPercentage / 100));
-        const totalWithVat = subtotal + vatAmount;
         
         const order = await storage.createOrder({
           userId: req.user!.id,
           sellerId,
-          totalAmount: totalWithVat.toString(),
+          totalAmount: subtotal.toString(),
           addressId: req.body.addressId || null,
           shippingMethod: req.body.shippingMethod || null,
           notes: req.body.notes || null
@@ -4317,17 +4301,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalAmount += parseFloat(item.totalPrice || item.unitPrice) * (item.quantity || 1);
       }
 
-      // Get VAT settings
-      const vatSettings = await storage.getVatSettings(sellerId);
-      const vatPercentage = vatSettings?.isEnabled ? parseFloat(vatSettings.vatPercentage) : 0;
-      const vatAmount = Math.round(totalAmount * (vatPercentage / 100));
-      const totalWithVat = totalAmount + vatAmount;
-
       // Create order
       const order = await storage.createOrder({
         userId: req.user!.id,
         sellerId,
-        totalAmount: totalWithVat.toString(),
+        totalAmount: totalAmount.toString(),
         addressId: addressId || null,
         shippingMethod: shippingMethod || null,
         notes: notes || null
@@ -4402,13 +4380,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const orderItems = await storage.getOrderItemsWithProducts(order.id);
       
-      // دریافت تنظیمات VAT فروشنده
-      const vatSettings = await storage.getVatSettings(order.sellerId);
-      
       res.json({
         ...order,
         items: orderItems,
-        vatSettings: vatSettings || { vatPercentage: "0", isEnabled: false }
       });
     } catch (error) {
       res.status(500).json({ message: "خطا در دریافت جزئیات سفارش" });
@@ -6687,91 +6661,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // VAT Settings routes - Only for user_level_1
-  app.get("/api/vat-settings", authenticateToken, requireAdminOrLevel1, async (req: AuthRequest, res) => {
-    try {
-      const settings = await storage.getVatSettings(req.user!.id);
-      
-      // اگر تنظیماتی وجود نداشت، مقادیر پیش‌فرض رو برگردون
-      if (!settings) {
-        return res.json({
-          vatPercentage: "9",
-          isEnabled: false,
-        });
-      }
-      
-      res.json(settings);
-    } catch (error) {
-      console.error("Error getting VAT settings:", error);
-      res.status(500).json({ message: "خطا در دریافت تنظیمات ارزش افزوده" });
-    }
-  });
-
-  app.put("/api/vat-settings", authenticateToken, requireAdminOrLevel1, async (req: AuthRequest, res) => {
-    try {
-      // اگر ارزش افزوده فعال است، تمام فیلدهای شرکت باید پر شوند
-      if (req.body.isEnabled) {
-        const requiredFields = ['companyName', 'address', 'phoneNumber', 'nationalId', 'economicCode'];
-        const missingFields = requiredFields.filter(field => !req.body[field]);
-        
-        if (missingFields.length > 0) {
-          return res.status(400).json({ 
-            message: "هنگام فعال‌سازی ارزش افزوده، تمام فیلدهای اطلاعات شرکت باید پر شوند" 
-          });
-        }
-      }
-      
-      const settings = await storage.updateVatSettings(req.user!.id, req.body);
-      res.json(settings);
-    } catch (error) {
-      console.error("Error updating VAT settings:", error);
-      res.status(500).json({ message: "خطا در بروزرسانی تنظیمات ارزش افزوده" });
-    }
-  });
-
-  // Upload stamp image for VAT settings
-  app.post("/api/vat-settings/upload-stamp", authenticateToken, requireAdminOrLevel1, uploadStamp.single('stampImage'), async (req: AuthRequest, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ message: "فایلی آپلود نشده است" });
-      }
-
-      const stampImagePath = `/stamppic/${req.file.filename}`;
-      
-      // بروزرسانی تنظیمات VAT با مسیر عکس جدید
-      await storage.updateVatSettings(req.user!.id, {
-        stampImage: stampImagePath
-      });
-
-      res.json({ 
-        message: "عکس مهر و امضا با موفقیت آپلود شد",
-        stampImagePath 
-      });
-    } catch (error) {
-      console.error("Error uploading stamp image:", error);
-      res.status(500).json({ message: "خطا در آپلود عکس مهر و امضا" });
-    }
-  });
-
-  // Get VAT settings for a specific seller (for level 2 users and reports)
-  app.get("/api/vat-settings/:sellerId", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const { sellerId } = req.params;
-      const settings = await storage.getVatSettings(sellerId);
-      
-      if (!settings) {
-        return res.json({
-          vatPercentage: "9",
-          isEnabled: false,
-        });
-      }
-      
-      res.json(settings);
-    } catch (error) {
-      console.error("Error getting VAT settings for seller:", error);
-      res.status(500).json({ message: "خطا در دریافت تنظیمات ارزش افزوده" });
-    }
-  });
 
   // Serve uploaded files
   app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
@@ -7571,112 +7460,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // PLUGINS API ROUTES
   // =====================
 
-  // Get all plugins (admin only)
-  app.get("/api/admin/plugins", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      if (req.user?.role !== "admin") {
-        return res.status(403).json({ message: "دسترسی غیرمجاز" });
-      }
-      const plugins = await storage.getAllPlugins();
-      res.json(plugins);
-    } catch (error) {
-      console.error("Error getting plugins:", error);
-      res.status(500).json({ message: "خطا در دریافت پلاگین‌ها" });
-    }
-  });
-
-  // Create a new plugin (admin only)
-  app.post("/api/admin/plugins", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      if (req.user?.role !== "admin") {
-        return res.status(403).json({ message: "دسترسی غیرمجاز" });
-      }
-      const { name, displayName, description, icon } = req.body;
-      
-      if (!name || !displayName) {
-        return res.status(400).json({ message: "نام و نام نمایشی الزامی است" });
-      }
-
-      const existingPlugin = await storage.getPluginByName(name);
-      if (existingPlugin) {
-        return res.status(400).json({ message: "پلاگین با این نام قبلاً وجود دارد" });
-      }
-
-      const plugin = await storage.createPlugin({
-        name,
-        displayName,
-        description: description || "",
-        icon: icon || "Puzzle",
-        isEnabled: true,
-        isBuiltIn: false,
-      });
-      res.status(201).json(plugin);
-    } catch (error) {
-      console.error("Error creating plugin:", error);
-      res.status(500).json({ message: "خطا در ایجاد پلاگین" });
-    }
-  });
-
-  // Toggle plugin status (admin only)
-  app.patch("/api/admin/plugins/:id/toggle", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      if (req.user?.role !== "admin") {
-        return res.status(403).json({ message: "دسترسی غیرمجاز" });
-      }
-      const plugin = await storage.togglePluginStatus(req.params.id);
-      if (!plugin) {
-        return res.status(404).json({ message: "پلاگین یافت نشد" });
-      }
-      res.json(plugin);
-    } catch (error) {
-      console.error("Error toggling plugin:", error);
-      res.status(500).json({ message: "خطا در تغییر وضعیت پلاگین" });
-    }
-  });
-
-  // Update plugin (admin only)
-  app.put("/api/admin/plugins/:id", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      if (req.user?.role !== "admin") {
-        return res.status(403).json({ message: "دسترسی غیرمجاز" });
-      }
-      const { displayName, description, icon } = req.body;
-      const plugin = await storage.updatePlugin(req.params.id, {
-        displayName,
-        description,
-        icon,
-      });
-      if (!plugin) {
-        return res.status(404).json({ message: "پلاگین یافت نشد" });
-      }
-      res.json(plugin);
-    } catch (error) {
-      console.error("Error updating plugin:", error);
-      res.status(500).json({ message: "خطا در به‌روزرسانی پلاگین" });
-    }
-  });
-
-  // Delete plugin (admin only, non-builtin only)
-  app.delete("/api/admin/plugins/:id", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      if (req.user?.role !== "admin") {
-        return res.status(403).json({ message: "دسترسی غیرمجاز" });
-      }
-      const plugin = await storage.getPlugin(req.params.id);
-      if (!plugin) {
-        return res.status(404).json({ message: "پلاگین یافت نشد" });
-      }
-      if (plugin.isBuiltIn) {
-        return res.status(400).json({ message: "پلاگین‌های پیش‌فرض قابل حذف نیستند" });
-      }
-      await storage.deletePlugin(req.params.id);
-      res.json({ message: "پلاگین با موفقیت حذف شد" });
-    } catch (error) {
-      console.error("Error deleting plugin:", error);
-      res.status(500).json({ message: "خطا در حذف پلاگین" });
-    }
-  });
-
   // Check if a specific plugin is enabled (for conditional menu items)
   app.get("/api/plugins/:name/status", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -7728,7 +7511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             hasUploadedZip: config.templates.some((t) => !t.isDefault),
             showQuickNav: defaultTpl?.showQuickNav !== undefined ? defaultTpl.showQuickNav : (config.showQuickNav ?? false),
             showChatWidget: defaultTpl?.showChatWidget !== undefined ? defaultTpl.showChatWidget : (config.showChatWidget !== false),
-            entryUrl: "/public-landing?preview_template=default",
+            entryUrl: "/",
             uploadedAt: null,
           });
         }
@@ -7769,7 +7552,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         hasUploadedZip: config.hasUploadedZip,
         showQuickNav: activeTemplate?.showQuickNav !== undefined ? activeTemplate.showQuickNav : (config.showQuickNav ?? false),
         showChatWidget: activeTemplate?.showChatWidget !== undefined ? activeTemplate.showChatWidget : (config.showChatWidget !== false),
-        entryUrl: isValidCustom ? (activeTemplate?.entryUrl || `/custom-landing/${config.entryFile || "index.html"}`) : "/public-landing?preview_template=default",
+        entryUrl: isValidCustom ? (activeTemplate?.entryUrl || `/custom-landing/${config.entryFile || "index.html"}`) : "/",
         uploadedAt: activeTemplate?.uploadedAt || config.uploadedAt,
         activeHeaderHtml: isValidCustom ? (config.activeHeaderHtml || null) : null,
         activeFooterHtml: isValidCustom ? (config.activeFooterHtml || null) : null,

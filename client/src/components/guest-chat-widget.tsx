@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Users, Send, MessageSquare, Bot } from "lucide-react";
-import ariyaBotImage from "@assets/image_1765732617867_1767460337176.jpeg";
+import chatSupportIcon from "@assets/chat_support_icon.png";
 
 export interface ChatMessage {
   id: string;
@@ -276,12 +276,10 @@ export function GuestChatWidget() {
         <motion.button
           key={`chat-btn-${hasUnreadBotMessage}`}
           onClick={() => setIsContactOpen(!isContactOpen)}
-          className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-2xl flex items-center justify-center text-white transition-all flex-shrink-0 group ${
-            hasUnreadBotMessage && !isContactOpen
-              ? "bg-gradient-to-br from-red-600 via-rose-500 to-red-700 shadow-red-500/40 animate-pulse"
-              : isShaking
-              ? "bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 shadow-amber-500/40"
-              : "bg-gradient-to-br from-emerald-600 via-teal-500 to-indigo-600 hover:shadow-emerald-500/40"
+          className={`relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center transition-all flex-shrink-0 group focus:outline-hidden ${
+            isContactOpen
+              ? "w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-blue-600 text-white shadow-2xl"
+              : "bg-transparent"
           }`}
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.95 }}
@@ -299,12 +297,6 @@ export function GuestChatWidget() {
           }
           title="پشتیبانی و چت آنلاین"
         >
-          <motion.div
-            className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-400 to-teal-300 opacity-0 group-hover:opacity-60 blur-lg transition-opacity"
-            animate={{ scale: [1, 1.2, 1] }}
-            transition={{ repeat: Infinity, duration: 2 }}
-          />
-
           <AnimatePresence mode="wait">
             {isContactOpen ? (
               <motion.div
@@ -313,27 +305,42 @@ export function GuestChatWidget() {
                 animate={{ rotate: 0, opacity: 1 }}
                 exit={{ rotate: 90, opacity: 0 }}
                 transition={{ duration: 0.2 }}
+                className="w-full h-full flex items-center justify-center text-white"
               >
                 <X className="w-6 h-6 sm:w-7 sm:h-7 relative z-10" />
               </motion.div>
             ) : (
               <motion.div
                 key="open"
-                initial={{ rotate: 90, opacity: 0 }}
-                animate={{ rotate: 0, opacity: 1 }}
-                exit={{ rotate: -90, opacity: 0 }}
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
                 transition={{ duration: 0.2 }}
+                className="w-full h-full flex items-center justify-center relative select-none"
               >
-                <svg className="w-6 h-6 sm:w-7 sm:h-7 relative z-10" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
-                </svg>
+                <img
+                  src="/images/chat_support_icon.png"
+                  alt="پشتیبانی آنلاین"
+                  className="w-full h-full object-contain filter drop-shadow-[0_8px_16px_rgba(37,99,235,0.3)] hover:drop-shadow-[0_12px_20px_rgba(37,99,235,0.45)] transition-all"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = chatSupportIcon;
+                  }}
+                />
               </motion.div>
             )}
           </AnimatePresence>
 
+          {/* Online status indicator */}
+          {!isContactOpen && !hasUnreadBotMessage && (
+            <span className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full z-20 shadow-md">
+              <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75"></span>
+            </span>
+          )}
+
           {/* Unread dot indicator */}
           {hasUnreadBotMessage && !isContactOpen && (
-            <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 border-2 border-white rounded-full flex items-center justify-center text-[9px] font-bold">
+            <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 border-2 border-white rounded-full flex items-center justify-center text-[10px] font-bold text-white z-20 shadow-md">
               !
             </span>
           )}
@@ -366,16 +373,16 @@ export function GuestChatWidget() {
             dir="rtl"
           >
             {/* Header with Bot Avatar & Status */}
-            <div className="relative bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white px-4 py-3 flex items-center gap-3 flex-shrink-0 shadow-md">
+            <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white px-4 py-3 flex items-center gap-3 flex-shrink-0 shadow-md">
               <div className="relative flex-shrink-0">
-                <div className="w-10 h-10 rounded-full bg-white p-0.5 shadow-md ring-2 ring-white/30">
+                <div className="w-10 h-10 rounded-full bg-white p-0.5 shadow-md ring-2 ring-white/30 overflow-hidden">
                   <img
-                    src={ariyaBotImage}
-                    alt="دستیار آریا"
-                    className="w-full h-full rounded-full object-cover"
+                    src={chatSupportIcon}
+                    alt="پشتیبانی آنلاین"
+                    className="w-full h-full rounded-full object-contain"
+                    referrerPolicy="no-referrer"
                     onError={(e) => {
-                      // Fallback if image fails to load
-                      (e.target as HTMLElement).style.display = "none";
+                      (e.currentTarget as HTMLImageElement).src = "/images/chat_support_icon.png";
                     }}
                   />
                 </div>
@@ -391,7 +398,7 @@ export function GuestChatWidget() {
               {/* Header Details */}
               <div className="flex-1">
                 <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
-                  <span>دستیار هوشمند آنلاین</span>
+                  <span>پشتیبانی آنلاین</span>
                 </h3>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
@@ -423,11 +430,15 @@ export function GuestChatWidget() {
                 >
                   {/* Bot Icon */}
                   {msg.sender === "bot" && (
-                    <div className="w-7 h-7 rounded-full bg-purple-100 p-0.5 flex-shrink-0 flex items-center justify-center border border-purple-200">
+                    <div className="w-7 h-7 rounded-full bg-blue-100 p-0.5 flex-shrink-0 flex items-center justify-center border border-blue-200 overflow-hidden">
                       <img
-                        src={ariyaBotImage}
-                        alt="Bot"
-                        className="w-full h-full rounded-full object-cover"
+                        src={chatSupportIcon}
+                        alt="پشتیبانی آنلاین"
+                        className="w-full h-full rounded-full object-contain"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = "/images/chat_support_icon.png";
+                        }}
                       />
                     </div>
                   )}

@@ -1,15 +1,7 @@
 /**
  * توابع محاسبات مالی
- * شامل: محاسبه VAT، مجموع سبد خرید، تخفیف
+ * شامل: مجموع سبد خرید، تخفیف
  */
-
-/**
- * تنظیمات VAT برای فروشنده
- */
-export interface VatSettings {
-  isEnabled: boolean;
-  vatPercentage: string | number;
-}
 
 /**
  * آیتم سبد خرید
@@ -21,42 +13,6 @@ export interface CartItem {
   unitPrice: string;
   totalPrice: string;
   sellerId?: string;
-}
-
-/**
- * نتیجه محاسبه VAT
- */
-export interface VatCalculation {
-  subtotal: number;
-  vatAmount: number;
-  vatPercentage: number;
-  totalWithVat: number;
-}
-
-/**
- * محاسبه VAT (مالیات بر ارزش افزوده)
- * @param subtotal - مبلغ قبل از VAT
- * @param vatSettings - تنظیمات VAT
- * @returns اطلاعات محاسبه شده VAT
- * @example calculateVat(100000, { isEnabled: true, vatPercentage: "9" })
- */
-export function calculateVat(
-  subtotal: number,
-  vatSettings?: VatSettings
-): VatCalculation {
-  const vatPercentage = vatSettings?.isEnabled 
-    ? parseFloat(String(vatSettings.vatPercentage)) 
-    : 0;
-  
-  const vatAmount = Math.round(subtotal * (vatPercentage / 100));
-  const totalWithVat = subtotal + vatAmount;
-  
-  return {
-    subtotal,
-    vatAmount,
-    vatPercentage,
-    totalWithVat
-  };
 }
 
 /**
@@ -140,26 +96,4 @@ export function calculateDiscountAmount(
 ): number {
   if (discountPrice >= originalPrice) return 0;
   return originalPrice - discountPrice;
-}
-
-/**
- * محاسبه مجموع سبد خرید با VAT برای چند فروشنده
- * @param items - آیتم‌های سبد خرید
- * @param vatSettingsBySeller - تنظیمات VAT به تفکیک فروشنده
- * @returns مجموع کل با VAT
- */
-export function calculateCartTotalWithVat(
-  items: CartItem[],
-  vatSettingsBySeller: Map<string, VatSettings>
-): number {
-  const ordersBySeller = groupCartItemsBySeller(items);
-  let totalAmount = 0;
-  
-  for (const [sellerId, orderData] of ordersBySeller.entries()) {
-    const vatSettings = vatSettingsBySeller.get(sellerId);
-    const { totalWithVat } = calculateVat(orderData.totalAmount, vatSettings);
-    totalAmount += totalWithVat;
-  }
-  
-  return totalAmount;
 }

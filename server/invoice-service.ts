@@ -84,14 +84,8 @@ async function generateInvoiceHTML(orderId: string): Promise<string> {
   // دریافت اطلاعات فروشنده
   const seller = await storage.getUser(order.sellerId);
 
-  // دریافت تنظیمات VAT فروشنده
-  const vatSettings = await storage.getVatSettings(order.sellerId);
-  const vatPercentage = vatSettings?.isEnabled ? parseFloat(vatSettings.vatPercentage) : 0;
-  
-  // محاسبه subtotal از مجموع قیمت آیتم‌ها (بدون VAT)
+  // محاسبه subtotal از مجموع قیمت آیتم‌ها
   const subtotal = items.reduce((sum, item) => sum + parseFloat(item.totalPrice), 0);
-  const vatAmount = Math.round(subtotal * (vatPercentage / 100));
-  const totalWithVat = subtotal + vatAmount;
 
   const isLargeOrder = items.length > 8;
   const fontSize = isLargeOrder ? '12px' : '14px';
@@ -233,11 +227,7 @@ async function generateInvoiceHTML(orderId: string): Promise<string> {
         <!-- Seller Section -->
         <div class="section-header" style="text-align: right;">مشخصات فروشنده</div>
         <div class="section-content">
-          ${vatSettings?.isEnabled ? 
-            `نام شرکت: ${vatSettings.companyName || '-'} - شناسه ملی: ${vatSettings.nationalId || '-'} - کد اقتصادی: ${vatSettings.economicCode || '-'} - تلفن: ${vatSettings.phoneNumber || '-'} - آدرس: ${vatSettings.address || '-'}`
-            :
-            `نام شخص / سازمان : ${seller?.firstName && seller?.lastName ? `${seller.firstName} ${seller.lastName}` : 'فروشنده'}`
-          }
+          نام شخص / سازمان : ${seller?.firstName && seller?.lastName ? `${seller.firstName} ${seller.lastName}` : 'فروشنده'}
         </div>
         
         <!-- Customer Section -->
@@ -251,56 +241,39 @@ async function generateInvoiceHTML(orderId: string): Promise<string> {
           <thead>
             <tr>
               <th style="width: 8%;">ردیف</th>
-              <th style="width: 36%;">شرح کالا یا خدمات</th>
-              <th style="width: 10%;">تعداد</th>
-              <th style="width: 15%;">قیمت واحد<br />(ریال)</th>
-              <th style="width: 15%;">ارزش افزوده<br />(ریال)</th>
-              <th style="width: 16%;">قیمت کل<br />(ریال)</th>
+              <th style="width: 44%;">شرح کالا یا خدمات</th>
+              <th style="width: 12%;">تعداد</th>
+              <th style="width: 18%;">قیمت واحد<br />(ریال)</th>
+              <th style="width: 18%;">قیمت کل<br />(ریال)</th>
             </tr>
           </thead>
           <tbody>
             ${items.map((item, index) => {
-              const itemSubtotal = parseFloat(item.totalPrice);
-              const itemVat = vatPercentage > 0 ? Math.round(itemSubtotal * (vatPercentage / 100)) : 0;
-              const itemTotal = itemSubtotal + itemVat;
+              const itemTotal = parseFloat(item.totalPrice);
               return `
               <tr>
                 <td>${index + 1}</td>
                 <td class="text-right">${item.productName}</td>
                 <td>${item.quantity}</td>
                 <td>${formatPriceRial(item.unitPrice)}</td>
-                <td>${vatPercentage > 0 ? formatPriceRial(itemVat) : '-'}</td>
                 <td>${formatPriceRial(itemTotal)}</td>
               </tr>
             `}).join('')}
             <tr style="background-color: #d3d3d3; font-weight: bold;">
-              <td colspan="4" class="text-right" style="padding: 12px;"></td>
-              <td>${vatPercentage > 0 ? formatPriceRial(vatAmount).replace(' ریال', '') : '-'}</td>
-              <td>${formatPriceRial(vatPercentage > 0 ? totalWithVat : subtotal).replace(' ریال', '')}</td>
+              <td colspan="4" class="text-right" style="padding: 12px;">جمع کل</td>
+              <td>${formatPriceRial(subtotal).replace(' ریال', '')}</td>
             </tr>
           </tbody>
         </table>
         
         <!-- Total in Words -->
         <div class="total-words">
-          ${vatPercentage > 0 ? 'مبلغ قابل پرداخت' : 'جمع کل'} به حروف: ${numberToPersianWords((vatPercentage > 0 ? totalWithVat : subtotal) * 10)} ریال
+          جمع کل به حروف: ${numberToPersianWords(subtotal * 10)} ریال
         </div>
         
         <!-- Thank You Message -->
-        <div class="thank-you" style="position: relative; display: flex; align-items: center; justify-content: center; min-height: 60px;">
-          <div style="flex: 1; text-align: center;">${vatSettings?.thankYouMessage || 'از خرید شما متشکریم'}</div>
-          ${vatPercentage > 0 ? `
-          <div style="position: absolute; left: 40px; top: -80px; width: 150px; height: 150px; display: flex; align-items: center; justify-content: center; text-align: center; z-index: 10; pointer-events: none;">
-            ${vatSettings?.stampImage ? 
-              `<div style="position: relative; width: 100%; height: 100%;">
-                <img src="${vatSettings.stampImage}" alt="مهر و امضا" style="width: 100%; height: 100%; object-fit: contain; opacity: 0.5; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));" />
-                <div style="position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; color: #333; font-weight: bold; white-space: nowrap;">مهر و امضا شرکت</div>
-              </div>`
-              :
-              `<div style="font-size: 14px; color: #999; opacity: 0.3;">مهر و امضا شرکت</div>`
-            }
-          </div>
-          ` : ''}
+        <div class="thank-you" style="text-align: center; margin-top: 20px; font-size: 14px; color: #666;">
+          از خرید شما متشکریم
         </div>
       </div>
     </body>

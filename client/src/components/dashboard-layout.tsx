@@ -98,7 +98,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
     {
       label: "پروفایل",
       icon: User,
-      paths: ["/profile", "/vat-settings", "/bank-card", "/sub-users", "/manage-faqs", "/add-faq"],
+      paths: ["/profile", "/bank-card", "/sub-users", "/manage-faqs", "/add-faq"],
       onClick: () => setLocation("/profile"),
     },
   ];

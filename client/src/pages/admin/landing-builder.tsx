@@ -2586,6 +2586,9 @@ export default function VisualLandingBuilderPage() {
               <span className="text-xs font-bold text-slate-900 max-w-[250px] truncate block">
                 {builderData?.template?.name || "قالب لندینگ"}
               </span>
+              <span className="text-[10px] text-slate-500 font-mono dir-ltr block">
+                {builderData?.template?.isDefault ? "/ (صفحه اول سایت)" : builderData?.template?.entryUrl}
+              </span>
             </div>
           </div>
         </div>

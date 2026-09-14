@@ -21,7 +21,6 @@ import DatabaseBackup from "@/pages/admin/database-backup";
 import LoginLogs from "@/pages/admin/login-logs";
 import Categories from "@/pages/admin/categories";
 import GuestChats from "@/pages/admin/guest-chats";
-import PluginsManagement from "@/pages/admin/plugins";
 import Profile from "@/pages/user/profile";
 import SendTicket from "@/pages/user/send-ticket";
 import MyTickets from "@/pages/user/my-tickets";
@@ -37,7 +36,7 @@ import Announcements from "@/pages/user/announcements";
 import SuccessfulTransactions from "@/pages/user/successful-transactions";
 import ChatWithSeller from "@/pages/user/chat-with-seller";
 import SellerChats from "@/pages/admin/seller-chats";
-import VatSettings from "@/pages/user/vat-settings";
+
 import VitrinPage from "@/pages/landing/vitrin";
 import BankCard from "@/pages/user/bank-card";
 import FaqsPage from "@/pages/user/faqs";
@@ -415,7 +414,6 @@ function Router() {
       <Route path="/tickets" component={() => <AdminRoute component={TicketManagement} />} />
       <Route path="/guest-chats" component={() => <PluginAwareAdminRoute component={GuestChats} pluginName="guest-chats" />} />
       <Route path="/seller-chats" component={() => <PluginAwareAdminRoute component={SellerChats} pluginName="internal-chats" />} />
-      <Route path="/plugins" component={() => <AdminRoute component={PluginsManagement} />} />
       <Route path="/subscriptions" component={() => <ProtectedRoute component={SubscriptionsPageSwitcher} />} />
       <Route path="/buy-subscription" component={() => <ProtectedRoute component={BuySubscriptionPage} />} />
       <Route path="/categories" component={() => <AdminOrLevel1Route component={Categories} />} />
@@ -439,7 +437,6 @@ function Router() {
       <Route path="/announcements" component={() => <AdminOrLevel1Route component={WithLayout(Announcements, "اطلاعیه‌ها")} />} />
       <Route path="/financial" component={() => <AdminOrLevel1Route component={WithLayout(Announcements, "اطلاعیه‌ها")} />} />
       <Route path="/transactions" component={() => <AdminOrLevel1Route component={WithLayout(SuccessfulTransactions, "مدیریت تراکنش‌ها")} />} />
-      <Route path="/vat-settings" component={() => <AdminOrLevel1Route component={VatSettings} />} />
       <Route path="/bank-card" component={() => <AdminOrLevel1Route component={BankCard} />} />
       <Route path="/chat-with-seller" component={() => <AdminOrLevel1Route component={() => (
         <PluginGatedRoute pluginName="internal-chats">

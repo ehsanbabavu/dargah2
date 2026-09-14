@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Ticket, type InsertTicket, type Subscription, type InsertSubscription, type Product, type InsertProduct, type SentMessage, type InsertSentMessage, type ReceivedMessage, type InsertReceivedMessage, type UserSubscription, type InsertUserSubscription, type Category, type InsertCategory, type Cart, type InsertCart, type CartItem, type InsertCartItem, type Address, type InsertAddress, type Order, type InsertOrder, type OrderItem, type InsertOrderItem, type Transaction, type InsertTransaction, type InternalChat, type InsertInternalChat, type Faq, type InsertFaq, type UpdateFaq, type PasswordResetOtp, type InsertPasswordResetOtp, type VatSettings, type InsertVatSettings, type UpdateVatSettings, type LoginLog, type InsertLoginLog, type GuestChatSession, type GuestChatMessage, type ProjectOrderRequest, type InsertProjectOrderRequest, type Plugin, type InsertPlugin, type UpdatePlugin, type SeoSettings, type InsertSeoSettings, type UpdateSeoSettings, type SeoIndexingLog, type InsertSeoIndexingLog, type SslCertificate, type InsertSslCertificate, type UpdateSslCertificate, type SslLog, type InsertSslLog, type BlupalGateway, type InsertBlupalGateway, type BlupalTransaction, type InsertBlupalTransaction, type Announcement, type InsertAnnouncement, type AnnouncementRead } from "@shared/schema";
+import { type User, type InsertUser, type Ticket, type InsertTicket, type Subscription, type InsertSubscription, type Product, type InsertProduct, type SentMessage, type InsertSentMessage, type ReceivedMessage, type InsertReceivedMessage, type UserSubscription, type InsertUserSubscription, type Category, type InsertCategory, type Cart, type InsertCart, type CartItem, type InsertCartItem, type Address, type InsertAddress, type Order, type InsertOrder, type OrderItem, type InsertOrderItem, type Transaction, type InsertTransaction, type InternalChat, type InsertInternalChat, type Faq, type InsertFaq, type UpdateFaq, type PasswordResetOtp, type InsertPasswordResetOtp, type LoginLog, type InsertLoginLog, type GuestChatSession, type GuestChatMessage, type ProjectOrderRequest, type InsertProjectOrderRequest, type Plugin, type InsertPlugin, type UpdatePlugin, type SeoSettings, type InsertSeoSettings, type UpdateSeoSettings, type SeoIndexingLog, type InsertSeoIndexingLog, type SslCertificate, type InsertSslCertificate, type UpdateSslCertificate, type SslLog, type InsertSslLog, type BlupalGateway, type InsertBlupalGateway, type BlupalTransaction, type InsertBlupalTransaction, type Announcement, type InsertAnnouncement, type AnnouncementRead } from "@shared/schema";
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 
@@ -148,10 +148,6 @@ export interface IStorage {
   deleteFaq(id: string): Promise<boolean>;
   updateFaqOrder(id: string, newOrder: number): Promise<Faq | undefined>;
   
-  // VAT Settings
-  getVatSettings(userId: string): Promise<VatSettings | undefined>;
-  updateVatSettings(userId: string, settings: UpdateVatSettings): Promise<VatSettings>;
-  
   // Password Reset OTP
   createPasswordResetOtp(userId: string, otp: string, expiresAt: Date): Promise<PasswordResetOtp>;
   getValidPasswordResetOtp(userId: string, otp: string): Promise<PasswordResetOtp | undefined>;
@@ -253,7 +249,6 @@ export class MemStorage implements IStorage {
   private internalChats: Map<string, InternalChat>;
   private faqs: Map<string, Faq>;
   private passwordResetOtps: Map<string, PasswordResetOtp>;
-  private vatSettings: Map<string, VatSettings>;
   private loginLogs: Map<string, LoginLog>;
   private plugins: Map<string, Plugin>;
   private seoSettings: SeoSettings;
@@ -283,7 +278,6 @@ export class MemStorage implements IStorage {
     this.internalChats = new Map();
     this.faqs = new Map();
     this.passwordResetOtps = new Map();
-    this.vatSettings = new Map();
     this.loginLogs = new Map();
     this.plugins = new Map();
     this.seoIndexingLogs = new Map();
@@ -2012,44 +2006,6 @@ export class MemStorage implements IStorage {
     return updatedFaq;
   }
 
-  // VAT Settings
-  async getVatSettings(userId: string): Promise<VatSettings | undefined> {
-    return Array.from(this.vatSettings.values()).find(s => s.userId === userId);
-  }
-
-  async updateVatSettings(userId: string, settings: UpdateVatSettings): Promise<VatSettings> {
-    const existing = await this.getVatSettings(userId);
-    
-    if (existing) {
-      const updated: VatSettings = {
-        ...existing,
-        ...settings,
-        updatedAt: new Date(),
-      };
-      this.vatSettings.set(existing.id, updated);
-      return updated;
-    } else {
-      const id = randomUUID();
-      const newSettings: VatSettings = {
-        id,
-        userId,
-        vatPercentage: settings.vatPercentage ?? "9",
-        isEnabled: settings.isEnabled ?? false,
-        companyName: settings.companyName ?? null,
-        address: settings.address ?? null,
-        phoneNumber: settings.phoneNumber ?? null,
-        nationalId: settings.nationalId ?? null,
-        economicCode: settings.economicCode ?? null,
-        stampImage: settings.stampImage ?? null,
-        thankYouMessage: settings.thankYouMessage ?? "از خرید شما متشکریم",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      this.vatSettings.set(id, newSettings);
-      return newSettings;
-    }
-  }
-
   // Password Reset OTP
   async createPasswordResetOtp(userId: string, otp: string, expiresAt: Date): Promise<PasswordResetOtp> {
     const id = randomUUID();
@@ -2360,12 +2316,6 @@ export class MemStorage implements IStorage {
 
   async initializeDefaultPlugins(): Promise<void> {
     const pluginsToInitialize = [
-      {
-        name: "vat",
-        displayName: "مالیات بر ارزش افزوده",
-        description: "تنظیمات مالیات بر ارزش افزوده، اطلاعات شرکت و صدور فاکتور رسمی",
-        icon: "Receipt",
-      },
       {
         name: "backup",
         displayName: "پشتیبان‌گیری",

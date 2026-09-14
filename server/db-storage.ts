@@ -2,8 +2,8 @@ import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { eq, sql, desc, and, gte, or, inArray, ne, ilike, lt } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { users, tickets, subscriptions, products, sentMessages, receivedMessages, userSubscriptions, categories, carts, cartItems, addresses, orders, orderItems, transactions, internalChats, faqs, passwordResetOtps, vatSettings, contentSections, loginLogs, guestChatSessions, guestChatMessages, projectOrderRequests, plugins, seoSettings, seoIndexingLogs, sslCertificates, sslLogs, blupalGateways, blupalTransactions, announcements, announcementReads } from "@shared/schema";
-import { type User, type InsertUser, type Ticket, type InsertTicket, type Subscription, type InsertSubscription, type Product, type InsertProduct, type SentMessage, type InsertSentMessage, type ReceivedMessage, type InsertReceivedMessage, type UserSubscription, type InsertUserSubscription, type Category, type InsertCategory, type Cart, type InsertCart, type CartItem, type InsertCartItem, type Address, type InsertAddress, type Order, type InsertOrder, type OrderItem, type InsertOrderItem, type Transaction, type InsertTransaction, type InternalChat, type InsertInternalChat, type Faq, type InsertFaq, type UpdateFaq, type PasswordResetOtp, type InsertPasswordResetOtp, type VatSettings, type InsertVatSettings, type UpdateVatSettings, type ContentSection, type InsertContentSection, type LoginLog, type InsertLoginLog, type GuestChatSession, type InsertGuestChatSession, type GuestChatMessage, type InsertGuestChatMessage, type ProjectOrderRequest, type InsertProjectOrderRequest, type Plugin, type InsertPlugin, type SeoSettings, type InsertSeoSettings, type UpdateSeoSettings, type SeoIndexingLog, type InsertSeoIndexingLog, type SslCertificate, type InsertSslCertificate, type UpdateSslCertificate, type SslLog, type InsertSslLog, type BlupalGateway, type InsertBlupalGateway, type BlupalTransaction, type InsertBlupalTransaction, type Announcement, type InsertAnnouncement, type AnnouncementRead } from "@shared/schema";
+import { users, tickets, subscriptions, products, sentMessages, receivedMessages, userSubscriptions, categories, carts, cartItems, addresses, orders, orderItems, transactions, internalChats, faqs, passwordResetOtps, contentSections, loginLogs, guestChatSessions, guestChatMessages, projectOrderRequests, plugins, seoSettings, seoIndexingLogs, sslCertificates, sslLogs, blupalGateways, blupalTransactions, announcements, announcementReads } from "@shared/schema";
+import { type User, type InsertUser, type Ticket, type InsertTicket, type Subscription, type InsertSubscription, type Product, type InsertProduct, type SentMessage, type InsertSentMessage, type ReceivedMessage, type InsertReceivedMessage, type UserSubscription, type InsertUserSubscription, type Category, type InsertCategory, type Cart, type InsertCart, type CartItem, type InsertCartItem, type Address, type InsertAddress, type Order, type InsertOrder, type OrderItem, type InsertOrderItem, type Transaction, type InsertTransaction, type InternalChat, type InsertInternalChat, type Faq, type InsertFaq, type UpdateFaq, type PasswordResetOtp, type InsertPasswordResetOtp, type ContentSection, type InsertContentSection, type LoginLog, type InsertLoginLog, type GuestChatSession, type InsertGuestChatSession, type GuestChatMessage, type InsertGuestChatMessage, type ProjectOrderRequest, type InsertProjectOrderRequest, type Plugin, type InsertPlugin, type SeoSettings, type InsertSeoSettings, type UpdateSeoSettings, type SeoIndexingLog, type InsertSeoIndexingLog, type SslCertificate, type InsertSslCertificate, type UpdateSslCertificate, type SslLog, type InsertSslLog, type BlupalGateway, type InsertBlupalGateway, type BlupalTransaction, type InsertBlupalTransaction, type Announcement, type InsertAnnouncement, type AnnouncementRead } from "@shared/schema";
 import { type IStorage } from "./storage";
 import bcrypt from "bcryptjs";
 
@@ -38,7 +38,7 @@ if (process.env.DATABASE_URL) {
       ssl: false
     });
     db = drizzle(pool, {
-      schema: { users, tickets, subscriptions, products, sentMessages, receivedMessages, userSubscriptions, categories, carts, cartItems, addresses, orders, orderItems, transactions, internalChats, faqs, passwordResetOtps, vatSettings, contentSections, loginLogs, guestChatSessions, guestChatMessages, projectOrderRequests, plugins, seoSettings, seoIndexingLogs, sslCertificates, sslLogs }
+      schema: { users, tickets, subscriptions, products, sentMessages, receivedMessages, userSubscriptions, categories, carts, cartItems, addresses, orders, orderItems, transactions, internalChats, faqs, passwordResetOtps, contentSections, loginLogs, guestChatSessions, guestChatMessages, projectOrderRequests, plugins, seoSettings, seoIndexingLogs, sslCertificates, sslLogs }
     });
   } catch (err) {
     console.warn("⚠️ Failed to initialize PostgreSQL pool:", err);
@@ -2108,65 +2108,6 @@ export class DbStorage implements IStorage {
     }
   }
 
-  // VAT Settings
-  async getVatSettings(userId: string): Promise<VatSettings | undefined> {
-    try {
-      const result = await db
-        .select()
-        .from(vatSettings)
-        .where(eq(vatSettings.userId, userId))
-        .limit(1);
-      
-      return result[0];
-    } catch (error) {
-      console.error("Error getting VAT settings:", error);
-      return undefined;
-    }
-  }
-
-  async updateVatSettings(userId: string, settings: UpdateVatSettings): Promise<VatSettings> {
-    try {
-      // بررسی وجود تنظیمات قبلی
-      const existing = await this.getVatSettings(userId);
-      
-      if (existing) {
-        // بروزرسانی تنظیمات موجود
-        const result = await db.update(vatSettings)
-          .set({
-            ...settings,
-            updatedAt: new Date(),
-          })
-          .where(eq(vatSettings.userId, userId))
-          .returning();
-        
-        return result[0];
-      } else {
-        // ایجاد تنظیمات جدید
-        const result = await db.insert(vatSettings)
-          .values({
-            userId,
-            vatPercentage: settings.vatPercentage ?? "9",
-            isEnabled: settings.isEnabled ?? false,
-            companyName: settings.companyName ?? null,
-            address: settings.address ?? null,
-            phoneNumber: settings.phoneNumber ?? null,
-            nationalId: settings.nationalId ?? null,
-            economicCode: settings.economicCode ?? null,
-            stampImage: settings.stampImage ?? null,
-            thankYouMessage: settings.thankYouMessage ?? "از خرید شما متشکریم",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .returning();
-        
-        return result[0];
-      }
-    } catch (error) {
-      console.error("Error updating VAT settings:", error);
-      throw error;
-    }
-  }
-
   // Login Logs
   async createLoginLog(log: InsertLoginLog): Promise<LoginLog> {
     try {
@@ -2590,12 +2531,6 @@ export class DbStorage implements IStorage {
   async initializeDefaultPlugins(): Promise<void> {
     try {
       const pluginsToInitialize = [
-        {
-          name: "vat",
-          displayName: "مالیات بر ارزش افزوده",
-          description: "تنظیمات مالیات بر ارزش افزوده، اطلاعات شرکت و صدور فاکتور رسمی",
-          icon: "Receipt",
-        },
         {
           name: "backup",
           displayName: "پشتیبان‌گیری",
