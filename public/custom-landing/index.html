@@ -23,8 +23,21 @@
 
   <script src="https://cdn.tailwindcss.com" defer=""></script>
   <script defer="">tailwind.config = { corePlugins: { preflight: false, container: false } }</script><link id="landing-global-font-link" rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css"><style id="landing-global-font-style">
-          html, body, body *, h1, h2, h3, h4, h5, h6, p, a, button, input, textarea, select, span, div, li, td, th {
-            font-family: 'Vazirmatn', sans-serif !important;
+          html, body, h1, h2, h3, h4, h5, h6, p, a, button, input, textarea, select, span, div, li, td, th {
+            font-family: 'Vazirmatn', sans-serif;
+          }
+          [class*="ti-"], .themify-icons, [class^="ti-"] {
+            font-family: 'themify' !important;
+          }
+          .material-symbols-outlined,
+          .material-symbols-sharp,
+          .material-symbols-rounded,
+          .material-icons,
+          [class*="material-symbols"] {
+            font-family: 'Material Symbols Outlined', 'Material Icons' !important;
+          }
+          .fa, .fas, .far, .fal, .fab, [class*="fa-"] {
+            font-family: 'Font Awesome 5 Free', 'FontAwesome', 'Font Awesome 6 Free' !important;
           }
         </style>
 <style id="landing-menu-fix-style">

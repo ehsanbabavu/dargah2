@@ -115,7 +115,6 @@
 @layer base {
   * {
     @apply border-border;
-    font-family: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', 'Tahoma', sans-serif !important;
   }
 
   body {
@@ -133,9 +132,26 @@
     font-family: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', 'Tahoma', sans-serif !important;
   }
 
-  input, button, select, textarea {
-    font-family: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', 'Tahoma', sans-serif !important;
+  input, button, select, textarea, p, h1, h2, h3, h4, h5, h6, span, a, div, label {
+    font-family: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', 'Tahoma', sans-serif;
   }
+}
+
+.material-symbols-outlined,
+.material-symbols-sharp,
+.material-symbols-rounded,
+.material-icons,
+[class*="material-symbols"] {
+  font-family: 'Material Symbols Outlined', 'Material Icons' !important;
+  font-weight: normal;
+  font-style: normal;
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
 }
 
 .fade-in {

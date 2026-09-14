@@ -1340,8 +1340,27 @@ export default function VisualLandingBuilderPage() {
           doc.head.appendChild(fontStyleEl);
         }
         fontStyleEl.textContent = `
-          html, body, body *, h1, h2, h3, h4, h5, h6, p, a, button, input, textarea, select, span, div, li, td, th {
+          html, body, h1, h2, h3, h4, h5, h6, p, a, button, input, textarea, select, span, div, li, td, th {
+            font-family: ${fontObj.cssName};
+          }
+          body *:not(i):not(svg):not([class*="icon"]):not([class*="ti-"]):not([class*="fa"]):not([class*="material"]):not([class*="la-"]) {
             font-family: ${fontObj.cssName} !important;
+          }
+          .material-symbols-outlined,
+          .material-symbols-sharp,
+          .material-symbols-rounded,
+          .material-icons,
+          [class*="material-symbols"] {
+            font-family: 'Material Symbols Outlined', 'Material Icons' !important;
+          }
+          [class*="ti-"], .themify-icons, [class^="ti-"] {
+            font-family: 'themify' !important;
+          }
+          .fa, .fas, .far, .fal, .fab, [class*="fa-"] {
+            font-family: 'Font Awesome 5 Free', 'FontAwesome', 'Font Awesome 6 Free' !important;
+          }
+          [class*="la-"] {
+            font-family: 'Line Awesome' !important;
           }
         `;
       }
@@ -2520,8 +2539,27 @@ export default function VisualLandingBuilderPage() {
     }
 
     styleEl.textContent = `
-      html, body, body *, h1, h2, h3, h4, h5, h6, p, a, button, input, textarea, select, span, div, li, td, th {
+      html, body, h1, h2, h3, h4, h5, h6, p, a, button, input, textarea, select, span, div, li, td, th {
+        font-family: ${fontObj.cssName};
+      }
+      body *:not(i):not(svg):not([class*="icon"]):not([class*="ti-"]):not([class*="fa"]):not([class*="material"]):not([class*="la-"]) {
         font-family: ${fontObj.cssName} !important;
+      }
+      .material-symbols-outlined,
+      .material-symbols-sharp,
+      .material-symbols-rounded,
+      .material-icons,
+      [class*="material-symbols"] {
+        font-family: 'Material Symbols Outlined', 'Material Icons' !important;
+      }
+      [class*="ti-"], .themify-icons, [class^="ti-"] {
+        font-family: 'themify' !important;
+      }
+      .fa, .fas, .far, .fal, .fab, [class*="fa-"] {
+        font-family: 'Font Awesome 5 Free', 'FontAwesome', 'Font Awesome 6 Free' !important;
+      }
+      [class*="la-"] {
+        font-family: 'Line Awesome' !important;
       }
     `;
 
