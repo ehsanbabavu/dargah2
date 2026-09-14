@@ -163,7 +163,7 @@ export default function GatewaySettingsPage() {
         apiKey: gateway.apiKey || "",
         isActive: gateway.isActive ?? false,
         title: gateway.title || `درگاه پرداخت ${user?.firstName || ""} ${user?.lastName || ""}`.trim(),
-        description: gateway.description || "جهت پرداخت، اطلاعات خود را وارد کرده و پس از واریز کارت به کارت، وضعیت به صورت آنی تایید می‌گردد.",
+        description: gateway.description || "",
         defaultAmount: gateway.defaultAmount ? String(gateway.defaultAmount) : "",
         minAmount: gateway.minAmount || "10000",
         maxAmount: gateway.maxAmount || "50000000",

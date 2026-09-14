@@ -5424,8 +5424,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     payerBankName?: string;
     rawData?: any;
   }> {
-    const targetInvoiceId = tx?.blupalInvoiceId || tx?.invoiceId;
-    if (!gateway?.apiKey?.trim() || !targetInvoiceId) {
+    const targetInvoiceId = tx?.blupalInvoiceId;
+    // Skip external API query if there is no real Blupal remote invoice ID or if it's a local internal ID
+    if (!gateway?.apiKey?.trim() || !targetInvoiceId || String(targetInvoiceId).startsWith("INV-") || String(targetInvoiceId).startsWith("WC-")) {
       return { isPaid: false };
     }
 
@@ -5456,7 +5457,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       } else {
         const err = await res.json().catch(() => ({}));
-        console.warn(`Blupal status check returned ${res.status}:`, err);
+        if (res.status === 400 && (err?.error === "invalid_invoice_id" || err?.message === "invalid_invoice_id")) {
+          console.log(`Blupal remote invoice ${targetInvoiceId} not recognized by gateway (${res.status}):`, err?.error || err);
+        } else {
+          console.warn(`Blupal status check returned ${res.status}:`, err);
+        }
       }
     } catch (err: any) {
       console.error("Error during live Blupal status check:", err.message);

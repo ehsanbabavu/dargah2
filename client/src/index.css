@@ -49,9 +49,9 @@
   --sidebar-accent-foreground: hsl(203.8863 88.2845% 53.1373%);
   --sidebar-border: hsl(205.0000 25.0000% 90.5882%);
   --sidebar-ring: hsl(202.8169 89.1213% 53.1373%);
-  --font-sans: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', 'Estedad', 'Tahoma', sans-serif;
-  --font-serif: Georgia, serif;
-  --font-mono: Menlo, monospace;
+  --font-sans: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', 'Tahoma', sans-serif;
+  --font-serif: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', 'Tahoma', sans-serif;
+  --font-mono: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', 'Tahoma', sans-serif;
   --radius: 0.5rem;
   --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
@@ -98,9 +98,9 @@
   --sidebar-accent-foreground: hsl(203.7736 87.6033% 52.5490%);
   --sidebar-border: hsl(205.7143 15.7895% 26.0784%);
   --sidebar-ring: hsl(202.8169 89.1213% 53.1373%);
-  --font-sans: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', 'Estedad', 'Tahoma', sans-serif;
-  --font-serif: Georgia, serif;
-  --font-mono: Menlo, monospace;
+  --font-sans: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', 'Tahoma', sans-serif;
+  --font-serif: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', 'Tahoma', sans-serif;
+  --font-mono: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', 'Tahoma', sans-serif;
   --radius: 0.5rem;
   --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
@@ -115,11 +115,12 @@
 @layer base {
   * {
     @apply border-border;
+    font-family: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', 'Tahoma', sans-serif !important;
   }
 
   body {
     @apply font-sans antialiased bg-background text-foreground overflow-x-hidden;
-    font-family: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', 'Estedad', 'Tahoma', sans-serif;
+    font-family: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', 'Tahoma', sans-serif !important;
     width: 100%;
     margin: 0;
     padding: 0;
@@ -129,6 +130,11 @@
     direction: rtl;
     width: 100%;
     overflow-x: hidden;
+    font-family: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', 'Tahoma', sans-serif !important;
+  }
+
+  input, button, select, textarea {
+    font-family: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', 'Tahoma', sans-serif !important;
   }
 }
 
@@ -190,7 +196,7 @@
 }
 
 .mono-num {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', sans-serif;
   direction: ltr;
   display: inline-block;
 }

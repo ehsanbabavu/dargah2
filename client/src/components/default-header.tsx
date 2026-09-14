@@ -146,7 +146,6 @@ export function DefaultHeader({ forceDefault = false }: DefaultHeaderProps = {})
                 key={item.name}
                 onClick={() => handleNavClick(item.href)}
                 className="text-gray-600 hover:text-purple-600 font-medium transition-colors relative group bg-none border-none cursor-pointer"
-                style={{ fontFamily: "Estedad, sans-serif" }}
               >
                 {item.name}
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-purple-600 transition-all group-hover:w-full"></span>
@@ -192,7 +191,6 @@ export function DefaultHeader({ forceDefault = false }: DefaultHeaderProps = {})
                   setIsMenuOpen(false);
                 }}
                 className="text-gray-600 font-medium p-3 hover:bg-purple-50 hover:text-purple-600 rounded-lg transition-colors text-right bg-none border-none cursor-pointer w-full"
-                style={{ fontFamily: "Estedad, sans-serif" }}
               >
                 {item.name}
               </button>

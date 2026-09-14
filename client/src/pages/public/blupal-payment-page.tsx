@@ -487,12 +487,9 @@ export default function BlupalPaymentPage() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-none">
-                  درگاه پرداخت الکترونیک
+                  درگاه پرداخت کارت به کارت
                 </span>
               </div>
-              <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-none">
-                سامانه هوشمند واریز امن شتاب ({gateway.title})
-              </p>
             </div>
           </div>
         </header>
@@ -515,107 +512,19 @@ export default function BlupalPaymentPage() {
         {/* ---------------- MAIN CONTAINER: 2-PANEL IPG DESIGN (FULL WIDTH & RESPONSIVE) ---------------- */}
         <div className="w-full bg-white dark:bg-[#111726] border border-slate-200/90 dark:border-slate-800 rounded-xl sm:rounded-2xl shadow-xs overflow-hidden">
           
-          <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x lg:divide-x-reverse divide-slate-200/80 dark:divide-slate-800">
+          <div className="flex flex-col lg:grid lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x lg:divide-x-reverse divide-slate-200/80 dark:divide-slate-800">
             
-            {/* RIGHT SIDE: MERCHANT & TRANSACTION SUMMARY (Classic IPG Right Column) */}
-            <div className="lg:col-span-4 xl:col-span-4 bg-slate-50/70 dark:bg-[#0e1320] p-4 sm:p-5 lg:p-6 flex flex-col justify-between space-y-4">
-              <div className="space-y-3.5">
-                
-                {/* Merchant Header */}
-                <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
-                  <div className="text-[10px] text-slate-400 dark:text-slate-500 mb-0.5">اطلاعات پذیرنده</div>
-                  <div className="flex items-center justify-between">
-                    <div className="font-bold text-sm text-slate-900 dark:text-slate-100">
-                      {gateway.sellerName}
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
-                      @{gateway.slug}
-                    </span>
-                  </div>
-                  {gateway.description && (
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed bg-white/70 dark:bg-slate-800/40 p-2 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
-                      {gateway.description}
-                    </p>
-                  )}
-                </div>
-
-                {/* Key Transaction Data List */}
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-800/60">
-                    <span className="text-slate-500 dark:text-slate-400 text-[11px]">عنوان درگاه:</span>
-                    <span className="font-medium text-slate-800 dark:text-slate-200 text-[11px]">{gateway.title}</span>
-                  </div>
-
-                  {invoice?.invoiceId && (
-                    <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-800/60">
-                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">شناسه فاکتور:</span>
-                      <span className="font-mono font-bold text-blue-700 dark:text-blue-400 text-[11px]">{invoice.invoiceId}</span>
-                    </div>
-                  )}
-
-                  {urlOrderId && (
-                    <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-800/60">
-                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">شماره سفارش:</span>
-                      <span className="font-mono text-slate-700 dark:text-slate-300 text-[11px]">#{urlOrderId}</span>
-                    </div>
-                  )}
-
-                  {payerName && step !== "form" && (
-                    <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-800/60">
-                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">پرداخت‌کننده:</span>
-                      <span className="text-slate-800 dark:text-slate-200 font-medium text-[11px]">{payerName}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Amount Display Box */}
-                <div className="bg-white dark:bg-[#131b2e] border border-blue-200 dark:border-blue-900/50 rounded-xl p-3 space-y-1.5 shadow-xs">
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400">مبلغ قابل پرداخت:</div>
-                  <div className="flex items-baseline justify-between">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-lg sm:text-xl font-bold font-mono text-[#1e3a8a] dark:text-blue-400">
-                        {formatTomans(invoice?.finalAmount || invoice?.amount || amount || 0)}
-                      </span>
-                      <span className="text-xs font-medium text-slate-600 dark:text-slate-400">تومان</span>
-                    </div>
-                    <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-                      {formatRials(invoice?.finalAmount || invoice?.amount || amount || 0)} ریال
-                    </div>
-                  </div>
-                  {persianWordsAmount && (
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800 leading-tight">
-                      معادل: <span className="font-medium text-slate-700 dark:text-slate-300">{persianWordsAmount}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Merchant Support Info Footer */}
-              <div className="pt-2 text-[10px] text-slate-400 dark:text-slate-500 space-y-1 border-t border-slate-200/60 dark:border-slate-800/60">
-                {gateway.supportPhone && (
-                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                    <span>پشتیبانی پذیرنده:</span>
-                    <span className="font-mono font-bold" dir="ltr">{gateway.supportPhone}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-1 text-[10px] text-slate-400">
-                  <Info className="w-3 h-3 text-slate-400 shrink-0" />
-                  <span>تراکنش تحت پروتکل امن شبکه شاپرک ثبت می‌شود.</span>
-                </div>
-              </div>
-            </div>
-
-            {/* LEFT SIDE: PAYMENT FLOW STEPS (Dynamic Forms & Actions) */}
-            <div className="lg:col-span-8 xl:col-span-8 p-4 sm:p-6 lg:p-7 flex flex-col justify-between">
+            {/* PAYMENT FLOW STEPS (FIRST ON MOBILE, LEFT PANEL ON DESKTOP) */}
+            <div className="order-1 lg:order-2 lg:col-span-8 xl:col-span-8 p-3.5 sm:p-5 lg:p-7 flex flex-col justify-between">
 
               {/* ---------------- STEP 1: PAYMENT FORM ---------------- */}
               {step === "form" && (
                 <div className="space-y-4">
                   <div className="border-b border-slate-100 dark:border-slate-800/80 pb-2">
-                    <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                    <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">
                       اطلاعات پرداخت و صدور فاکتور
                     </h2>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       جهت دریافت شماره کارت مقصد و ثبت تراکنش، فیلدهای زیر را تکمیل فرمایید:
                     </p>
                   </div>
@@ -628,7 +537,7 @@ export default function BlupalPaymentPage() {
                           مبلغ پرداختی (تومان) <span className="text-red-500">*</span>
                         </Label>
                         {gateway.minAmount && (
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-[10px] sm:text-[11px] text-slate-400">
                             حداقل: {formatTomans(gateway.minAmount)} تومان
                           </span>
                         )}
@@ -644,7 +553,7 @@ export default function BlupalPaymentPage() {
                             const raw = e.target.value.replace(/\D/g, "");
                             setAmount(raw);
                           }}
-                          className="h-10 text-sm font-bold font-mono text-center rounded-lg border-slate-200 dark:border-slate-700 text-blue-700 dark:text-blue-400 pr-3 pl-12 focus-visible:ring-1 focus-visible:ring-blue-600"
+                          className="h-10 sm:h-11 text-sm font-bold font-mono text-center rounded-lg border-slate-200 dark:border-slate-700 text-blue-700 dark:text-blue-400 pr-3 pl-12 focus-visible:ring-1 focus-visible:ring-blue-600"
                         />
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-medium">
                           تومان
@@ -652,13 +561,13 @@ export default function BlupalPaymentPage() {
                       </div>
 
                       {/* Preset Pills */}
-                      <div className="grid grid-cols-4 gap-1.5 pt-1">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1">
                         {["20000", "50000", "100000", "200000"].map((preset) => (
                           <button
                             key={preset}
                             type="button"
                             onClick={() => setAmount(preset)}
-                            className="text-[10px] font-mono py-1 px-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-950/60 hover:text-blue-700 dark:hover:text-blue-300 transition-colors border border-slate-200/60 dark:border-slate-700/60 cursor-pointer text-center"
+                            className="text-[10px] sm:text-xs font-mono py-1.5 px-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-950/60 hover:text-blue-700 dark:hover:text-blue-300 transition-colors border border-slate-200/60 dark:border-slate-700/60 cursor-pointer text-center"
                           >
                             {formatTomans(preset)}
                           </button>
@@ -742,55 +651,71 @@ export default function BlupalPaymentPage() {
                 </div>
               )}
 
-              {/* ---------------- STEP 2: TRANSFER & CARD DETAILS ---------------- */}
+              {/* ---------------- STEP 2: TRANSFER & CARD DETAILS (MOBILE REDESIGNED ORDER) ---------------- */}
               {step === "transfer" && invoice && (
-                <div className="space-y-4">
-                  {/* Step Header */}
-                  <div className="border-b border-slate-100 dark:border-slate-800/80 pb-2 flex items-center justify-between">
-                    <div>
-                      <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                        دستور انتقال کارت‌به‌کارت (شتاب)
-                      </h2>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        مبلغ را از اپلیکیشن همراه بانک به کارت مقصد واریز فرمایید:
-                      </p>
+                <div className="flex flex-col space-y-3">
+
+                  {/* 1. LARGE AMOUNT DISPLAY AT TOP (RIALS PRIMARY + COPY BUTTON) */}
+                  <div className="order-1 bg-gradient-to-br from-blue-50/90 via-blue-50/40 to-slate-50 dark:from-blue-950/40 dark:via-slate-900/60 dark:to-slate-900 border border-blue-200/80 dark:border-blue-900/50 rounded-xl p-3 sm:p-3.5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-2.5 text-center sm:text-right">
+                    <div className="space-y-0.5 text-center sm:text-right flex flex-col items-center sm:items-start">
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                        مبلغ قابل پرداخت (ریال):
+                      </div>
+                      <div className="flex items-baseline justify-center sm:justify-start gap-1.5 dir-ltr">
+                        <span className="text-xl sm:text-2xl md:text-3xl font-black font-mono text-blue-700 dark:text-blue-400">
+                          {formatRials(invoice.finalAmount || invoice.amount || amount)}
+                        </span>
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">ریال</span>
+                      </div>
+                      <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                        ({formatTomans(invoice.finalAmount || invoice.amount || amount)} تومان)
+                      </div>
                     </div>
-                    <span className="text-[10px] font-mono bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50 px-2 py-0.5 rounded">
-                      فاکتور: {invoice.invoiceId}
-                    </span>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      type="button"
+                      onClick={() => copyToClipboard(String(getRials(invoice.finalAmount || invoice.amount || amount)), "amount")}
+                      className="h-8 text-[11px] rounded-lg px-3.5 gap-1.5 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100/60 dark:hover:bg-blue-900/40 cursor-pointer shrink-0 font-medium shadow-2xs self-center sm:self-center w-auto justify-center"
+                    >
+                      {copiedAmount ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedAmount ? "کپی شد" : "کپی مبلغ ریالی"}</span>
+                    </Button>
                   </div>
 
-                  {/* AUTHENTIC IRANIAN BANK CARD COMPONENT */}
-                  <div className="bg-gradient-to-tr from-[#0f172a] via-[#1e293b] to-[#1e3a8a] text-white rounded-xl p-4 shadow-sm border border-slate-700/60 relative overflow-hidden space-y-3">
+                  {/* 2. AUTHENTIC IRANIAN BANK CARD COMPONENT */}
+                  <div className="order-2 bg-gradient-to-tr from-[#0f172a] via-[#1e293b] to-[#1e3a8a] text-white rounded-xl p-3.5 sm:p-4 shadow-sm border border-slate-700/60 relative overflow-hidden space-y-2.5">
                     {/* Bank & Network */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200">
                         <Building className="w-3.5 h-3.5 text-blue-300" />
                         <span>{detectedBank}</span>
                       </div>
-                      <span className="text-[9px] bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-medium">
+                      <span className="text-[9px] sm:text-[10px] bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-medium">
                         عضو شتاب
                       </span>
                     </div>
 
-                    {/* 16-Digit Card Number */}
-                    <div className="space-y-1 text-center py-1">
+                    {/* 16-Digit Card Number (STRICT SINGLE LINE) */}
+                    <div className="space-y-0.5 text-center py-0.5">
                       <div className="text-[10px] text-slate-300 font-medium">شماره کارت مقصد جهت واریز:</div>
-                      <div className="font-mono text-base sm:text-lg font-black tracking-widest text-white select-all" dir="ltr">
+                      <div className="font-mono text-base sm:text-lg md:text-xl font-black tracking-wider text-white select-all whitespace-nowrap overflow-x-auto leading-tight" dir="ltr">
                         {formatCardNumber(invoice.destCardNumber)}
                       </div>
                     </div>
 
                     {/* Cardholder Name & Copy Button */}
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-700/80 text-xs">
-                      <div>
-                        <span className="text-[10px] text-slate-400 block">نام صاحب حساب:</span>
-                        <span className="font-bold text-slate-100 text-xs">{invoice.destCardHolder}</span>
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-700/80 text-xs gap-2">
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[10px] text-slate-400 block truncate">نام صاحب حساب:</span>
+                        <span className="font-bold text-slate-100 text-xs truncate block">{invoice.destCardHolder}</span>
                       </div>
                       <Button
                         size="sm"
+                        type="button"
                         onClick={() => copyToClipboard(invoice.destCardNumber, "card")}
-                        className="h-7 text-[11px] bg-blue-600 hover:bg-blue-700 text-white rounded-md px-2.5 gap-1 cursor-pointer"
+                        className="h-7 text-[10px] sm:text-[11px] bg-blue-600 hover:bg-blue-700 text-white rounded-md px-2.5 gap-1 cursor-pointer shrink-0 font-medium"
                       >
                         {copiedCard ? <Check className="w-3 h-3 text-emerald-300" /> : <Copy className="w-3 h-3" />}
                         <span>{copiedCard ? "کپی شد" : "کپی کارت"}</span>
@@ -798,56 +723,15 @@ export default function BlupalPaymentPage() {
                     </div>
                   </div>
 
-                  {/* EXACT AMOUNT BOX WITH 3-DIGIT UNIQUE CODE NOTICE */}
-                  <div className="bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 rounded-xl p-3 flex items-center justify-between gap-3 text-xs">
-                    <div className="space-y-0.5">
-                      <span className="text-[10px] text-amber-800 dark:text-amber-300 font-medium block">
-                        مبلغ دقیق قابل انتقال (همراه با شناسه ۳ رقمی):
-                      </span>
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-sm sm:text-base font-bold font-mono text-amber-900 dark:text-amber-200">
-                          {formatRials(invoice.finalAmount || invoice.amount)}
-                        </span>
-                        <span className="text-xs font-bold text-amber-800 dark:text-amber-300">ریال</span>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 mr-2">
-                          ({formatTomans(invoice.finalAmount || invoice.amount)} تومان)
-                        </span>
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => copyToClipboard(String(getRials(invoice.finalAmount || invoice.amount)), "amount")}
-                      className="h-7 text-[10px] rounded-md px-2 gap-1 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 hover:bg-amber-100/50 cursor-pointer shrink-0"
-                    >
-                      {copiedAmount ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                      <span>{copiedAmount ? "کپی شد" : "کپی مبلغ"}</span>
-                    </Button>
-                  </div>
-
-                  {/* Payer Confirmation Form Fields */}
-                  <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800 rounded-xl p-3 sm:p-3.5 space-y-3">
+                  {/* 3. PAYER CARD INPUT & PAYMENT BUTTON */}
+                  <div className="order-3 bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800 rounded-xl p-3 sm:p-3.5 space-y-2.5">
                     <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
                       اطلاعات فیش واریزی جهت تایید نهایی:
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-2.5">
                       <div className="space-y-1">
-                        <Label htmlFor="trackingInput" className="text-[11px] text-slate-600 dark:text-slate-400">
-                          شماره پیگیری / شماره مرجع (RRN)
-                        </Label>
-                        <Input
-                          id="trackingInput"
-                          placeholder="مثال: ۱۲۳۴۵۶"
-                          value={trackingInput}
-                          onChange={(e) => setTrackingInput(e.target.value)}
-                          className="h-9 text-xs rounded-lg font-mono text-center border-slate-200 dark:border-slate-700 focus-visible:ring-1 focus-visible:ring-blue-600"
-                          dir="ltr"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <Label htmlFor="cardLastFour" className="text-[11px] text-slate-600 dark:text-slate-400">
+                        <Label htmlFor="cardLastFour" className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-400">
                           ۴ رقم آخر کارت شما (اختیاری)
                         </Label>
                         <Input
@@ -856,7 +740,7 @@ export default function BlupalPaymentPage() {
                           placeholder="مثال: ۴۳۲۱"
                           value={cardLastFour}
                           onChange={(e) => setCardLastFour(e.target.value.replace(/\D/g, ""))}
-                          className="h-9 text-xs rounded-lg font-mono text-center tracking-widest border-slate-200 dark:border-slate-700 focus-visible:ring-1 focus-visible:ring-blue-600"
+                          className="h-9 sm:h-10 text-xs rounded-lg font-mono text-center tracking-widest border-slate-200 dark:border-slate-700 focus-visible:ring-1 focus-visible:ring-blue-600"
                           dir="ltr"
                         />
                       </div>
@@ -867,7 +751,7 @@ export default function BlupalPaymentPage() {
                       type="button"
                       onClick={() => confirmTransferMutation.mutate()}
                       disabled={confirmTransferMutation.isPending}
-                      className="w-full h-10 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold text-xs sm:text-sm shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-all mt-1"
+                      className="w-full h-10 sm:h-11 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold text-xs sm:text-sm shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-all mt-0.5"
                     >
                       {confirmTransferMutation.isPending ? (
                         <>
@@ -883,9 +767,6 @@ export default function BlupalPaymentPage() {
                     </Button>
                   </div>
 
-                  <p className="text-[10px] text-center text-slate-400 dark:text-slate-500">
-                    سیستم به صورت خودکار نیز در حال بررسی وضعیت تراکنش شما با وب‌هوک شتاب است.
-                  </p>
                 </div>
               )}
 
@@ -1104,6 +985,69 @@ export default function BlupalPaymentPage() {
                 </div>
               )}
 
+            </div>
+
+            {/* MERCHANT & TRANSACTION SUMMARY (SECOND ON MOBILE, RIGHT PANEL ON DESKTOP) */}
+            <div className="order-2 lg:order-1 lg:col-span-4 xl:col-span-4 bg-slate-50/70 dark:bg-[#0e1320] p-4 sm:p-5 lg:p-6 flex flex-col justify-between space-y-4">
+              <div className="space-y-3.5">
+                
+                {/* Merchant Header */}
+                <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500 mb-0.5">اطلاعات پذیرنده</div>
+                  <div className="flex items-center justify-between">
+                    <div className="font-bold text-sm text-slate-900 dark:text-slate-100">
+                      {gateway.sellerName}
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                      @{gateway.slug}
+                    </span>
+                  </div>
+                  {gateway.description && !gateway.description.includes("پس از واریز کارت به کارت") && !gateway.description.includes("اطلاعات خود را وارد کرده") && (
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed bg-white/70 dark:bg-slate-800/40 p-2 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+                      {gateway.description}
+                    </p>
+                  )}
+                </div>
+
+                {/* Key Transaction Data List */}
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-800/60">
+                    <span className="text-slate-500 dark:text-slate-400 text-[11px]">عنوان درگاه:</span>
+                    <span className="font-medium text-slate-800 dark:text-slate-200 text-[11px]">{gateway.title}</span>
+                  </div>
+
+                  {invoice?.invoiceId && (
+                    <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-800/60">
+                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">شناسه فاکتور:</span>
+                      <span className="font-mono font-bold text-blue-700 dark:text-blue-400 text-[11px]">{invoice.invoiceId}</span>
+                    </div>
+                  )}
+
+                  {urlOrderId && (
+                    <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-800/60">
+                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">شماره سفارش:</span>
+                      <span className="font-mono text-slate-700 dark:text-slate-300 text-[11px]">#{urlOrderId}</span>
+                    </div>
+                  )}
+
+                  {payerName && step !== "form" && (
+                    <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-800/60">
+                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">پرداخت‌کننده:</span>
+                      <span className="text-slate-800 dark:text-slate-200 font-medium text-[11px]">{payerName}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Merchant Support Info Footer */}
+              {gateway.supportPhone && (
+                <div className="pt-1 text-[10px] text-slate-400 dark:text-slate-500">
+                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                    <span>پشتیبانی پذیرنده:</span>
+                    <span className="font-mono font-bold" dir="ltr">{gateway.supportPhone}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
