@@ -1340,11 +1340,11 @@ export default function VisualLandingBuilderPage() {
           doc.head.appendChild(fontStyleEl);
         }
         fontStyleEl.textContent = `
-          html, body, h1, h2, h3, h4, h5, h6, p, a, button, input, textarea, select, span, div, li, td, th {
-            font-family: ${fontObj.cssName};
+          html, body {
+            font-family: ${fontObj.cssName}, sans-serif;
           }
-          body *:not(i):not(svg):not([class*="icon"]):not([class*="ti-"]):not([class*="fa"]):not([class*="material"]):not([class*="la-"]) {
-            font-family: ${fontObj.cssName} !important;
+          h1, h2, h3, h4, h5, h6, p, a, button, input, textarea, select, label {
+            font-family: ${fontObj.cssName}, sans-serif;
           }
           .material-symbols-outlined,
           .material-symbols-sharp,
@@ -1352,15 +1352,31 @@ export default function VisualLandingBuilderPage() {
           .material-icons,
           [class*="material-symbols"] {
             font-family: 'Material Symbols Outlined', 'Material Icons' !important;
+            font-style: normal;
           }
           [class*="ti-"], .themify-icons, [class^="ti-"] {
             font-family: 'themify' !important;
+            font-style: normal;
           }
-          .fa, .fas, .far, .fal, .fab, [class*="fa-"] {
-            font-family: 'Font Awesome 5 Free', 'FontAwesome', 'Font Awesome 6 Free' !important;
+          .fa, .fas, .far, .fal, .fab, [class*="fa-"], [class^="fa-"] {
+            font-family: 'Font Awesome 5 Free', 'FontAwesome', 'Font Awesome 6 Free', 'Font Awesome 5 Brands' !important;
+            font-style: normal;
           }
-          [class*="la-"] {
+          [class*="la-"], [class^="la-"] {
             font-family: 'Line Awesome' !important;
+            font-style: normal;
+          }
+          [class*="bi-"], [class^="bi-"] {
+            font-family: 'bootstrap-icons' !important;
+            font-style: normal;
+          }
+          [class*="ri-"], [class^="ri-"] {
+            font-family: 'remixicon' !important;
+            font-style: normal;
+          }
+          [class*="bx-"], [class^="bx-"] {
+            font-family: 'boxicons' !important;
+            font-style: normal;
           }
         `;
       }
@@ -2539,11 +2555,11 @@ export default function VisualLandingBuilderPage() {
     }
 
     styleEl.textContent = `
-      html, body, h1, h2, h3, h4, h5, h6, p, a, button, input, textarea, select, span, div, li, td, th {
-        font-family: ${fontObj.cssName};
+      html, body {
+        font-family: ${fontObj.cssName}, sans-serif;
       }
-      body *:not(i):not(svg):not([class*="icon"]):not([class*="ti-"]):not([class*="fa"]):not([class*="material"]):not([class*="la-"]) {
-        font-family: ${fontObj.cssName} !important;
+      h1, h2, h3, h4, h5, h6, p, a, button, input, textarea, select, label {
+        font-family: ${fontObj.cssName}, sans-serif;
       }
       .material-symbols-outlined,
       .material-symbols-sharp,
@@ -2551,15 +2567,31 @@ export default function VisualLandingBuilderPage() {
       .material-icons,
       [class*="material-symbols"] {
         font-family: 'Material Symbols Outlined', 'Material Icons' !important;
+        font-style: normal;
       }
       [class*="ti-"], .themify-icons, [class^="ti-"] {
         font-family: 'themify' !important;
+        font-style: normal;
       }
-      .fa, .fas, .far, .fal, .fab, [class*="fa-"] {
-        font-family: 'Font Awesome 5 Free', 'FontAwesome', 'Font Awesome 6 Free' !important;
+      .fa, .fas, .far, .fal, .fab, [class*="fa-"], [class^="fa-"] {
+        font-family: 'Font Awesome 5 Free', 'FontAwesome', 'Font Awesome 6 Free', 'Font Awesome 5 Brands' !important;
+        font-style: normal;
       }
-      [class*="la-"] {
+      [class*="la-"], [class^="la-"] {
         font-family: 'Line Awesome' !important;
+        font-style: normal;
+      }
+      [class*="bi-"], [class^="bi-"] {
+        font-family: 'bootstrap-icons' !important;
+        font-style: normal;
+      }
+      [class*="ri-"], [class^="ri-"] {
+        font-family: 'remixicon' !important;
+        font-style: normal;
+      }
+      [class*="bx-"], [class^="bx-"] {
+        font-family: 'boxicons' !important;
+        font-style: normal;
       }
     `;
 

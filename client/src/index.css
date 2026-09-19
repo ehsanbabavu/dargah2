@@ -132,7 +132,7 @@
     font-family: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', 'Tahoma', sans-serif !important;
   }
 
-  input, button, select, textarea, p, h1, h2, h3, h4, h5, h6, span, a, div, label {
+  input, button, select, textarea, p, h1, h2, h3, h4, h5, h6, label {
     font-family: 'Vazirmatn', 'Vazirmatn-Regular', 'Vazir', 'Tahoma', sans-serif;
   }
 }
@@ -152,6 +152,36 @@
   word-wrap: normal;
   white-space: nowrap;
   direction: ltr;
+}
+
+[class*="ti-"], .themify-icons, [class^="ti-"] {
+  font-family: 'themify' !important;
+  font-style: normal;
+}
+
+.fa, .fas, .far, .fal, .fab, [class*="fa-"], [class^="fa-"] {
+  font-family: 'Font Awesome 5 Free', 'FontAwesome', 'Font Awesome 6 Free', 'Font Awesome 5 Brands' !important;
+  font-style: normal;
+}
+
+[class*="la-"], [class^="la-"] {
+  font-family: 'Line Awesome' !important;
+  font-style: normal;
+}
+
+[class*="bi-"], [class^="bi-"] {
+  font-family: 'bootstrap-icons' !important;
+  font-style: normal;
+}
+
+[class*="ri-"], [class^="ri-"] {
+  font-family: 'remixicon' !important;
+  font-style: normal;
+}
+
+[class*="bx-"], [class^="bx-"] {
+  font-family: 'boxicons' !important;
+  font-style: normal;
 }
 
 .fade-in {

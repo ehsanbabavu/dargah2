@@ -1176,27 +1176,6 @@ export default function AdminLandingPage() {
 
             <button
               type="button"
-              onClick={() => setActiveSectionTab("internal_pages")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
-                activeSectionTab === "internal_pages"
-                  ? "bg-card text-primary shadow-xs ring-1 ring-border/80"
-                  : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-              }`}
-            >
-              <div
-                className={`w-5 h-5 rounded-md flex items-center justify-center transition-colors ${
-                  activeSectionTab === "internal_pages"
-                    ? "bg-primary/10 text-primary"
-                    : "bg-transparent text-muted-foreground"
-                }`}
-              >
-                <FileText className="w-3.5 h-3.5" />
-              </div>
-              <span>قالب صفحات داخلی</span>
-            </button>
-
-            <button
-              type="button"
               onClick={() => setActiveSectionTab("not_found")}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
                 activeSectionTab === "not_found"
@@ -1754,7 +1733,7 @@ export default function AdminLandingPage() {
         )}
 
         {/* SECTION 2: INTERNAL PAGES TEMPLATE (قالب صفحات داخلی) */}
-        {activeSectionTab === "internal_pages" && (
+        {false && (
           <div className="space-y-4 animate-in fade-in duration-200">
             {/* Top Control: Upload & Add Internal Pages Template */}
             <Card className="border-border shadow-xs">
@@ -1834,11 +1813,11 @@ export default function AdminLandingPage() {
 
                       <div className="text-right flex-1 min-w-0">
                         <p className="text-xs font-bold text-foreground truncate">
-                          {internalSelectedFile ? internalSelectedFile.name : "انتخاب یا کشیدن فایل ZIP قالب صفحات داخلی"}
+                          {internalSelectedFile ? (internalSelectedFile as File).name : "انتخاب یا کشیدن فایل ZIP قالب صفحات داخلی"}
                         </p>
                         <p className="text-[10px] text-muted-foreground truncate">
                           {internalSelectedFile
-                            ? `حجم: ${formatBytes(internalSelectedFile.size)}`
+                            ? `حجم: ${formatBytes((internalSelectedFile as File).size)}`
                             : "شامل فایل‌های قالب‌بندی هدر، فوتر و محتوای صفحات داخلی"}
                         </p>
                       </div>
@@ -1865,7 +1844,7 @@ export default function AdminLandingPage() {
                         </Button>
                         <Button
                           size="sm"
-                          onClick={() => handleStartInternalZipInstall(internalSelectedFile)}
+                          onClick={() => internalSelectedFile && handleStartInternalZipInstall(internalSelectedFile)}
                           className="h-7 text-[11px] gap-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
                         >
                           <Upload className="w-3 h-3" />
