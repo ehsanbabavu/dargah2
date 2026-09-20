@@ -35,9 +35,6 @@ export default function Home() {
               <a href="#gateway" className="text-[#4B5563] dark:text-slate-300 font-medium text-[13px] hover:text-[#002db6] dark:hover:text-[#bac3ff] transition-colors duration-200">
                 درگاه کارت به کارت
               </a>
-              <a href="#store" className="text-[#4B5563] dark:text-slate-300 font-medium text-[13px] hover:text-[#002db6] dark:hover:text-[#bac3ff] transition-colors duration-200">
-                ویترین و فروشگاه
-              </a>
               <a href="#developers" className="text-[#4B5563] dark:text-slate-300 font-medium text-[13px] hover:text-[#002db6] dark:hover:text-[#bac3ff] transition-colors duration-200">
                 افزونه ووکامرس و وب‌هوک
               </a>
@@ -71,12 +68,12 @@ export default function Home() {
             <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
               {/* Hero Text Content */}
               <div className="lg:col-span-7 flex flex-col items-start gap-4 sm:gap-6 text-right">
-                <h1 className="text-[22px] sm:text-[28px] md:text-[36px] lg:text-[44px] font-black leading-[34px] sm:leading-[42px] md:leading-[50px] lg:leading-[60px] text-white tracking-tight">
+                <h1 className="text-[22px] sm:text-[28px] md:text-[36px] lg:text-[44px] font-black leading-[34px] text-center w-full text-white tracking-tight">
                   سامانه یکپارچه درگاه پرداخت، فروشگاه آنلاین و مدیریت فروش
                 </h1>
 
-                <p className="text-[13px] sm:text-[15px] lg:text-[16px] leading-[24px] sm:leading-[27px] lg:leading-[28px] text-[#c5c5d7] max-w-xl leading-relaxed">
-                  رخش پی بستری جامع برای فروشندگان فراهم کرده تا بدون نیاز به دانش فنی، درگاه پرداخت اختصاصی کارت به کارت با لینک اختصاصی، افزونه ووکامرس، فروشگاه اینترنتی مستقل و ابزار مدیریت سفارش‌ها را در یک پنل هوشمند دریافت کنند.
+                <p className="text-[13px] sm:text-[15px] lg:text-[16px] leading-[24px] sm:leading-[27px] lg:leading-[28px] text-[#c5c5d7] max-w-xl leading-relaxed text-justify">
+                  رخش پی بستری جامع برای فروشندگان فراهم کرده تا بدون نیاز به دانش فنی، درگاه پرداخت اختصاصی کارت به کارت با لینک اختصاصی، افزونه ووکامرس را در یک پنل هوشمند دریافت کنند.
                 </p>
               </div>
 
@@ -96,7 +93,7 @@ export default function Home() {
 
                   {/* Card Middle: Pan Number */}
                   <div className="my-auto py-1 z-10 flex justify-center items-center w-full">
-                    <div className="font-mono text-sm sm:text-base text-white tracking-widest font-semibold drop-shadow-sm text-center" dir="ltr">
+                    <div className="font-mono text-[25px] text-white tracking-widest font-semibold drop-shadow-sm text-center" dir="ltr">
                       ۶۰۳۷ •••• •••• ۸۲۹۴
                     </div>
                   </div>
@@ -152,16 +149,16 @@ export default function Home() {
               <span>افزونه ووکامرس وردپرس</span>
             </div>
             <div className="flex items-center gap-2 font-bold text-[#4B5563] dark:text-slate-300 text-[13px] sm:text-[14px] lg:text-[13.5px] xl:text-[15px] whitespace-nowrap">
-              <span className="material-symbols-outlined text-[#002db6] dark:text-[#bac3ff] text-xl sm:text-2xl shrink-0">storefront</span>
-              <span>فروشگاه اختصاصی</span>
+              <span className="material-symbols-outlined text-[#002db6] dark:text-[#bac3ff] text-xl sm:text-2xl shrink-0">dashboard</span>
+              <span>پنل اختصاصی</span>
             </div>
             <div className="flex items-center gap-2 font-bold text-[#4B5563] dark:text-slate-300 text-[13px] sm:text-[14px] lg:text-[13.5px] xl:text-[15px] whitespace-nowrap">
               <span className="material-symbols-outlined text-[#002db6] dark:text-[#bac3ff] text-xl sm:text-2xl shrink-0">share</span>
               <span>پرداخت با اسلاگ</span>
             </div>
             <div className="flex items-center gap-2 font-bold text-[#4B5563] dark:text-slate-300 text-[13px] sm:text-[14px] lg:text-[13.5px] xl:text-[15px] whitespace-nowrap">
-              <span className="material-symbols-outlined text-[#002db6] dark:text-[#bac3ff] text-xl sm:text-2xl shrink-0">chat</span>
-              <span>پشتیبانی و چت</span>
+              <span className="material-symbols-outlined text-[#002db6] dark:text-[#bac3ff] text-xl sm:text-2xl shrink-0">support_agent</span>
+              <span>پشتیبانی سریع</span>
             </div>
           </div>
         </section>
@@ -169,7 +166,7 @@ export default function Home() {
         {/* ================= 4 KEY PILLARS: SELLER CAPABILITIES ================= */}
         <section className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12" id="features">
           <div className="text-center mb-8 sm:mb-10">
-            <h2 className="text-[22px] sm:text-[28px] lg:text-[32px] font-extrabold text-[#111827] dark:text-white">
+            <h2 className="text-[20px] font-extrabold text-[#111827] dark:text-white">
               امکانات و ابزارهای فروشندگان رخش پی
             </h2>
             <p className="text-[13px] sm:text-[15px] text-[#4B5563] dark:text-slate-400 mt-2 max-w-2xl mx-auto px-2">
@@ -177,7 +174,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Pillar 1: درگاه اختصاصی کارت به کارت */}
             <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#0F1A2D] border border-[#E5E7EB] dark:border-slate-800 shadow-xs hover:shadow-md hover:border-[#bac3ff] transition-all duration-200 flex flex-col items-start gap-3 sm:gap-4 text-right">
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-[#F3F4F6] dark:bg-slate-800 text-[#002db6] dark:text-[#bac3ff] flex items-center justify-center shrink-0">
@@ -186,7 +183,7 @@ export default function Home() {
               <h3 className="text-[16px] sm:text-[18px] text-[#111827] dark:text-white font-bold">
                 درگاه کارت به کارت خودکار
               </h3>
-              <p className="text-[13px] sm:text-[14px] text-[#4B5563] dark:text-slate-400 leading-relaxed">
+              <p className="text-[13px] sm:text-[14px] text-[#4B5563] dark:text-slate-400 leading-relaxed text-justify">
                 اتصال مستقیم به وب‌سرویس بلو بانک با ثبت API Key، تشخیص خودکار نام بانک از شماره کارت، استعلام لحظه‌ای و تایید خودکار واریز مشتریان.
               </p>
             </div>
@@ -199,34 +196,21 @@ export default function Home() {
               <h3 className="text-[16px] sm:text-[18px] text-[#111827] dark:text-white font-bold">
                 صفحه پرداخت اختصاصی
               </h3>
-              <p className="text-[13px] sm:text-[14px] text-[#4B5563] dark:text-slate-400 leading-relaxed">
+              <p className="text-[13px] sm:text-[14px] text-[#4B5563] dark:text-slate-400 leading-relaxed text-justify">
                 لینک اختصاصی بر اساس نام کاربری یا اسلاگ دلخواه همراه با تنظیم نام درگاه، پیام تشکر، شماره پشتیبانی و تعیین سقف و کف مبالغ تراکنش.
               </p>
             </div>
 
-            {/* Pillar 3: فروشگاه و مدیریت محصولات */}
-            <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#0F1A2D] border border-[#E5E7EB] dark:border-slate-800 shadow-xs hover:shadow-md hover:border-[#bac3ff] transition-all duration-200 flex flex-col items-start gap-3 sm:gap-4 text-right">
-              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-[#F3F4F6] dark:bg-slate-800 text-[#002db6] dark:text-[#bac3ff] flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>inventory_2</span>
-              </div>
-              <h3 className="text-[16px] sm:text-[18px] text-[#111827] dark:text-white font-bold">
-                مدیریت محصولات و سفارشات
-              </h3>
-              <p className="text-[13px] sm:text-[14px] text-[#4B5563] dark:text-slate-400 leading-relaxed">
-                امکان افزودن و ویرایش محصولات، تنظیم قیمت و موجودی، مشاهده سفارشات در انتظار تایید، و دسترسی به کاتالوگ محصولات سیستمی.
-              </p>
-            </div>
-
-            {/* Pillar 4: افزونه ووکامرس و چت اختصاصی */}
+            {/* Pillar 3: افزونه ووکامرس */}
             <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#0F1A2D] border border-[#E5E7EB] dark:border-slate-800 shadow-xs hover:shadow-md hover:border-[#bac3ff] transition-all duration-200 flex flex-col items-start gap-3 sm:gap-4 text-right">
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-[#F3F4F6] dark:bg-slate-800 text-[#002db6] dark:text-[#bac3ff] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>integration_instructions</span>
               </div>
               <h3 className="text-[16px] sm:text-[18px] text-[#111827] dark:text-white font-bold">
-                افزونه ووکامرس و چت با مدیر
+                افزونه ووکامرس وردپرس
               </h3>
-              <p className="text-[13px] sm:text-[14px] text-[#4B5563] dark:text-slate-400 leading-relaxed">
-                دانلود مستقیم افزونه آماده وردپرس با تنظیمات از پیش‌پیکربندی‌شده برای سایت شما، به همراه چت اختصاصی داخلی با مدیریت سامانه.
+              <p className="text-[13px] sm:text-[14px] text-[#4B5563] dark:text-slate-400 leading-relaxed text-justify">
+                دانلود مستقیم افزونه آماده وردپرس با تنظیمات از پیش‌پیکربندی‌شده برای سایت شما.
               </p>
             </div>
           </div>
@@ -238,13 +222,10 @@ export default function Home() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
               {/* Content Left (RTL Right) */}
               <div className="lg:col-span-7 flex flex-col items-start gap-4 sm:gap-6 text-right">
-                <div className="text-[#002db6] dark:text-[#bac3ff] text-[12px] sm:text-[13px] font-bold tracking-wide">
-                  پیشخوان مالی و درگاه شتابی رخش پی
-                </div>
                 <h2 className="text-[22px] sm:text-[28px] lg:text-[32px] leading-[34px] sm:leading-[42px] lg:leading-[46px] text-[#111827] dark:text-white font-extrabold">
                   گزارش‌گیری زنده و استعلام آنی تراکنش‌های بلو بانک
                 </h2>
-                <p className="text-[13px] sm:text-[15px] lg:text-[16px] leading-[24px] sm:leading-[27px] lg:leading-[28px] text-[#4B5563] dark:text-slate-400 leading-relaxed">
+                <p className="text-[13px] sm:text-[15px] lg:text-[16px] leading-[24px] sm:leading-[27px] lg:leading-[28px] text-[#4B5563] dark:text-slate-400 leading-relaxed text-justify">
                   در پیشخوان فروشندگان، وضعیت لحظه‌ای تراکنش‌های دریافتی، مبالغ کل فروش، درآمد امروز، تعداد تراکنش‌های موفق و تراکنش‌های معلق نمایش داده می‌شود. در صورت نیاز به بررسی مجدد هر فاکتور، دکمه استعلام و تایید دستی از سرور بلو بانک در اختیار شما قرار دارد.
                 </p>
 
@@ -309,56 +290,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ================= STORE & CATALOG SECTION ================= */}
-        <section className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10" id="store">
-          <div className="rounded-2xl sm:rounded-3xl bg-slate-900 text-white p-5 sm:p-8 md:p-12 lg:p-16 relative overflow-hidden shadow-xl border border-slate-800">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
-              <div className="lg:col-span-7 space-y-4 sm:space-y-5 text-right">
-                <span className="px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] sm:text-[11px] font-bold border border-indigo-500/30">
-                  فروشگاه و ویترین آنلاین
-                </span>
-                <h2 className="text-[20px] sm:text-[26px] lg:text-[34px] font-extrabold leading-snug">
-                  محصولات اختصاصی خود را بفروشید یا از کاتالوگ آماده تامین کنید
-                </h2>
-                <p className="text-[13px] sm:text-[15px] text-slate-300 leading-relaxed">
-                  فروشندگان به بخش مدیریت جامع محصولات دسترسی دارند. می‌توانید محصول جدید همراه با تصویر، توضیحات، دسته‌بندی، قیمت و موجودی انبار ایجاد کنید و مستقیماً در فروشگاه خود به فروش برسانید. همچنین کاتالوگ محصولات سیستمی نیز در پنل برای شما قابل مشاهده است.
-                </p>
-              </div>
-
-              <div className="lg:col-span-5 grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 sm:gap-4 w-full">
-                <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 space-y-1.5 sm:space-y-2">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-indigo-600/30 text-indigo-300 flex items-center justify-center font-bold">
-                    <span className="material-symbols-outlined text-lg sm:text-xl">add_box</span>
-                  </div>
-                  <h4 className="font-bold text-[14px] sm:text-[15px]">افزودن نامحدود</h4>
-                  <p className="text-[11px] sm:text-xs text-slate-400 leading-relaxed">ثبت انواع کالای فیزیکی و دیجیتال با تصویر و دسته‌بندی</p>
-                </div>
-                <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 space-y-1.5 sm:space-y-2">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-indigo-600/30 text-indigo-300 flex items-center justify-center font-bold">
-                    <span className="material-symbols-outlined text-lg sm:text-xl">pending_actions</span>
-                  </div>
-                  <h4 className="font-bold text-[14px] sm:text-[15px]">سفارشات معلق</h4>
-                  <p className="text-[11px] sm:text-xs text-slate-400 leading-relaxed">پیگیری سفارشات پرداخت‌شده و در انتظار تایید خریداران</p>
-                </div>
-                <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 space-y-1.5 sm:space-y-2">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-indigo-600/30 text-indigo-300 flex items-center justify-center font-bold">
-                    <span className="material-symbols-outlined text-lg sm:text-xl">forum</span>
-                  </div>
-                  <h4 className="font-bold text-[14px] sm:text-[15px]">چت با مدیریت</h4>
-                  <p className="text-[11px] sm:text-xs text-slate-400 leading-relaxed">ارتباط متنی داخلی و ارسال فایل به مدیر سیستم جهت پشتیبانی</p>
-                </div>
-                <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 space-y-1.5 sm:space-y-2">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-indigo-600/30 text-indigo-300 flex items-center justify-center font-bold">
-                    <span className="material-symbols-outlined text-lg sm:text-xl">campaign</span>
-                  </div>
-                  <h4 className="font-bold text-[14px] sm:text-[15px]">اطلاعیه‌ها</h4>
-                  <p className="text-[11px] sm:text-xs text-slate-400 leading-relaxed">دریافت سریع اخبار، بخشنامه‌ها و آپدیت‌های درگاه رخش پی</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* ================= DEVELOPERS & WOOCOMMERCE SECTION ================= */}
         <section className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10" id="developers">
           <div className="rounded-2xl sm:rounded-3xl bg-[#0F1A2D] border border-white/10 p-5 sm:p-8 md:p-12 lg:p-16 text-white shadow-xl relative overflow-hidden">
@@ -389,13 +320,10 @@ export default function Home() {
               </div>
 
               <div className="lg:col-span-7 flex flex-col items-start gap-4 sm:gap-6 text-right order-1 lg:order-2">
-                <span className="px-3 py-1 rounded-full bg-white/10 text-[#bac3ff] text-[10px] sm:text-[11px] font-bold border border-white/10">
-                  اتصال به وب‌سایت وردپرس
-                </span>
                 <h2 className="text-[20px] sm:text-[24px] lg:text-[32px] leading-snug font-extrabold text-white">
                   افزونه اختصاصی ووکامرس برای فروشندگان رخش پی
                 </h2>
-                <p className="text-[13px] sm:text-[15px] lg:text-[16px] text-[#c5c5d7] leading-relaxed">
+                <p className="text-[13px] sm:text-[15px] lg:text-[16px] text-[#c5c5d7] leading-relaxed text-justify">
                   اگر فروشگاه ووکامرسی دارید، نیازی به توسعه اختصاصی ندارید! در تب «افزونه وردپرس» داشبورد فروشندگان، می‌توانید فایل ZIP افزونه درگاه پرداخت کارت به کارت را همراه با کلید وب‌سرویس اختصاصی (WP API Key) دانلود کرده و روی سایت خود فعال نمایید.
                 </p>
 
@@ -434,7 +362,7 @@ export default function Home() {
                 <span>فروشندگان در رخش پی به چه امکاناتی دسترسی دارند؟</span>
                 <span className="material-symbols-outlined transition-transform duration-200 group-open:rotate-180 text-[#4B5563] dark:text-slate-400 shrink-0 text-xl sm:text-2xl">keyboard_arrow_down</span>
               </summary>
-              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#E5E7EB] dark:border-slate-800 text-[13px] sm:text-[14px] text-[#4B5563] dark:text-slate-400 leading-relaxed space-y-2">
+              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#E5E7EB] dark:border-slate-800 text-[13px] sm:text-[14px] text-[#4B5563] dark:text-slate-400 leading-relaxed space-y-2 text-justify">
                 <p>فروشندگان و پذیرندگان به امکانات کامل زیر دسترسی دارند:</p>
                 <ul className="list-disc pr-5 space-y-1">
                   <li>درگاه پرداخت کارت به کارت متصل به وب‌سرویس بلو بانک</li>
@@ -453,7 +381,7 @@ export default function Home() {
                 <span>چگونه درگاه پرداخت کارت به کارت خود را فعال کنم؟</span>
                 <span className="material-symbols-outlined transition-transform duration-200 group-open:rotate-180 text-[#4B5563] dark:text-slate-400 shrink-0 text-xl sm:text-2xl">keyboard_arrow_down</span>
               </summary>
-              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#E5E7EB] dark:border-slate-800 text-[13px] sm:text-[14px] text-[#4B5563] dark:text-slate-400 leading-relaxed">
+              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#E5E7EB] dark:border-slate-800 text-[13px] sm:text-[14px] text-[#4B5563] dark:text-slate-400 leading-relaxed text-justify">
                 کافی است پس از ورود به حساب کاربری، به بخش «تنظیمات درگاه» بروید. در تب اول کلید دسترسی (API Key) خود را وارد کرده و دکمه تست اتصال را بزنید. سپس در تب کارت مقصد، شماره کارت بانکی ۱۶ رقمی خود را وارد نمایید. پس از ذخیره، لینک عمومی پرداخت شما بلافاصله فعال خواهد شد.
               </div>
             </details>
@@ -464,7 +392,7 @@ export default function Home() {
                 <span>چگونه درگاه رخش پی را به سایت وردپرس یا ووکامرس متصل کنم؟</span>
                 <span className="material-symbols-outlined transition-transform duration-200 group-open:rotate-180 text-[#4B5563] dark:text-slate-400 shrink-0 text-xl sm:text-2xl">keyboard_arrow_down</span>
               </summary>
-              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#E5E7EB] dark:border-slate-800 text-[13px] sm:text-[14px] text-[#4B5563] dark:text-slate-400 leading-relaxed">
+              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#E5E7EB] dark:border-slate-800 text-[13px] sm:text-[14px] text-[#4B5563] dark:text-slate-400 leading-relaxed text-justify">
                 در منوی «تنظیمات درگاه»، به تب «افزونه وردپرس» مراجعه کنید. با کلیک بر روی صدور کلید، WP API Key اختصاصی شما تولید می‌شود. سپس با فشردن دکمه «دانلود فایل ZIP افزونه»، نسخه آماده افزونه را دریافت کرده و در بخش افزونه‌های وردپرس خود نصب و فعال کنید.
               </div>
             </details>
@@ -475,7 +403,7 @@ export default function Home() {
                 <span>در صورت بروز مشکل یا نیاز به راهنمایی چگونه با پشتیبانی ارتباط بگیرم؟</span>
                 <span className="material-symbols-outlined transition-transform duration-200 group-open:rotate-180 text-[#4B5563] dark:text-slate-400 shrink-0 text-xl sm:text-2xl">keyboard_arrow_down</span>
               </summary>
-              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#E5E7EB] dark:border-slate-800 text-[13px] sm:text-[14px] text-[#4B5563] dark:text-slate-400 leading-relaxed">
+              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#E5E7EB] dark:border-slate-800 text-[13px] sm:text-[14px] text-[#4B5563] dark:text-slate-400 leading-relaxed text-justify">
                 فروشندگان از بخش «چت با مدیر» در پنل کاربری خود می‌توانند به طور مستقیم و برخط با مدیر سیستم پیام رد و بدل کنند. همچنین ویجت چت آنلاین در گوشه پایین صفحه لندینگ برای پاسخگویی به مهمانان و کاربران فعال است.
               </div>
             </details>
@@ -516,7 +444,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-6 pb-8 sm:pb-10 border-b border-[#E5E7EB] dark:border-slate-800 text-center sm:text-right">
             <div className="space-y-2 text-center sm:text-right">
               <p className="text-[12px] text-[#4B5563] dark:text-slate-300 max-w-md leading-relaxed">
-                سامانه یکپارچه درگاه پرداخت کارت به کارت هوشمند، فروشگاه اختصاصی و خدمات فروش برای فروشندگان و پذیرندگان.
+                سامانه یکپارچه درگاه پرداخت کارت به کارت هوشمند، خدمات فروش برای پذیرندگان.
               </p>
             </div>
             <div className="flex items-center justify-center sm:justify-start gap-4 w-full sm:w-auto">
@@ -557,7 +485,7 @@ export default function Home() {
           {/* Footer Bottom */}
           <div className="pt-6 sm:pt-8 flex flex-col items-center justify-center text-center">
             <p className="text-[11px] sm:text-[12px] text-[#4B5563] dark:text-slate-300 text-center">
-              © سامانه رخش پی ۱۴۰۳. تمامی حقوق برای فروشندگان و پذیرندگان محفوظ است.
+              تمامی حقوق مادی و معنوی برای پدید اورندگان محفوظ است
             </p>
           </div>
         </div>
