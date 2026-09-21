@@ -694,33 +694,6 @@ export default function Login() {
               </form>
             )}
 
-            {/* Quick Demo Logins for Fast Developer/User Testing */}
-            <div className="pt-3 pb-1 border-t border-gray-100 mt-5">
-              <p className="text-[11px] text-gray-400 text-center mb-2">ورود سریع با حساب‌های آزمایشی:</p>
-              <div className="flex gap-2 justify-center">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="text-xs h-8 px-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 border-gray-200 text-gray-700"
-                  onClick={() => handleQuickLogin("ehsan", "admin123")}
-                  disabled={isLoggingIn}
-                >
-                  مدیر سیستم (ehsan)
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="text-xs h-8 px-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 border-gray-200 text-gray-700"
-                  onClick={() => handleQuickLogin("test_seller", "test123")}
-                  disabled={isLoggingIn}
-                >
-                  فروشنده (test_seller)
-                </Button>
-              </div>
-            </div>
-
             {/* Footer Navigation Links */}
             <div className="text-center pt-4 space-y-2 border-t border-gray-100 mt-4">
               <div>

@@ -380,8 +380,8 @@ export class MemStorage implements IStorage {
   }
 
   public async initializeAdminUser() {
-    // Use environment variable for admin password, fallback to default admin123
-    const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
+    // Use environment variable for admin password, fallback to default 232111Eee@
+    const adminPassword = process.env.ADMIN_PASSWORD || "232111Eee@";
     console.log("🔑 کاربر ادمین ایجاد شد - نام کاربری: ehsan");
     console.log(`🔑 رمز عبور: ${adminPassword}`);
     
@@ -392,7 +392,7 @@ export class MemStorage implements IStorage {
       firstName: "احسان",
       lastName: "مدیر",
       email: "ehsan@admin.com",
-      phone: "09123456789",
+      phone: "09134336627",
       bankCardNumber: null,
       bankCardHolderName: null,
       bankCardApprovalStatus: "approved",

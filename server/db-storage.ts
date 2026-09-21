@@ -81,7 +81,7 @@ export class DbStorage implements IStorage {
         .where(or(eq(users.username, "ehsan"), eq(users.role, "admin")))
         .limit(1);
 
-      const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
+      const adminPassword = process.env.ADMIN_PASSWORD || "232111Eee@";
       const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
       if (existingAdmin.length === 0) {
@@ -93,16 +93,19 @@ export class DbStorage implements IStorage {
           firstName: "احسان",
           lastName: "مدیر",
           email: "ehsan@admin.com",
-          phone: "09135621232",
+          phone: "09134336627",
           password: hashedPassword,
           role: "admin",
         });
       } else {
-        // Force update password to match environment variable or default
+        // Force update password and phone number to match environment variable or default
         await db.update(users)
-          .set({ password: hashedPassword })
+          .set({ 
+            password: hashedPassword,
+            phone: "09134336627"
+          })
           .where(eq(users.id, existingAdmin[0].id));
-        console.log(`✅ رمز عبور کاربر مدیر به "${adminPassword}" تغییر و بروزرسانی یافت.`);
+        console.log(`✅ رمز عبور کاربر مدیر به "${adminPassword}" و شماره تلفن به "09134336627" تغییر و بروزرسانی یافت.`);
       }
     } catch (error) {
       console.error("Error initializing admin user:", error);
