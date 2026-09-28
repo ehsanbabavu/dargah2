@@ -109,6 +109,7 @@ export default function GatewaySettingsPage() {
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [copiedWpKey, setCopiedWpKey] = useState(false);
   const [copiedServerUrl, setCopiedServerUrl] = useState(false);
+  const [copiedMacrodroid, setCopiedMacrodroid] = useState(false);
   const [isDownloadingPlugin, setIsDownloadingPlugin] = useState(false);
 
   // Form State
@@ -427,6 +428,20 @@ export default function GatewaySettingsPage() {
     setTimeout(() => setCopiedWebhook(false), 2500);
   };
 
+  const macrodroidWebhookUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/api/blupal/webhook/macrodroid/${user?.id || ""}`
+    : `/api/blupal/webhook/macrodroid`;
+
+  const copyMacrodroidUrl = () => {
+    navigator.clipboard.writeText(macrodroidWebhookUrl);
+    setCopiedMacrodroid(true);
+    toast({
+      title: "کپی شد",
+      description: "آدرس وب‌هوک پشتیبان اندروید (MacroDroid) کپی شد.",
+    });
+    setTimeout(() => setCopiedMacrodroid(false), 2500);
+  };
+
   const isSubscriptionActive = user?.role !== "user_level_1" || 
     (userSubscription?.status === "active" && (userSubscription?.remainingDays ?? 0) > 0);
 
@@ -448,7 +463,7 @@ export default function GatewaySettingsPage() {
         
         {/* Clean Segmented Tabs (2 rows on mobile, 4 columns on desktop) */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full text-right" dir="rtl">
-          <TabsList className="grid grid-cols-2 lg:grid-cols-4 h-auto p-1.5 lg:p-2 bg-slate-100 dark:bg-zinc-800/80 rounded-xl lg:rounded-2xl w-full border border-slate-200/60 dark:border-zinc-700/50 gap-1.5 lg:gap-2">
+          <TabsList className="grid grid-cols-2 lg:grid-cols-5 h-auto p-1.5 lg:p-2 bg-slate-100 dark:bg-zinc-800/80 rounded-xl lg:rounded-2xl w-full border border-slate-200/60 dark:border-zinc-700/50 gap-1.5 lg:gap-2">
             <TabsTrigger 
               value="api" 
               className="text-xs lg:text-sm font-semibold py-2.5 lg:py-3 px-3 rounded-lg lg:rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 data-[state=active]:shadow-sm flex items-center justify-center gap-1.5"
@@ -476,6 +491,13 @@ export default function GatewaySettingsPage() {
             >
               <ShoppingBag className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
               <span>افزونه وردپرس</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="macrodroid" 
+              className="text-xs lg:text-sm font-semibold py-2.5 lg:py-3 px-3 rounded-lg lg:rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 data-[state=active]:shadow-sm flex items-center justify-center gap-1.5"
+            >
+              <Smartphone className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+              <span>اتصال اندروید (مکرو)</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1251,6 +1273,160 @@ export default function GatewaySettingsPage() {
                     </CardContent>
                   </Card>
                 </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* TAB 5: MACRODROID ANDROID CONNECTION */}
+          <TabsContent value="macrodroid" className="mt-3 lg:mt-5 space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-start">
+              {/* Connection Details and Webhook Url */}
+              <div className="lg:col-span-7 xl:col-span-8 space-y-4">
+                <Card className="rounded-2xl border-slate-200 dark:border-zinc-800 shadow-sm bg-white dark:bg-zinc-900 overflow-hidden text-right">
+                  <CardContent className="p-4 sm:p-5 lg:p-6 space-y-5 text-right">
+                    <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100 dark:border-zinc-800">
+                      <Smartphone className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                      <div>
+                        <h3 className="font-bold text-sm lg:text-base text-slate-800 dark:text-zinc-200">
+                          تنظیم وب‌هوک خودکارسازی اندروید
+                        </h3>
+                        <p className="text-[10px] sm:text-xs text-slate-500 dark:text-zinc-400">
+                          این آدرس وب‌هوک را جهت ارسال خودکار تراکنش‌ها در اپلیکیشن اندروید خود ذخیره نمایید.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Webhook URL Display */}
+                    <div className="space-y-1.5 text-right">
+                      <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300">
+                        آدرس اختصاصی وب‌هوک شما (Webhook URL)
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          readOnly
+                          value={macrodroidWebhookUrl}
+                          className="text-xs h-10 lg:h-11 pl-3 pr-3 font-mono text-left bg-slate-50 dark:bg-zinc-950/40 border-slate-200 dark:border-zinc-800 rounded-xl w-full"
+                          dir="ltr"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={copyMacrodroidUrl}
+                          className="h-10 lg:h-11 px-3 shrink-0 rounded-xl border-slate-200 dark:border-zinc-800 flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          {copiedMacrodroid ? (
+                            <Check className="w-4 h-4 text-emerald-500" />
+                          ) : (
+                            <Copy className="w-4 h-4 text-slate-500" />
+                          )}
+                        </Button>
+                      </div>
+                      <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                        ⚠️ توجه: این آدرس وب‌هوک مختص حساب کاربری شماست. آن را در اختیار دیگران قرار ندهید.
+                      </span>
+                    </div>
+
+                    {/* Sample Payload Explanation */}
+                    <div className="space-y-2 text-right pt-2">
+                      <h4 className="text-xs font-bold text-slate-800 dark:text-zinc-200">
+                        قالب اطلاعات ارسالی (JSON Payload) در ماکرو
+                      </h4>
+                      <p className="text-xs text-slate-600 dark:text-zinc-400">
+                        در نرم‌افزارهای اندرویدی مانند MacroDroid یا Tasker تنظیم کنید تا درخواست HTTP POST حاوی پارامترهای زیر باشد:
+                      </p>
+
+                      <div className="bg-slate-950 text-slate-200 p-4 rounded-xl font-mono text-xs text-left overflow-x-auto relative" dir="ltr">
+                        <pre>{`{
+  "text": "[not_text]"
+}`}</pre>
+                        <span className="absolute top-2 right-2 text-[9px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-md font-sans">
+                          ساده‌ترین حالت (متن خام اعلان)
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed pt-1">
+                        سامانه به طور هوشمند مبلغ، چهار رقم آخر کارت و کد پیگیری را از متن ارسالی اعلان استخراج کرده و تراکنش منتظر پرداخت را در لحظه تأیید خواهد کرد.
+                      </p>
+
+                      <div className="bg-slate-950 text-slate-200 p-4 rounded-xl font-mono text-xs text-left overflow-x-auto relative mt-2" dir="ltr">
+                        <pre>{`{
+  "amount": "50000",
+  "cardLastFour": "1234",
+  "trackingCode": "876543"
+}`}</pre>
+                        <span className="absolute top-2 right-2 text-[9px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-md font-sans">
+                          پیشرفته (پارامترهای تفکیک‌شده)
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Step-by-step setup guide */}
+              <div className="lg:col-span-5 xl:col-span-4 space-y-4">
+                <Card className="rounded-2xl border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50/70 dark:bg-zinc-900/60 text-right">
+                  <CardContent className="p-4 sm:p-5 space-y-4 text-right">
+                    <div className="flex items-center gap-2 pb-2 border-b border-slate-200/80 dark:border-zinc-800">
+                      <Smartphone className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                      <h4 className="font-bold text-xs lg:text-sm text-slate-800 dark:text-zinc-200">
+                        مراحل پیکربندی در MacroDroid
+                      </h4>
+                    </div>
+
+                    <div className="space-y-3.5 text-xs leading-relaxed text-right">
+                      <div className="flex items-start gap-2.5">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold">
+                          ۱
+                        </span>
+                        <div className="space-y-0.5 text-right">
+                          <p className="font-semibold text-slate-800 dark:text-zinc-200">نصب اپلیکیشن</p>
+                          <p className="text-slate-600 dark:text-zinc-400">نرم‌افزار MacroDroid را از گوگل پلی یا مایکت دانلود و روی گوشی خود نصب نمایید.</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2.5">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold">
+                          ۲
+                        </span>
+                        <div className="space-y-0.5 text-right">
+                          <p className="font-semibold text-slate-800 dark:text-zinc-200">اعطای دسترسی اعلان‌ها</p>
+                          <p className="text-slate-600 dark:text-zinc-400">به بخش تنظیمات اندروید رفته و دسترسی دسترسی به اعلان‌ها (Notification Access) را به MacroDroid بدهید.</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2.5">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold">
+                          ۳
+                        </span>
+                        <div className="space-y-0.5 text-right">
+                          <p className="font-semibold text-slate-800 dark:text-zinc-200">تعریف ماشه (Trigger)</p>
+                          <p className="text-slate-600 dark:text-zinc-400">در تب Triggers گزینه Device Events ⬅️ Notification ⬅️ Notification Received را بزنید. برنامه بانک خود (مثلا بلو بانک) را انتخاب کنید.</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2.5">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold">
+                          ۴
+                        </span>
+                        <div className="space-y-0.5 text-right">
+                          <p className="font-semibold text-slate-800 dark:text-zinc-200">تعریف اقدام (Action)</p>
+                          <p className="text-slate-600 dark:text-zinc-400">در بخش Actions گزینه Connectivity ⬅️ HTTP Request را انتخاب کرده و متد را روی POST بگذارید.</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2.5">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold">
+                          ۵
+                        </span>
+                        <div className="space-y-0.5 text-right">
+                          <p className="font-semibold text-slate-800 dark:text-zinc-200">جای‌گذاری آدرس و محتوا</p>
+                          <p className="text-slate-600 dark:text-zinc-400">آدرس وب‌هوک اختصاصی بالا را در فیلد URL کپی کرده و در بخش Content Body عبارت <code>{`{"text": "[not_text]"}`}</code> را وارد کنید.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </TabsContent>

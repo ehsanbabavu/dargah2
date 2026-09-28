@@ -23,7 +23,7 @@ export function generateMainPluginPhp(serverBaseUrl: string, prefilledApiKey?: s
  * Requires at least: 5.4
  * Requires PHP: 7.2
  * WC requires at least: 4.0
- * WC tested up to: 9.2
+ * WC tested up to: 11.1
  */
 
 if (!defined('ABSPATH')) {
@@ -38,15 +38,36 @@ define('BLUPAL_C2C_URL', plugin_dir_url(__FILE__));
 define('BLUPAL_C2C_DEFAULT_SERVER', '${safeBaseUrl}');
 define('BLUPAL_C2C_DEFAULT_API_KEY', '${defaultKey}');
 
-// Declare compatibility with WooCommerce HPOS (Custom Order Tables), Blocks, and New Product Editor
+// Load plugin text domain for localization
+add_action('init', 'blupal_c2c_load_textdomain');
+function blupal_c2c_load_textdomain() {
+    load_plugin_textdomain(
+        'wc-blupal-c2c',
+        false,
+        dirname(plugin_basename(__FILE__)) . '/languages'
+    );
+}
+
+// Declare compatibility with WooCommerce HPOS (Custom Order Tables) and Blocks
 add_action('before_woocommerce_init', 'blupal_c2c_declare_compatibility');
 function blupal_c2c_declare_compatibility() {
-    if (class_exists('\Automattic\WooCommerce\Utilities\FeaturesUtil')) {
-        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('custom_order_tables', __FILE__, true);
-        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('cart_checkout_blocks', __FILE__, true);
-        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('product_block_editor', __FILE__, true);
-        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('analytics', __FILE__, true);
-        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('order_attribution', __FILE__, true);
+    if (!class_exists('\\Automattic\\WooCommerce\\Utilities\\FeaturesUtil')) {
+        return;
+    }
+
+    $features = array(
+        'custom_order_tables',   // HPOS
+        'cart_checkout_blocks',  // Checkout Blocks
+        'analytics',
+        'order_attribution',
+    );
+
+    foreach ($features as $feature_id) {
+        \\Automattic\\WooCommerce\\Utilities\\FeaturesUtil::declare_compatibility(
+            $feature_id,
+            __FILE__,
+            true
+        );
     }
 }
 
@@ -117,34 +138,7 @@ function blupal_c2c_register_gateway($methods) {
 }
 
 /**
- * Ensure gateway is ALWAYS active in available payment gateways list if enabled
- */
-add_filter('woocommerce_available_payment_gateways', 'blupal_c2c_ensure_available_in_checkout', 9999, 1);
-function blupal_c2c_ensure_available_in_checkout($available_gateways) {
-    if (isset($available_gateways['blupal_c2c'])) {
-        return $available_gateways;
-    }
-
-    $settings = get_option('woocommerce_blupal_c2c_settings', array());
-    $is_disabled = isset($settings['enabled']) && ($settings['enabled'] === 'no' || $settings['enabled'] === '0' || $settings['enabled'] === false);
-
-    if (!$is_disabled) {
-        blupal_c2c_load_classes();
-        if (class_exists('WC_Gateway_Blupal_C2C')) {
-            $gateways = WC()->payment_gateways->payment_gateways();
-            if (isset($gateways['blupal_c2c'])) {
-                $available_gateways['blupal_c2c'] = $gateways['blupal_c2c'];
-            } else {
-                $available_gateways['blupal_c2c'] = new WC_Gateway_Blupal_C2C();
-            }
-        }
-    }
-
-    return $available_gateways;
-}
-
-/**
- * Register WooCommerce Blocks Checkout support for both classic and block checkouts
+ * Register WooCommerce Blocks Checkout support
  */
 add_action('woocommerce_blocks_loaded', 'blupal_c2c_register_blocks_support');
 function blupal_c2c_register_blocks_support() {
@@ -153,14 +147,9 @@ function blupal_c2c_register_blocks_support() {
     }
 
     require_once BLUPAL_C2C_DIR . 'includes/class-blupal-blocks-support.php';
-
-    add_action(
-        'woocommerce_blocks_payment_method_type_registration',
-        'blupal_c2c_blocks_handler'
-    );
 }
 
-// Also hook directly to payment method type registration for modern WC 8+ / 9+
+// Hook to payment method type registration for modern WC Blocks
 add_action('woocommerce_blocks_payment_method_type_registration', 'blupal_c2c_blocks_handler');
 function blupal_c2c_blocks_handler($payment_method_registry) {
     static $registered = false;
@@ -233,23 +222,22 @@ function blupal_c2c_settings_action_link($links) {
  */
 add_action('wp_ajax_blupal_c2c_test_connection', 'blupal_c2c_ajax_test_connection_callback');
 function blupal_c2c_ajax_test_connection_callback() {
-    // Check nonce or admin capabilities
-    $nonce = isset($_POST['security']) ? sanitize_text_field($_POST['security']) : '';
+    // بررسی هم‌زمان nonce و سطح دسترسی — هر دو الزامی هستند.
+    $nonce = isset($_POST['security']) ? sanitize_text_field(wp_unslash($_POST['security'])) : '';
+
     if (!wp_verify_nonce($nonce, 'blupal_c2c_test_nonce')) {
-        if (!current_user_can('manage_woocommerce') && !current_user_can('manage_options')) {
-            wp_send_json_error(array(
-                'status'  => 'nonce_failed',
-                'message' => 'اعتبار نشست کاری به پایان رسیده است. لطفاً صفحه را رفرش فرمایید.',
-            ));
-            exit;
-        }
+        wp_send_json_error(array(
+            'status'  => 'nonce_failed',
+            'message' => 'اعتبار نشست کاری به پایان رسیده است. لطفاً صفحه را رفرش فرمایید.',
+        ), 403);
+        exit;
     }
 
     if (!current_user_can('manage_woocommerce') && !current_user_can('manage_options')) {
         wp_send_json_error(array(
             'status'  => 'unauthorized',
             'message' => 'دسترسی غیرمجاز. فقط مدیران فروشگاه امکان بررسی اتصال را دارند.',
-        ));
+        ), 403);
         exit;
     }
 
@@ -352,9 +340,6 @@ if (!class_exists('WC_Gateway_Blupal_C2C') && class_exists('WC_Payment_Gateway')
             // Hook into admin save
             add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
 
-            // AJAX action for live connection test
-            add_action('wp_ajax_blupal_c2c_test_connection', array($this, 'ajax_test_connection'));
-
             // Webhook and Callback listener: /?wc-api=wc_blupal_c2c
             add_action('woocommerce_api_wc_blupal_c2c', array($this, 'handle_callback'));
 
@@ -373,37 +358,6 @@ if (!class_exists('WC_Gateway_Blupal_C2C') && class_exists('WC_Payment_Gateway')
                     array(),
                     BLUPAL_C2C_VERSION
                 );
-            }
-        }
-
-        /**
-         * AJAX handler for live connection test from settings page
-         */
-        public function ajax_test_connection() {
-            check_ajax_referer('blupal_c2c_test_nonce', 'security');
-
-            if (!current_user_can('manage_woocommerce')) {
-                wp_send_json_error(array('message' => __('دسترسی غیرمجاز. تنها مدیران فروشگاه امکان بررسی اتصال را دارند.', 'wc-blupal-c2c')));
-            }
-
-            $server_url = isset($_POST['server_url']) ? esc_url_raw(trim($_POST['server_url'])) : $this->server_url;
-            $api_key    = isset($_POST['api_key']) ? sanitize_text_field(trim($_POST['api_key'])) : $this->api_key;
-
-            if (empty($server_url)) {
-                wp_send_json_error(array('message' => __('لطفاً ابتدا آدرس سرور (API Base URL) را در کادر تنظیمات وارد فرمایید.', 'wc-blupal-c2c')));
-            }
-
-            if (empty($api_key)) {
-                wp_send_json_error(array('message' => __('لطفاً ابتدا کلید وب‌سرویس اختصاصی (API Key) را در کادر تنظیمات وارد فرمایید.', 'wc-blupal-c2c')));
-            }
-
-            $test_api = new Blupal_C2C_API($server_url, $api_key);
-            $result   = $test_api->test_connection();
-
-            if (isset($result['success']) && $result['success']) {
-                wp_send_json_success($result);
-            } else {
-                wp_send_json_error($result);
             }
         }
 
@@ -699,6 +653,12 @@ if (!class_exists('WC_Gateway_Blupal_C2C') && class_exists('WC_Payment_Gateway')
                 $order->save();
             }
 
+            // اطمینان از دریافت آدرس معتبر صفحه پرداخت پیش از ریدایرکت مشتری.
+            if (empty($result['payment_url']) || !filter_var($result['payment_url'], FILTER_VALIDATE_URL)) {
+                wc_add_notice(__('آدرس صفحه پرداخت از سرور دریافت نشد. لطفاً مجدداً تلاش فرمایید.', 'wc-blupal-c2c'), 'error');
+                return array('result' => 'failure');
+            }
+
             // Redirect customer to secure payment page
             return array(
                 'result'   => 'success',
@@ -710,19 +670,11 @@ if (!class_exists('WC_Gateway_Blupal_C2C') && class_exists('WC_Payment_Gateway')
          * Check if payment gateway is available at checkout
          */
         public function is_available() {
-            $enabled = $this->get_option('enabled', 'yes');
-            if ($enabled === 'no' || $enabled === '0' || $enabled === false) {
+            if ('yes' !== $this->enabled) {
                 return false;
             }
 
-            return true;
-        }
-
-        /**
-         * Ensure gateway is valid for use regardless of store currency settings
-         */
-        public function is_valid_for_use() {
-            return true;
+            return parent::is_available();
         }
 
         /**
@@ -779,7 +731,7 @@ if (!class_exists('Blupal_C2C_API')) {
                 'method'      => 'POST',
                 'timeout'     => 25,
                 'redirection' => 5,
-                'httpversion' => '1.0',
+                'httpversion' => '1.1',
                 'blocking'    => true,
                 'headers'     => array(
                     'Content-Type' => 'application/json',
@@ -799,7 +751,11 @@ if (!class_exists('Blupal_C2C_API')) {
             $data = json_decode($body, true);
             $code = wp_remote_retrieve_response_code($response);
 
-            if ($code !== 200 || !isset($data['success']) || !$data['success']) {
+            if (!is_array($data)) {
+                return array('success' => false, 'message' => 'پاسخ نامعتبر از سرور پرداخت دریافت شد.');
+            }
+
+            if ($code < 200 || $code >= 300 || !isset($data['success']) || !$data['success']) {
                 $msg = isset($data['message']) ? $data['message'] : 'خطا در ارتباط با سرور صدور فاکتور';
                 return array('success' => false, 'message' => $msg);
             }
@@ -848,7 +804,7 @@ if (!class_exists('Blupal_C2C_API')) {
                 'method'      => 'POST',
                 'timeout'     => 15,
                 'redirection' => 5,
-                'httpversion' => '1.0',
+                'httpversion' => '1.1',
                 'blocking'    => true,
                 'headers'     => array(
                     'Content-Type' => 'application/json',
@@ -860,7 +816,7 @@ if (!class_exists('Blupal_C2C_API')) {
                 'body'        => json_encode(array(
                     'api_key'    => $this->api_key,
                     'site_url'   => $site_url,
-                    'domain'     => preg_replace('/^https?:\/\//i', '', $site_url),
+                    'domain'     => (string) wp_parse_url($site_url, PHP_URL_HOST),
                     'wp_version' => get_bloginfo('version'),
                     'wc_version' => defined('WC_VERSION') ? WC_VERSION : 'unknown',
                 )),
@@ -912,25 +868,27 @@ if (!defined('ABSPATH')) {
 if (!class_exists('Blupal_C2C_Webhook')) {
     class Blupal_C2C_Webhook {
         public static function handle($gateway, $api) {
-            // Read parameters from GET/POST and JSON body
-            $order_id   = isset($_REQUEST['order_id']) ? sanitize_text_field($_REQUEST['order_id']) : '';
-            $invoice_id = isset($_REQUEST['invoice_id']) ? sanitize_text_field($_REQUEST['invoice_id']) : '';
+            $request_method = isset($_SERVER['REQUEST_METHOD']) ? strtoupper((string) $_SERVER['REQUEST_METHOD']) : 'GET';
+
+            // Read parameters from GET/POST and JSON body safely
+            $order_id   = isset($_REQUEST['order_id']) ? sanitize_text_field(wp_unslash($_REQUEST['order_id'])) : '';
+            $invoice_id = isset($_REQUEST['invoice_id']) ? sanitize_text_field(wp_unslash($_REQUEST['invoice_id'])) : '';
 
             $raw_input = file_get_contents('php://input');
             if (!empty($raw_input)) {
                 $json = json_decode($raw_input, true);
                 if (is_array($json)) {
                     if (empty($order_id) && isset($json['order_id'])) {
-                        $order_id = sanitize_text_field($json['order_id']);
+                        $order_id = sanitize_text_field(wp_unslash($json['order_id']));
                     }
                     if (empty($invoice_id) && isset($json['invoice_id'])) {
-                        $invoice_id = sanitize_text_field($json['invoice_id']);
+                        $invoice_id = sanitize_text_field(wp_unslash($json['invoice_id']));
                     }
                 }
             }
 
             if (empty($order_id)) {
-                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                if ('POST' === $request_method) {
                     wp_send_json_error(array('message' => 'شناسه سفارش نامعتبر است.'), 400);
                     exit;
                 }
@@ -939,16 +897,47 @@ if (!class_exists('Blupal_C2C_Webhook')) {
 
             $order = wc_get_order($order_id);
             if (!$order) {
-                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                if ('POST' === $request_method) {
                     wp_send_json_error(array('message' => 'سفارش مورد نظر یافت نشد.'), 404);
                     exit;
                 }
                 wp_die(__('سفارش مورد نظر یافت نشد.', 'wc-blupal-c2c'), __('خطا در پرداخت', 'wc-blupal-c2c'), array('response' => 404));
             }
 
+            // شناسه فاکتور معتبر همیشه از متای همین سفارش خوانده می‌شود، نه از ورودی کاربر.
+            $stored_invoice_id = (string) $order->get_meta('_blupal_c2c_invoice_id');
+
+            if (empty($stored_invoice_id)) {
+                if ('POST' === $request_method) {
+                    wp_send_json_error(array('message' => 'فاکتور پرداختی برای این سفارش ثبت نشده است.'), 400);
+                    exit;
+                }
+                wp_die(
+                    __('فاکتور پرداختی برای این سفارش ثبت نشده است.', 'wc-blupal-c2c'),
+                    __('خطا در پرداخت', 'wc-blupal-c2c'),
+                    array('response' => 400)
+                );
+            }
+
+            // اگر شناسه فاکتور ورودی ارسال شده، باید با فاکتور ثبت‌شده مطابقت داشته باشد.
+            if (!empty($invoice_id) && !hash_equals($stored_invoice_id, (string) $invoice_id)) {
+                if ('POST' === $request_method) {
+                    wp_send_json_error(array('message' => 'شناسه فاکتور نامعتبر است.'), 403);
+                    exit;
+                }
+                wp_die(
+                    __('شناسه فاکتور نامعتبر است.', 'wc-blupal-c2c'),
+                    __('خطا در پرداخت', 'wc-blupal-c2c'),
+                    array('response' => 403)
+                );
+            }
+
+            // از این پس فقط به شناسه فاکتور ذخیره‌شده اعتماد کن.
+            $invoice_id = $stored_invoice_id;
+
             // If already paid, exit gracefully
             if ($order->is_paid()) {
-                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                if ('POST' === $request_method) {
                     wp_send_json_success(array('order_id' => $order_id, 'status' => 'already_paid'));
                     exit;
                 }
@@ -964,7 +953,7 @@ if (!class_exists('Blupal_C2C_Webhook')) {
 
             if (!$data || !isset($data['success']) || !$data['success']) {
                 $order->add_order_note(__('خطا در استعلام وضعیت پرداخت از سرور کارت به کارت: ', 'wc-blupal-c2c') . (isset($data['message']) ? $data['message'] : 'عدم پاسخگویی'));
-                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                if ('POST' === $request_method) {
                     wp_send_json_error(array('message' => 'خطا در ارتباط با سرور تایید'));
                     exit;
                 }
@@ -988,10 +977,10 @@ if (!class_exists('Blupal_C2C_Webhook')) {
                     if (!empty($data['card_last_four'])) {
                         $order->add_order_note(sprintf(__('۴ رقم آخر کارت واریزکننده: %s', 'wc-blupal-c2c'), sanitize_text_field($data['card_last_four'])));
                     }
-                    wc_reduce_stock($order_id);
+                    // موجودی به‌صورت خودکار توسط هوک woocommerce_payment_complete کسر می‌شود.
                 }
 
-                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                if ('POST' === $request_method) {
                     wp_send_json_success(array('order_id' => $order_id, 'status' => 'completed'));
                     exit;
                 }
@@ -1004,7 +993,7 @@ if (!class_exists('Blupal_C2C_Webhook')) {
             } else {
                 $order->update_status('failed', __('پرداخت کارت به کارت تایید نشد یا منقضی گردید.', 'wc-blupal-c2c'));
 
-                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                if ('POST' === $request_method) {
                     wp_send_json_error(array('order_id' => $order_id, 'status' => 'failed'));
                     exit;
                 }
@@ -1260,7 +1249,7 @@ export function generatePotFile(): string {
 msgstr ""
 "Project-Id-Version: Blupal Card to Card Gateway 1.1.0\\n"
 "Report-Msgid-Bugs-To: \\n"
-"POT-Creation-Date: 2026-09-09 22:00+0000\\n"
+"POT-Creation-Date: 2026-09-28 12:00+0000\\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\\n"
 "Last-Translator: \\n"
 "Language-Team: \\n"
@@ -1269,13 +1258,97 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\\n"
 "X-Generator: Poedit 3.0\\n"
 
+msgid "درگاه پرداخت کارت به کارت هوشمند:"
+msgstr ""
+
+msgid "برای استفاده از این درگاه، افزونه ووکامرس (WooCommerce) باید نصب و فعال باشد."
+msgstr ""
+
+msgid "پیکربندی درگاه"
+msgstr ""
+
+msgid "اعتبار نشست کاری به پایان رسیده است. لطفاً صفحه را رفرش فرمایید."
+msgstr ""
+
+msgid "دسترسی غیرمجاز. فقط مدیران فروشگاه امکان بررسی اتصال را دارند."
+msgstr ""
+
+msgid "لطفاً ابتدا آدرس سرور (API Base URL) را در کادر تنظیمات وارد نمایید."
+msgstr ""
+
+msgid "لطفاً ابتدا کلید اختصاصی اتصال (API Key) را در کادر تنظیمات وارد نمایید."
+msgstr ""
+
 msgid "پرداخت کارت به کارت هوشمند"
+msgstr ""
+
+msgid "پرداخت مستقیم به شماره کارت پذیرنده با استعلام خودکار و آنی واریزی از طریق سامانه شتاب."
 msgstr ""
 
 msgid "پرداخت کارت به کارت هوشمند (تایید آنی)"
 msgstr ""
 
+msgid "انتقال وجه کارت به کارت با تایید خودکار و لحظه‌ای از شبکه شتاب."
+msgstr ""
+
+msgid "فعال‌سازی درگاه"
+msgstr ""
+
+msgid "فعال‌سازی پرداخت کارت به کارت هوشمند در برگه تسویه حساب"
+msgstr ""
+
+msgid "عنوان درگاه در برگه تسویه حساب"
+msgstr ""
+
+msgid "عنوانی که خریدار در مرحله پرداخت مشاهده می‌کند."
+msgstr ""
+
+msgid "توضیحات درگاه برای مشتری"
+msgstr ""
+
+msgid "آدرس وب‌سرویس / سرور پرداخت (API Base URL)"
+msgstr ""
+
 msgid "کلید اختصاصی اتصال (API Key)"
+msgstr ""
+
+msgid "سفارش مورد نظر یافت نشد."
+msgstr ""
+
+msgid "کلید درگاه کارت به کارت در تنظیمات ووکامرس پیکربندی نشده است."
+msgstr ""
+
+msgid "خطا در صدور فاکتور پرداخت."
+msgstr ""
+
+msgid "آدرس صفحه پرداخت از سرور دریافت نشد. لطفاً مجدداً تلاش فرمایید."
+msgstr ""
+
+msgid "شناسه سفارش نامعتبر است."
+msgstr ""
+
+msgid "فاکتور پرداختی برای این سفارش ثبت نشده است."
+msgstr ""
+
+msgid "شناسه فاکتور نامعتبر است."
+msgstr ""
+
+msgid "خطا در استعلام وضعیت پرداخت از سرور کارت به کارت: "
+msgstr ""
+
+msgid "خطا در اعتبارسنجی پرداخت. در صورت کسر وجه با پشتیبانی تماس بگیرید."
+msgstr ""
+
+msgid "پرداخت کارت به کارت با موفقیت تایید شد. کد رهگیری شتاب: %s | شناسه فاکتور: %s"
+msgstr ""
+
+msgid "۴ رقم آخر کارت واریزکننده: %s"
+msgstr ""
+
+msgid "پرداخت کارت به کارت تایید نشد یا منقضی گردید."
+msgstr ""
+
+msgid "پرداخت کارت به کارت تایید نشد یا زمان واریز به پایان رسید. لطفاً مجدداً تلاش فرمایید."
 msgstr ""
 `;
 }
@@ -1302,10 +1375,13 @@ blupal-card-to-card-gateway/
 ├── includes/
 │   ├── class-wc-gateway-blupal.php   (کلاس اصلی درگاه ووکامرس)
 │   ├── class-blupal-api.php          (ارتباط با وب‌سرویس صدور فاکتور و استعلام)
-│   └── class-blupal-webhook.php      (پردازش تایید بازگشت و وب‌هوک سفارش)
+│   ├── class-blupal-webhook.php      (پردازش تایید بازگشت و وب‌هوک سفارش)
+│   └── class-blupal-blocks-support.php (پشتیبانی از تسویه حساب بلوکی ووکامرس)
 ├── assets/
 │   ├── css/
 │   │   └── admin.css                 (استایل‌های پیشخوان ووکامرس)
+│   ├── js/
+│   │   └── blocks.js                 (اسکریپت تسویه حساب بلوکی ووکامرس)
 │   └── images/
 │       └── icon.svg                  (آیکون کارت درگاه در برگه تسویه)
 ├── languages/
@@ -1359,7 +1435,7 @@ if (!class_exists('WC_Blupal_Blocks_Support') && class_exists('Automattic\\WooCo
             wp_register_script(
                 'blupal-c2c-blocks-integration',
                 BLUPAL_C2C_URL . 'assets/js/blocks.js',
-                array(),
+                array('wc-blocks-registry', 'wc-settings', 'wp-element', 'wp-i18n'),
                 BLUPAL_C2C_VERSION,
                 true
             );
