@@ -31,8 +31,7 @@ import {
   ExternalLink,
   Settings,
   ArrowLeft,
-  ArrowUpRight,
-  BookOpen
+  ArrowUpRight
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -357,21 +356,6 @@ export default function AdminDashboard() {
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <a 
-                  href="https://blupal.top/documentation" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                >
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 gap-1.5 text-xs font-bold border-indigo-200 text-indigo-600 dark:text-indigo-400 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50"
-                  >
-                    <BookOpen className="w-4 h-4" />
-                    <span>مستندات بلوپال</span>
-                    <ExternalLink className="w-3 h-3 opacity-70" />
-                  </Button>
-                </a>
                 <Button
                   asChild
                   variant="outline"
