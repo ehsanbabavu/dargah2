@@ -20,7 +20,7 @@ import {
   Eye, EyeOff, Save, Sliders, Globe, Share2, Building2, Phone,
   Lock, Unlock, Sparkles, ShoppingBag, Download, Globe2,
   HelpCircle, CheckCircle, Info, Smartphone, Monitor, ArrowRight,
-  Clock, Crown, Ticket, Send
+  Clock, Crown, Ticket, Send, BookOpen
 } from "lucide-react";
 import { Link } from "wouter";
 import { ExpiredSubscriptionCard } from "@/components/expired-subscription-card";
@@ -1109,15 +1109,34 @@ export default function GatewaySettingsPage() {
                   </div>
                 </div>
 
-                <Button
-                  type="button"
-                  onClick={downloadPluginZip}
-                  disabled={isDownloadingPlugin}
-                  className="w-full sm:w-auto h-10 lg:h-11 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold text-xs lg:text-sm gap-2 shrink-0 shadow-md shadow-indigo-500/20 cursor-pointer"
-                >
-                  <Download className={`w-4 h-4 ${isDownloadingPlugin ? "animate-bounce" : ""}`} />
-                  {isDownloadingPlugin ? "در حال آماده‌سازی و دانلود..." : "دانلود خودکار افزونه ووکامرس (ZIP)"}
-                </Button>
+                <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto shrink-0">
+                  <Button
+                    type="button"
+                    onClick={downloadPluginZip}
+                    disabled={isDownloadingPlugin}
+                    className="w-full sm:w-auto h-10 lg:h-11 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold text-xs lg:text-sm gap-2 shrink-0 shadow-md shadow-indigo-500/20 cursor-pointer"
+                  >
+                    <Download className={`w-4 h-4 ${isDownloadingPlugin ? "animate-bounce" : ""}`} />
+                    {isDownloadingPlugin ? "در حال آماده‌سازی و دانلود..." : "دانلود خودکار افزونه ووکامرس (ZIP)"}
+                  </Button>
+
+                  <a
+                    href="https://blupal.top/documentation"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full sm:w-auto"
+                  >
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full sm:w-auto h-10 lg:h-11 px-4 rounded-xl border-indigo-200 text-indigo-600 dark:text-indigo-400 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 font-bold text-xs lg:text-sm gap-2 cursor-pointer"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      مستندات کامل بلوپال
+                      <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+                    </Button>
+                  </a>
+                </div>
               </div>
 
               {/* 2-Column Desktop Grid for Settings & Setup Guide */}

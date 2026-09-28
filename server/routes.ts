@@ -3489,7 +3489,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
 
-          const blupalRes = await fetch("https://blupal.net/api/v1/invoices/create", {
+          const blupalRes = await fetch("https://blupal.top/api/v1/invoices/create", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -4918,7 +4918,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Call Blupal API to test API Key and discover active card
       try {
-        const blupalRes = await fetch("https://blupal.net/api/v1/invoices/create", {
+        const blupalRes = await fetch("https://blupal.top/api/v1/invoices/create", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -5014,7 +5014,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (apiKey) {
         try {
-          const blupalRes = await fetch("https://blupal.net/api/v1/invoices/create", {
+          const blupalRes = await fetch("https://blupal.top/api/v1/invoices/create", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -5205,7 +5205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let finalAmountRials: number = amountInRials + localRandomSurchargeRials;
       let mode: string = "live";
 
-      // Call Official Blupal API: POST https://blupal.net/api/v1/invoices/create
+      // Call Official Blupal API: POST https://blupal.top/api/v1/invoices/create
       try {
         const blupalPayload: any = {
           amount: amountInRials,
@@ -5218,12 +5218,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         console.log("Calling Blupal API create invoice with:", {
-          endpoint: "https://blupal.net/api/v1/invoices/create",
+          endpoint: "https://blupal.top/api/v1/invoices/create",
           amountRials: amountInRials,
           hasKey: !!gateway.apiKey?.trim(),
         });
 
-        const blupalRes = await fetch("https://blupal.net/api/v1/invoices/create", {
+        const blupalRes = await fetch("https://blupal.top/api/v1/invoices/create", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -5312,7 +5312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (apiErr: any) {
         console.error("Network or timeout error contacting Blupal API:", apiErr);
         return res.status(502).json({
-          message: "عدم برقراری ارتباط با سرور بلوپال (blupal.net). لطفاً اتصال اینترنت یا فعال بودن سرویس بلوپال را بررسی کنید.",
+          message: "عدم برقراری ارتباط با سرور بلوپال (blupal.top). لطفاً اتصال اینترنت یا فعال بودن سرویس بلوپال را بررسی کنید.",
           error: apiErr.message,
         });
       }
@@ -5414,7 +5414,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
 
-  // Helper: Live real verification check against Blupal API (GET https://blupal.net/api/v1/invoices/{invoice_id})
+  // Helper: Live real verification check against Blupal API (GET https://blupal.top/api/v1/invoices/{invoice_id})
   async function checkBlupalInvoiceRealStatus(tx: any, gateway: any): Promise<{ 
     isPaid: boolean; 
     trackingCode?: string; 
@@ -5432,7 +5432,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       console.log(`Checking Blupal API status for invoice: ${targetInvoiceId}`);
-      const res = await fetch(`https://blupal.net/api/v1/invoices/${targetInvoiceId}`, {
+      const res = await fetch(`https://blupal.top/api/v1/invoices/${targetInvoiceId}`, {
         method: "GET",
         headers: {
           "Accept": "application/json",
@@ -5900,7 +5900,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (clean.length === 16) testPayload.card_number = clean;
       }
 
-      const probeRes = await fetch("https://blupal.net/api/v1/invoices/create", {
+      const probeRes = await fetch("https://blupal.top/api/v1/invoices/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -5981,7 +5981,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Syncing card from Blupal for user:", req.user!.id);
 
-      const probeRes = await fetch("https://blupal.net/api/v1/invoices/create", {
+      const probeRes = await fetch("https://blupal.top/api/v1/invoices/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

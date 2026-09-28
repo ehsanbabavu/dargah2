@@ -308,7 +308,7 @@ export function registerWooCommerceRoutes(
       // 2. If still no card, check if Blupal API Key is configured to query live card
       if (!destCardNumber && gateway.apiKey?.trim()) {
         try {
-          const blupalRes = await fetch("https://blupal.net/api/v1/invoices/create", {
+          const blupalRes = await fetch("https://blupal.top/api/v1/invoices/create", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -443,7 +443,7 @@ export function registerWooCommerceRoutes(
       let finalAmountRials: number = amountInRials;
       let mode: string = "live";
 
-      // Call Official Blupal API (https://blupal.net/api/v1/invoices/create) to register invoice on Blupal
+      // Call Official Blupal API (https://blupal.top/api/v1/invoices/create) to register invoice on Blupal
       if (gateway.apiKey?.trim()) {
         const blupalPayload: any = {
           amount: amountInRials,
@@ -459,7 +459,7 @@ export function registerWooCommerceRoutes(
             card: destCardNumber ? destCardNumber.slice(0, 6) + "******" : undefined,
           });
 
-          const blupalRes = await fetch("https://blupal.net/api/v1/invoices/create", {
+          const blupalRes = await fetch("https://blupal.top/api/v1/invoices/create", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -539,7 +539,7 @@ export function registerWooCommerceRoutes(
           console.error("Network or timeout error contacting Blupal API:", apiErr);
           return res.status(502).json({
             success: false,
-            message: "عدم برقراری ارتباط با سرور رسمی بلوپال (blupal.net). لطفاً مجدداً تلاش فرمایید.",
+            message: "عدم برقراری ارتباط با سرور رسمی بلوپال (blupal.top). لطفاً مجدداً تلاش فرمایید.",
           });
         }
       }

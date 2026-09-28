@@ -466,7 +466,7 @@ export default function Home() {
                 />
               </a>
               <a
-                href="https://www.blupal.net/"
+                href="https://blupal.top/"
                 target="_blank"
                 rel="noopener noreferrer"
                 title="blupal"
