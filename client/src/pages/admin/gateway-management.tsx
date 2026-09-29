@@ -14,7 +14,7 @@ import { createAuthenticatedRequest } from "@/lib/auth";
 import { 
   ShieldCheck, ShieldAlert, Lock, Unlock, Search, Globe, 
   CreditCard, Key, Copy, Check, Edit, RefreshCw, AlertCircle, 
-  CheckCircle2, User, Phone, Sparkles, ExternalLink, Shield
+  CheckCircle2, User, Phone, Sparkles, ExternalLink, Shield, BookOpen
 } from "lucide-react";
 
 interface GatewayAdminItem {
@@ -208,6 +208,22 @@ export default function AdminGatewayManagementPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <a 
+              href="https://blupal.top/documentation" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs rounded-xl border-indigo-200 text-indigo-600 dark:text-indigo-400 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 font-bold"
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                مستندات بلوپال
+                <ExternalLink className="w-3 h-3 opacity-70" />
+              </Button>
+            </a>
+
             <Button
               variant="outline"
               size="sm"

@@ -351,7 +351,8 @@ if (!class_exists('WC_Gateway_Blupal_C2C') && class_exists('WC_Payment_Gateway')
          * Enqueue admin stylesheets
          */
         public function enqueue_admin_assets() {
-            if (isset($_GET['section']) && $_GET['section'] === $this->id) {
+            $section = isset($_GET['section']) ? sanitize_text_field($_GET['section']) : '';
+            if (strtolower($section) === strtolower($this->id)) {
                 wp_enqueue_style(
                     'blupal-c2c-admin',
                     BLUPAL_C2C_URL . 'assets/css/admin.css',
@@ -412,60 +413,992 @@ if (!class_exists('WC_Gateway_Blupal_C2C') && class_exists('WC_Payment_Gateway')
         }
 
         /**
-         * Render admin options page with Live Test Connection Tool
+         * Render modern admin options page with Gutenberg-standard cards and Live Diagnostic Tool
          */
         public function admin_options() {
             $site_host = isset($_SERVER['HTTP_HOST']) ? sanitize_text_field($_SERVER['HTTP_HOST']) : '';
             $clean_host = preg_replace('/^www\\./i', '', $site_host);
             $test_nonce = wp_create_nonce('blupal_c2c_test_nonce');
+            $is_enabled = ($this->enabled === 'yes');
+            $callback_url = function_exists('WC') ? WC()->api_request_url('WC_Gateway_Blupal_C2C') : site_url('/?wc-api=wc_blupal_c2c');
             ?>
-            <h2><?php echo esc_html($this->method_title); ?></h2>
+            <style>
+            /* Blupal Modern WordPress Admin Styles - Self Contained Zero Dependency */
+            .blupal-admin-wrap {
+                max-width: 980px;
+                margin: 20px 0 40px 0;
+                direction: rtl;
+                text-align: right;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Vazirmatn", "IRANSans", Tahoma, sans-serif;
+                color: #0f172a;
+                box-sizing: border-box;
+            }
+            .blupal-admin-wrap * {
+                box-sizing: border-box;
+            }
+            /* Hide the ugly default empty table if outputted by WC */
+            .woocommerce .form-table,
+            table.form-table {
+                display: none !important;
+            }
+            /* Hero Banner */
+            .blupal-hero-banner {
+                background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 55%, #312e81 100%);
+                color: #ffffff;
+                border-radius: 16px;
+                padding: 24px 28px;
+                margin-bottom: 24px;
+                box-shadow: 0 10px 25px -5px rgba(30, 27, 75, 0.25);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 18px;
+            }
+            .blupal-hero-main {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+            }
+            .blupal-hero-icon {
+                width: 52px;
+                height: 52px;
+                background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+                border-radius: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #ffffff;
+                box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+                flex-shrink: 0;
+            }
+            .blupal-hero-title {
+                font-size: 19px;
+                font-weight: 800;
+                margin: 0 0 4px 0;
+                color: #ffffff;
+                letter-spacing: -0.02em;
+            }
+            .blupal-hero-subtitle {
+                font-size: 12px;
+                color: #cbd5e1;
+                margin: 0;
+                line-height: 1.5;
+            }
+            .blupal-hero-badges {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+            .blupal-status-pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 6px 14px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 700;
+                transition: all 0.2s ease;
+            }
+            .blupal-status-pill.is-active {
+                background: rgba(16, 185, 129, 0.15);
+                color: #34d399;
+                border: 1px solid rgba(52, 211, 153, 0.3);
+            }
+            .blupal-status-pill.is-inactive {
+                background: rgba(148, 163, 184, 0.15);
+                color: #94a3b8;
+                border: 1px solid rgba(148, 163, 184, 0.3);
+            }
+            .blupal-status-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: currentColor;
+                box-shadow: 0 0 8px currentColor;
+            }
+            .blupal-version-badge {
+                background: rgba(255, 255, 255, 0.1);
+                color: #e2e8f0;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                padding: 5px 12px;
+                border-radius: 20px;
+                font-size: 11px;
+                font-weight: 600;
+            }
+            /* Cards */
+            .blupal-card {
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 14px;
+                padding: 22px 26px;
+                margin-bottom: 20px;
+                box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+                transition: border-color 0.2s, box-shadow 0.2s;
+            }
+            .blupal-card:hover {
+                border-color: #cbd5e1;
+            }
+            .blupal-card-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding-bottom: 16px;
+                margin-bottom: 20px;
+                border-bottom: 1px solid #f1f5f9;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .blupal-card-title {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .blupal-card-title h3 {
+                font-size: 15px;
+                font-weight: 800;
+                color: #0f172a;
+                margin: 0;
+            }
+            .blupal-card-icon {
+                font-size: 20px;
+                line-height: 1;
+            }
+            .blupal-card-desc {
+                font-size: 12px;
+                color: #64748b;
+                margin: 0;
+            }
+            .blupal-badge-soft {
+                background: #f1f5f9;
+                color: #475569;
+                font-size: 11px;
+                font-weight: 600;
+                padding: 3px 10px;
+                border-radius: 6px;
+            }
+            /* Form controls */
+            .blupal-form-group {
+                margin-bottom: 20px;
+            }
+            .blupal-form-group:last-child {
+                margin-bottom: 0;
+            }
+            .blupal-label {
+                display: block;
+                font-size: 13px;
+                font-weight: 700;
+                color: #1e293b;
+                margin-bottom: 8px;
+            }
+            .blupal-label .required-star {
+                color: #ef4444;
+            }
+            .blupal-input-wrap {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .blupal-input {
+                width: 100%;
+                height: 44px;
+                padding: 8px 14px;
+                font-size: 13px;
+                color: #0f172a;
+                background: #ffffff;
+                border: 1.5px solid #cbd5e1;
+                border-radius: 10px;
+                outline: none;
+                transition: border-color 0.2s, box-shadow 0.2s;
+            }
+            .blupal-input:focus,
+            .blupal-textarea:focus {
+                border-color: #4f46e5 !important;
+                box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15) !important;
+                outline: none !important;
+            }
+            .blupal-input-ltr {
+                direction: ltr;
+                text-align: left;
+                font-family: monospace, -apple-system, BlinkMacSystemFont, sans-serif;
+            }
+            .blupal-textarea {
+                width: 100%;
+                min-height: 84px;
+                padding: 10px 14px;
+                font-size: 13px;
+                color: #0f172a;
+                background: #ffffff;
+                border: 1.5px solid #cbd5e1;
+                border-radius: 10px;
+                line-height: 1.6;
+                transition: border-color 0.2s, box-shadow 0.2s;
+                resize: vertical;
+            }
+            .blupal-btn-action {
+                height: 44px;
+                padding: 0 14px;
+                background: #f8fafc;
+                border: 1.5px solid #cbd5e1;
+                border-radius: 10px;
+                color: #475569;
+                font-size: 12px;
+                font-weight: 600;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                cursor: pointer;
+                white-space: nowrap;
+                flex-shrink: 0;
+                transition: all 0.15s ease;
+            }
+            .blupal-btn-action:hover {
+                background: #f1f5f9;
+                border-color: #94a3b8;
+                color: #0f172a;
+            }
+            .blupal-btn-action.is-copied {
+                background: #ecfdf5 !important;
+                border-color: #10b981 !important;
+                color: #047857 !important;
+            }
+            .blupal-field-hint {
+                font-size: 11px;
+                color: #64748b;
+                margin-top: 6px;
+                line-height: 1.6;
+            }
+            .blupal-inline-action {
+                color: #4f46e5;
+                text-decoration: underline;
+                cursor: pointer;
+                margin-right: 6px;
+                font-weight: 600;
+            }
+            .blupal-inline-action:hover {
+                color: #3730a3;
+            }
+            /* Modern Toggle Switch */
+            .blupal-toggle-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 16px;
+            }
+            .blupal-toggle-info {
+                flex: 1;
+            }
+            .blupal-toggle-title {
+                font-size: 15px;
+                font-weight: 700;
+                color: #0f172a;
+                margin: 0 0 4px 0;
+            }
+            .blupal-toggle-desc {
+                font-size: 12px;
+                color: #64748b;
+                margin: 0;
+                line-height: 1.6;
+            }
+            .blupal-switch {
+                position: relative;
+                display: inline-block;
+                width: 52px;
+                height: 28px;
+                flex-shrink: 0;
+            }
+            .blupal-switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+                position: absolute;
+            }
+            .blupal-slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: #cbd5e1;
+                transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+                border-radius: 34px;
+            }
+            .blupal-slider:before {
+                position: absolute;
+                content: "";
+                height: 22px;
+                width: 22px;
+                left: 3px;
+                bottom: 3px;
+                background-color: white;
+                transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+                border-radius: 50%;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            }
+            .blupal-switch input:checked + .blupal-slider {
+                background-color: #10b981;
+            }
+            .blupal-switch input:checked + .blupal-slider:before {
+                transform: translateX(24px);
+            }
+            /* Domain notice box */
+            .blupal-notice-box {
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 14px 18px;
+                margin-top: 14px;
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            .blupal-notice-icon {
+                font-size: 18px;
+                line-height: 1;
+                margin-top: 2px;
+            }
+            .blupal-notice-content {
+                font-size: 12px;
+                color: #334155;
+                line-height: 1.7;
+            }
+            .blupal-notice-content strong {
+                color: #0f172a;
+            }
+            .blupal-notice-content code {
+                background: #e2e8f0;
+                color: #1e1b4b;
+                padding: 2px 7px;
+                border-radius: 5px;
+                font-size: 11px;
+                font-weight: 700;
+            }
+            /* Live Diagnostic Card */
+            .blupal-test-container {
+                background: #faf5ff;
+                border: 1px solid #e9d5ff;
+                border-radius: 14px;
+                padding: 20px 24px;
+                margin-bottom: 20px;
+            }
+            .blupal-test-header-wrap {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 14px;
+            }
+            .blupal-test-intro {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+            .blupal-test-intro-icon {
+                width: 40px;
+                height: 40px;
+                background: #f3e8ff;
+                color: #9333ea;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 20px;
+                flex-shrink: 0;
+            }
+            .blupal-test-intro-text strong {
+                display: block;
+                font-size: 14px;
+                color: #581c87;
+                margin-bottom: 2px;
+            }
+            .blupal-test-intro-text p {
+                margin: 0;
+                font-size: 11px;
+                color: #7e22ce;
+            }
+            .blupal-btn-test {
+                background: #7c3aed !important;
+                border: 1px solid #6d28d9 !important;
+                color: #ffffff !important;
+                font-weight: 700 !important;
+                font-size: 12px !important;
+                padding: 10px 20px !important;
+                height: auto !important;
+                border-radius: 10px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 8px !important;
+                box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25) !important;
+                cursor: pointer !important;
+                transition: all 0.15s ease !important;
+            }
+            .blupal-btn-test:hover {
+                background: #6d28d9 !important;
+                transform: translateY(-1px);
+            }
+            .blupal-spinner {
+                display: inline-block;
+                width: 14px;
+                height: 14px;
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                border-top-color: #ffffff;
+                border-radius: 50%;
+                animation: blupal-spin 0.8s linear infinite;
+            }
+            @keyframes blupal-spin {
+                to { transform: rotate(360deg); }
+            }
+            .blupal-test-result {
+                margin-top: 18px;
+                padding-top: 18px;
+                border-top: 1px dashed #d8b4fe;
+            }
+            .blupal-alert {
+                border-radius: 10px;
+                padding: 14px 18px;
+                font-size: 12px;
+                line-height: 1.7;
+            }
+            .blupal-alert-success {
+                background: #f0fdf4;
+                border: 1px solid #bbf7d0;
+                color: #166534;
+            }
+            .blupal-alert-error {
+                background: #fef2f2;
+                border: 1px solid #fecaca;
+                color: #991b1b;
+            }
+            .blupal-alert-head {
+                font-size: 13px;
+                margin-bottom: 6px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .blupal-latency {
+                font-size: 11px;
+                font-weight: 700;
+                background: #dcfce7;
+                color: #15803d;
+                padding: 2px 8px;
+                border-radius: 6px;
+                border: 1px solid #86efac;
+            }
+            .blupal-details-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 8px;
+                background: #ffffff;
+                border: 1px solid #bbf7d0;
+                border-radius: 8px;
+                padding: 12px;
+                margin-top: 10px;
+            }
+            .blupal-grid-item {
+                font-size: 11px;
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+            }
+            .blupal-grid-item span {
+                color: #64748b;
+                font-size: 10px;
+            }
+            .blupal-troubleshoot-hint {
+                background: #ffffff;
+                padding: 8px 12px;
+                border-radius: 6px;
+                border: 1px solid #fecaca;
+                font-size: 11px;
+                color: #7f1d1d;
+                margin-top: 8px;
+            }
+            /* Checkout Preview Card */
+            .blupal-preview-wrap {
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 16px;
+                margin-top: 14px;
+            }
+            .blupal-preview-header {
+                font-size: 11px;
+                font-weight: 700;
+                color: #64748b;
+                margin-bottom: 10px;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .blupal-checkout-mock {
+                background: #ffffff;
+                border: 2px solid #4f46e5;
+                border-radius: 10px;
+                padding: 14px 16px;
+                box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
+                transition: opacity 0.2s;
+            }
+            .blupal-checkout-mock.is-disabled {
+                opacity: 0.45;
+                border-color: #cbd5e1;
+            }
+            .blupal-mock-radio-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+            }
+            .blupal-mock-radio-left {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .blupal-mock-radio {
+                width: 18px;
+                height: 18px;
+                border-radius: 50%;
+                border: 5px solid #4f46e5;
+                background: #ffffff;
+                flex-shrink: 0;
+            }
+            .blupal-mock-title {
+                font-size: 13px;
+                font-weight: 700;
+                color: #0f172a;
+            }
+            .blupal-mock-icon {
+                height: 24px;
+                width: auto;
+            }
+            .blupal-mock-desc-box {
+                background: #f8fafc;
+                border-top: 1px solid #f1f5f9;
+                margin-top: 10px;
+                padding-top: 10px;
+                font-size: 12px;
+                color: #475569;
+                line-height: 1.6;
+            }
+            /* Specs Grid */
+            .blupal-specs-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 14px;
+                margin-top: 14px;
+            }
+            .blupal-spec-card {
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 12px 14px;
+            }
+            .blupal-spec-card strong {
+                display: block;
+                font-size: 12px;
+                color: #1e293b;
+                margin-bottom: 4px;
+            }
+            .blupal-spec-card p {
+                font-size: 11px;
+                color: #64748b;
+                margin: 0;
+                line-height: 1.5;
+            }
+            /* Save Bar styling override */
+            p.submit {
+                margin: 24px 0 0 0 !important;
+                padding: 0 !important;
+            }
+            p.submit .button-primary,
+            p.submit .woocommerce-save-button {
+                background: #4f46e5 !important;
+                border: 1px solid #4338ca !important;
+                color: #ffffff !important;
+                font-size: 14px !important;
+                font-weight: 700 !important;
+                padding: 12px 32px !important;
+                height: auto !important;
+                border-radius: 10px !important;
+                box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3) !important;
+                cursor: pointer !important;
+                transition: all 0.15s ease !important;
+            }
+            p.submit .button-primary:hover,
+            p.submit .woocommerce-save-button:hover {
+                background: #4338ca !important;
+                transform: translateY(-1px);
+            }
+            /* Mobile Responsiveness */
+            @media (max-width: 782px) {
+                .blupal-admin-wrap {
+                    margin: 10px 0 30px 0;
+                }
+                .blupal-hero-banner {
+                    padding: 18px 18px;
+                    border-radius: 12px;
+                }
+                .blupal-hero-title {
+                    font-size: 16px;
+                }
+                .blupal-card {
+                    padding: 18px 16px;
+                    border-radius: 12px;
+                }
+                .blupal-toggle-row {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 12px;
+                }
+                .blupal-switch {
+                    align-self: flex-end;
+                }
+                .blupal-input-wrap {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+                .blupal-btn-action {
+                    width: 100%;
+                }
+                .blupal-test-header-wrap {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+                .blupal-btn-test {
+                    width: 100%;
+                    justify-content: center;
+                }
+                p.submit .button-primary,
+                p.submit .woocommerce-save-button {
+                    width: 100% !important;
+                    text-align: center !important;
+                }
+            }
+            </style>
 
-            <!-- Live Test Connection Box -->
-            <div class="blupal-c2c-test-box">
-                <div class="blupal-test-header">
-                    <div class="blupal-test-title">
-                        <span class="blupal-test-icon">⚡</span>
+            <div class="blupal-admin-wrap">
+                <!-- HERO HEADER -->
+                <div class="blupal-hero-banner">
+                    <div class="blupal-hero-main">
+                        <div class="blupal-hero-icon">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="20" height="14" x="2" y="5" rx="2"></rect>
+                                <line x1="2" x2="22" y1="10" y2="10"></line>
+                                <path d="M7 15h.01"></path>
+                                <path d="M11 15h2"></path>
+                            </svg>
+                        </div>
                         <div>
-                            <strong>ابزار تست زنده اتصال و عیب‌یابی وب‌سرویس</strong>
-                            <p>با کلیک روی دکمه زیر، ارتباط زنده با سرور و صحت کلید API سایت شما بررسی و نتیجه آنی گزارش می‌شود.</p>
+                            <h1 class="blupal-hero-title">درگاه پرداخت کارت به کارت هوشمند (بلوپال)</h1>
+                            <p class="blupal-hero-subtitle">سامانه تایید واریزهای شتاب با اتصال مستقیم به وب‌سرویس و استعلام آنی</p>
                         </div>
                     </div>
-                    <button type="button" id="blupal-btn-test-connection" class="button button-primary blupal-btn-test">
-                        <span class="blupal-btn-text">بررسی و تست اتصال به سرور</span>
-                        <span class="blupal-spinner" style="display: none;"></span>
-                    </button>
+                    <div class="blupal-hero-badges">
+                        <span id="blupal-live-status-pill" class="blupal-status-pill <?php echo $is_enabled ? 'is-active' : 'is-inactive'; ?>">
+                            <span class="blupal-status-dot"></span>
+                            <span id="blupal-status-text"><?php echo $is_enabled ? 'درگاه در فروشگاه فعال است' : 'درگاه غیرفعال است'; ?></span>
+                        </span>
+                        <span class="blupal-version-badge">نسخه <?php echo esc_html(BLUPAL_C2C_VERSION); ?></span>
+                    </div>
                 </div>
 
-                <div id="blupal-test-result" class="blupal-test-result" style="display: none;"></div>
+                <!-- CARD 1: ACTIVATION TOGGLE -->
+                <div class="blupal-card">
+                    <div class="blupal-toggle-row">
+                        <div class="blupal-toggle-info">
+                            <h3 class="blupal-toggle-title">فعال‌سازی درگاه در برگه تسویه حساب</h3>
+                            <p class="blupal-toggle-desc">با فعال‌سازی این گزینه، روش پرداخت کارت به کارت هوشمند در برگه تسویه حساب به خریداران فروشگاه نمایش داده خواهد شد.</p>
+                        </div>
+                        <label class="blupal-switch" for="woocommerce_blupal_c2c_enabled">
+                            <input type="checkbox" name="woocommerce_blupal_c2c_enabled" id="woocommerce_blupal_c2c_enabled" value="yes" <?php checked($this->enabled, 'yes'); ?> />
+                            <span class="blupal-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- CARD 2: API & CREDENTIALS -->
+                <div class="blupal-card">
+                    <div class="blupal-card-header">
+                        <div class="blupal-card-title">
+                            <span class="blupal-card-icon">🔑</span>
+                            <div>
+                                <h3>مشخصات وب‌سرویس و کلید دسترسی</h3>
+                                <p class="blupal-card-desc">اطلاعات اتصال را از پنل کاربری خود در سامانه بلوپال کپی کرده و وارد نمایید.</p>
+                            </div>
+                        </div>
+                        <span class="blupal-badge-soft">تنظیمات وب‌سرویس</span>
+                    </div>
+
+                    <!-- Server URL -->
+                    <div class="blupal-form-group">
+                        <label class="blupal-label" for="woocommerce_blupal_c2c_server_url">
+                            <span>آدرس وب‌سرویس / سرور پرداخت (API Base URL) <span class="required-star">*</span></span>
+                        </label>
+                        <div class="blupal-input-wrap">
+                            <input 
+                                type="text" 
+                                name="woocommerce_blupal_c2c_server_url" 
+                                id="woocommerce_blupal_c2c_server_url" 
+                                value="<?php echo esc_attr($this->server_url); ?>" 
+                                class="blupal-input blupal-input-ltr" 
+                                placeholder="https://pay.yourdomain.ir" 
+                                dir="ltr" 
+                            />
+                            <button type="button" class="blupal-btn-action" onclick="blupalCopyInput('woocommerce_blupal_c2c_server_url', this)">
+                                <span>📋 کپی</span>
+                            </button>
+                        </div>
+                        <div class="blupal-field-hint">
+                            آدرس دامنه سامانه بدون اسلش پایانی. 
+                            <span class="blupal-inline-action" onclick="document.getElementById('woocommerce_blupal_c2c_server_url').value='${safeBaseUrl}';">تنظیم خودکار آدرس (${safeBaseUrl})</span>
+                        </div>
+                    </div>
+
+                    <!-- API Key -->
+                    <div class="blupal-form-group">
+                        <label class="blupal-label" for="woocommerce_blupal_c2c_api_key">
+                            <span>کلید اختصاصی اتصال (API Key) <span class="required-star">*</span></span>
+                        </label>
+                        <div class="blupal-input-wrap">
+                            <input 
+                                type="password" 
+                                name="woocommerce_blupal_c2c_api_key" 
+                                id="woocommerce_blupal_c2c_api_key" 
+                                value="<?php echo esc_attr($this->api_key); ?>" 
+                                class="blupal-input blupal-input-ltr" 
+                                placeholder="کلید اختصاصی را اینجا وارد کنید..." 
+                                dir="ltr" 
+                            />
+                            <button type="button" class="blupal-btn-action" id="blupal-toggle-api-eye" onclick="blupalToggleSecret('woocommerce_blupal_c2c_api_key', this)">
+                                <span>👁️ نمایش</span>
+                            </button>
+                            <button type="button" class="blupal-btn-action" onclick="blupalCopyInput('woocommerce_blupal_c2c_api_key', this)">
+                                <span>📋 کپی</span>
+                            </button>
+                        </div>
+                        <div class="blupal-field-hint">
+                            کلید دسترسی صادره در پنل درگاه شما جهت احراز هویت درخواست‌ها و تایید سفارشات.
+                        </div>
+                    </div>
+
+                    <!-- Domain Match Notice -->
+                    <div class="blupal-notice-box">
+                        <div class="blupal-notice-icon">🛡️</div>
+                        <div class="blupal-notice-content">
+                            <strong>دامنه مجاز سایت شما: <code dir="ltr"><?php echo esc_html($clean_host); ?></code></strong>
+                            <p style="margin: 2px 0 0 0;">جهت تایید خودکار واریزی‌ها، مطمئن شوید این دامنه دقیقاً در تنظیمات درگاه شما در سامانه پرداخت بلوپال به عنوان دامنه مجاز ثبت شده باشد.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CARD 3: LIVE DIAGNOSTIC TOOL -->
+                <div class="blupal-test-container">
+                    <div class="blupal-test-header-wrap">
+                        <div class="blupal-test-intro">
+                            <div class="blupal-test-intro-icon">⚡</div>
+                            <div class="blupal-test-intro-text">
+                                <strong>ابزار تست زنده و عیب‌یابی وب‌سرویس</strong>
+                                <p>بررسی در لحظه ارتباط وردپرس با سرور پرداخت، اعتبار سنجی کلید و اندازه‌گیری پینگ شبکه</p>
+                            </div>
+                        </div>
+                        <button type="button" id="blupal-btn-test-connection" class="blupal-btn-test">
+                            <span class="blupal-btn-text">بررسی و تست زنده اتصال</span>
+                            <span class="blupal-spinner" style="display: none;"></span>
+                        </button>
+                    </div>
+
+                    <div id="blupal-test-result" class="blupal-test-result" style="display: none;"></div>
+                </div>
+
+                <!-- CARD 4: CHECKOUT PRESENTATION & LIVE PREVIEW -->
+                <div class="blupal-card">
+                    <div class="blupal-card-header">
+                        <div class="blupal-card-title">
+                            <span class="blupal-card-icon">🛍️</span>
+                            <div>
+                                <h3>تنظیمات نمایش در برگه تسویه حساب</h3>
+                                <p class="blupal-card-desc">متن و توضیحات قابل مشاهده توسط خریدار در مرحله نهایی ثبت سفارش</p>
+                            </div>
+                        </div>
+                        <span class="blupal-badge-soft">پیش‌نمایش زنده</span>
+                    </div>
+
+                    <div class="blupal-form-group">
+                        <label class="blupal-label" for="woocommerce_blupal_c2c_title">
+                            <span>عنوان درگاه در برگه تسویه حساب <span class="required-star">*</span></span>
+                        </label>
+                        <input 
+                            type="text" 
+                            name="woocommerce_blupal_c2c_title" 
+                            id="woocommerce_blupal_c2c_title" 
+                            value="<?php echo esc_attr($this->title); ?>" 
+                            class="blupal-input" 
+                            placeholder="پرداخت کارت به کارت هوشمند (تایید آنی)" 
+                        />
+                        <div class="blupal-field-hint">نامی که خریدار در لیست درگاه‌های تسویه حساب انتخاب می‌کند.</div>
+                    </div>
+
+                    <div class="blupal-form-group">
+                        <label class="blupal-label" for="woocommerce_blupal_c2c_description">
+                            <span>توضیحات درگاه برای خریدار</span>
+                        </label>
+                        <textarea 
+                            name="woocommerce_blupal_c2c_description" 
+                            id="woocommerce_blupal_c2c_description" 
+                            class="blupal-textarea" 
+                            rows="3" 
+                            placeholder="انتقال وجه کارت به کارت با تایید خودکار و لحظه‌ای از شبکه شتاب."
+                        ><?php echo esc_textarea($this->description); ?></textarea>
+                        <div class="blupal-field-hint">این راهنما پس از کلیک و انتخاب روش پرداخت توسط خریدار نمایان می‌شود.</div>
+                    </div>
+
+                    <!-- Interactive Checkout Mockup Preview -->
+                    <div class="blupal-preview-wrap">
+                        <div class="blupal-preview-header">
+                            <span>👁️ پیش‌نمایش در صفحه تسویه حساب ووکامرس:</span>
+                        </div>
+                        <div id="blupal-preview-card" class="blupal-checkout-mock <?php echo $is_enabled ? '' : 'is-disabled'; ?>">
+                            <div class="blupal-mock-radio-row">
+                                <div class="blupal-mock-radio-left">
+                                    <div class="blupal-mock-radio"></div>
+                                    <span id="blupal-preview-title" class="blupal-mock-title"><?php echo esc_html($this->title); ?></span>
+                                </div>
+                                <img src="<?php echo esc_url($this->icon); ?>" alt="icon" class="blupal-mock-icon" onerror="this.style.display='none'" />
+                            </div>
+                            <div id="blupal-preview-desc" class="blupal-mock-desc-box">
+                                <?php echo esc_html($this->description); ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CARD 5: WEBHOOK & SPECS -->
+                <div class="blupal-card">
+                    <div class="blupal-card-header">
+                        <div class="blupal-card-title">
+                            <span class="blupal-card-icon">⚙️</span>
+                            <div>
+                                <h3>اطلاعات وب‌هوک و امنیت پرداخت</h3>
+                                <p class="blupal-card-desc">مشخصات فنی بازگشت خودکار و تایید تراکنش‌ها</p>
+                            </div>
+                        </div>
+                        <span class="blupal-badge-soft">سیستم خودکار</span>
+                    </div>
+
+                    <div class="blupal-form-group">
+                        <label class="blupal-label">
+                            <span>آدرس وب‌هوک اختصاصی بازگشت (Callback / Webhook URL)</span>
+                        </label>
+                        <div class="blupal-input-wrap">
+                            <input 
+                                type="text" 
+                                readonly 
+                                value="<?php echo esc_attr($callback_url); ?>" 
+                                id="blupal_callback_url_field"
+                                class="blupal-input blupal-input-ltr" 
+                                dir="ltr" 
+                                style="background: #f8fafc; color: #475569;"
+                            />
+                            <button type="button" class="blupal-btn-action" onclick="blupalCopyInput('blupal_callback_url_field', this)">
+                                <span>📋 کپی آدرس وب‌هوک</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="blupal-specs-grid">
+                        <div class="blupal-spec-card">
+                            <strong>⚡ تایید بدون نیاز به دخالت</strong>
+                            <p>به محض انتقال وجه شتاب، وب‌هوک بلافاصله وضعیت سفارش را تکمیل (Completed) می‌نماید.</p>
+                        </div>
+                        <div class="blupal-spec-card">
+                            <strong>🛡️ امنیت بدون ذخیره کارت</strong>
+                            <p>اطلاعات شماره کارت و نام پذیرنده از سرور امن خوانده شده و در دیتابیس وردپرس ذخیره نمی‌شود.</p>
+                        </div>
+                        <div class="blupal-spec-card">
+                            <strong>📦 سازگار با HPOS</strong>
+                            <p>افزونه به طور کامل با معماری پرسرعت Custom Order Tables ووکامرس سازگاری دارد.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-
-            <div class="blupal-c2c-banner">
-                <div class="blupal-c2c-banner-header">
-                    <span class="blupal-badge">نسخه <?php echo esc_html(BLUPAL_C2C_VERSION); ?></span>
-                    <h3>🛡️ راهنمای اتصال و امنیت دامنه</h3>
-                </div>
-                <div class="blupal-c2c-banner-body">
-                    <p>۱. کلید API اختصاصی خود را از پنل کاربری کپی کرده و در فیلد زیر قرار دهید.</p>
-                    <p>۲. دامنه مجاز در پنل کاربری شما باید برابر با <code dir="ltr"><?php echo esc_html($clean_host); ?></code> تنظیم شده باشد.</p>
-                    <p class="blupal-c2c-ok">✓ نیازی به وارد کردن شماره کارت در سایت نیست؛ اطلاعات کارت و تایید واریز به صورت خودکار از سرور دریافت می‌شود.</p>
-                </div>
-            </div>
-
-            <table class="form-table">
-                <?php $this->generate_settings_html(); ?>
-            </table>
 
             <script type="text/javascript">
+            // Global copy utility
+            function blupalCopyInput(inputId, btn) {
+                var input = document.getElementById(inputId);
+                if (!input) return;
+                var text = input.value;
+                if (!navigator.clipboard) {
+                    input.select();
+                    document.execCommand('copy');
+                } else {
+                    navigator.clipboard.writeText(text);
+                }
+                var $btn = jQuery(btn);
+                var origHtml = $btn.html();
+                $btn.addClass('is-copied').html('<span>✓ کپی شد!</span>');
+                setTimeout(function() {
+                    $btn.removeClass('is-copied').html(origHtml);
+                }, 2000);
+            }
+
+            // Secret toggle utility
+            function blupalToggleSecret(inputId, btn) {
+                var input = document.getElementById(inputId);
+                if (!input) return;
+                var $btn = jQuery(btn);
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    $btn.html('<span>🔒 مخفی</span>');
+                } else {
+                    input.type = 'password';
+                    $btn.html('<span>👁️ نمایش</span>');
+                }
+            }
+
             (function($) {
                 $(document).ready(function() {
+                    // Live Sync: Enabled Switch -> Status Pill & Preview
+                    $('#woocommerce_blupal_c2c_enabled').on('change', function() {
+                        var isChecked = $(this).is(':checked');
+                        var $pill = $('#blupal-live-status-pill');
+                        var $text = $('#blupal-status-text');
+                        var $preview = $('#blupal-preview-card');
+                        if (isChecked) {
+                            $pill.removeClass('is-inactive').addClass('is-active');
+                            $text.text('درگاه در فروشگاه فعال است');
+                            $preview.removeClass('is-disabled');
+                        } else {
+                            $pill.removeClass('is-active').addClass('is-inactive');
+                            $text.text('درگاه غیرفعال است');
+                            $preview.addClass('is-disabled');
+                        }
+                    });
+
+                    // Live Sync: Title & Description
+                    $('#woocommerce_blupal_c2c_title').on('input', function() {
+                        var val = $(this).val() || 'پرداخت کارت به کارت هوشمند (تایید آنی)';
+                        $('#blupal-preview-title').text(val);
+                    });
+
+                    $('#woocommerce_blupal_c2c_description').on('input', function() {
+                        var val = $(this).val() || 'انتقال وجه کارت به کارت با تایید خودکار و لحظه‌ای از شبکه شتاب.';
+                        $('#blupal-preview-desc').text(val);
+                    });
+
+                    // Live Test Connection Tool
                     function renderSuccessResult(data, $resultBox) {
                         var details = data.details || {};
                         var latency = data.latency_ms ? data.latency_ms + ' میلی‌ثانیه' : 'آنی';
 
                         var html = '<div class="blupal-alert blupal-alert-success">';
-                        html += '<div class="blupal-alert-head">✅ <strong>اتصال به سرور کاملاً برقرار و تایید شد!</strong> <span class="blupal-latency">پینگ سرور: ' + latency + '</span></div>';
-                        html += '<p class="blupal-alert-msg">' + (data.message || 'ارتباط با سرور پرداخت با موفقیت برقرار شد.') + '</p>';
+                        html += '<div class="blupal-alert-head"><span>✅ <strong>اتصال به سرور کاملاً برقرار و تایید شد!</strong></span> <span class="blupal-latency">پینگ سرور: ' + latency + '</span></div>';
+                        html += '<p style="margin: 0 0 10px 0;">' + (data.message || 'ارتباط با سرور پرداخت با موفقیت برقرار شد.') + '</p>';
 
                         html += '<div class="blupal-details-grid">';
                         if (details.gateway_title) {
@@ -491,8 +1424,8 @@ if (!class_exists('WC_Gateway_Blupal_C2C') && class_exists('WC_Payment_Gateway')
                         var latency = (err && err.latency_ms) ? ' (زمان پاسخ: ' + err.latency_ms + 'ms)' : '';
 
                         var html = '<div class="blupal-alert blupal-alert-error">';
-                        html += '<div class="blupal-alert-head">❌ <strong>خطا در بررسی ارتباط:</strong> ' + latency + '</div>';
-                        html += '<p class="blupal-alert-msg">' + errMsg + '</p>';
+                        html += '<div class="blupal-alert-head"><span>❌ <strong>خطا در بررسی ارتباط:</strong> ' + latency + '</span></div>';
+                        html += '<p style="margin: 0 0 6px 0;">' + errMsg + '</p>';
                         if (note) {
                             html += '<div class="blupal-troubleshoot-hint">💡 ' + note + '</div>';
                         } else {
@@ -515,7 +1448,7 @@ if (!class_exists('WC_Gateway_Blupal_C2C') && class_exists('WC_Payment_Gateway')
                         var ajaxUrl = (typeof ajaxurl !== 'undefined') ? ajaxurl : '<?php echo esc_js(admin_url('admin-ajax.php')); ?>';
 
                         if (!serverUrl) {
-                            renderErrorResult({ message: 'لطفاً ابتدا آدرس سرور (API Base URL) را در کادر تنظیمات زیر وارد نمایید.' }, $resultBox);
+                            renderErrorResult({ message: 'لطفاً ابتدا آدرس سرور (API Base URL) را در کادر تنظیمات بالا وارد نمایید.' }, $resultBox);
                             return;
                         }
 
@@ -524,7 +1457,7 @@ if (!class_exists('WC_Gateway_Blupal_C2C') && class_exists('WC_Payment_Gateway')
                         $btnText.text('در حال برقراری ارتباط با سرور...');
                         $resultBox.slideUp(150);
 
-                        // 1. First attempt: Standard WordPress backend AJAX
+                        // 1. Standard WordPress backend AJAX
                         $.ajax({
                             url: ajaxUrl,
                             type: 'POST',
@@ -548,7 +1481,7 @@ if (!class_exists('WC_Gateway_Blupal_C2C') && class_exists('WC_Payment_Gateway')
                                 }
                             },
                             error: function(xhr, status, error) {
-                                // 2. Fallback: Direct browser fetch to server test endpoint if WP AJAX had issue
+                                // 2. Fallback: Direct browser fetch to server test endpoint
                                 var directEndpoint = serverUrl + '/api/v1/woocommerce/test-connection';
                                 var startTime = Date.now();
 
@@ -1012,70 +1945,415 @@ if (!class_exists('Blupal_C2C_Webhook')) {
  * 5. Admin CSS File: assets/css/admin.css
  */
 export function generateAdminCss(): string {
-  return `/* Blupal C2C Admin Styles */
-.blupal-c2c-test-box {
-    background: #ffffff;
-    border: 1px solid #e0e7ff;
-    border-radius: 12px;
-    padding: 18px 22px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.05);
+  return `/* Blupal Modern WordPress Admin Styles - Self Contained Zero Dependency */
+.blupal-admin-wrap {
+    max-width: 980px;
+    margin: 20px 0 40px 0;
+    direction: rtl;
+    text-align: right;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Vazirmatn", "IRANSans", Tahoma, sans-serif;
+    color: #0f172a;
+    box-sizing: border-box;
 }
-
-.blupal-test-header {
+.blupal-admin-wrap * {
+    box-sizing: border-box;
+}
+.woocommerce .form-table,
+table.form-table {
+    display: none !important;
+}
+.blupal-hero-banner {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 55%, #312e81 100%);
+    color: #ffffff;
+    border-radius: 16px;
+    padding: 24px 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 25px -5px rgba(30, 27, 75, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 18px;
+}
+.blupal-hero-main {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.blupal-hero-icon {
+    width: 52px;
+    height: 52px;
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    flex-shrink: 0;
+}
+.blupal-hero-title {
+    font-size: 19px;
+    font-weight: 800;
+    margin: 0 0 4px 0;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+}
+.blupal-hero-subtitle {
+    font-size: 12px;
+    color: #cbd5e1;
+    margin: 0;
+    line-height: 1.5;
+}
+.blupal-hero-badges {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.blupal-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+.blupal-status-pill.is-active {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(52, 211, 153, 0.3);
+}
+.blupal-status-pill.is-inactive {
+    background: rgba(148, 163, 184, 0.15);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+}
+.blupal-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 8px currentColor;
+}
+.blupal-version-badge {
+    background: rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+}
+.blupal-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.blupal-card:hover {
+    border-color: #cbd5e1;
+}
+.blupal-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #f1f5f9;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.blupal-card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.blupal-card-title h3 {
+    font-size: 15px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+}
+.blupal-card-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+.blupal-card-desc {
+    font-size: 12px;
+    color: #64748b;
+    margin: 0;
+}
+.blupal-badge-soft {
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 6px;
+}
+.blupal-form-group {
+    margin-bottom: 20px;
+}
+.blupal-form-group:last-child {
+    margin-bottom: 0;
+}
+.blupal-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 8px;
+}
+.blupal-label .required-star {
+    color: #ef4444;
+}
+.blupal-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.blupal-input {
+    width: 100%;
+    height: 44px;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: #0f172a;
+    background: #ffffff;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 10px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.blupal-input:focus,
+.blupal-textarea:focus {
+    border-color: #4f46e5 !important;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15) !important;
+    outline: none !important;
+}
+.blupal-input-ltr {
+    direction: ltr;
+    text-align: left;
+    font-family: monospace, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.blupal-textarea {
+    width: 100%;
+    min-height: 84px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #0f172a;
+    background: #ffffff;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 10px;
+    line-height: 1.6;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    resize: vertical;
+}
+.blupal-btn-action {
+    height: 44px;
+    padding: 0 14px;
+    background: #f8fafc;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 10px;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+}
+.blupal-btn-action:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+    color: #0f172a;
+}
+.blupal-btn-action.is-copied {
+    background: #ecfdf5 !important;
+    border-color: #10b981 !important;
+    color: #047857 !important;
+}
+.blupal-field-hint {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 6px;
+    line-height: 1.6;
+}
+.blupal-inline-action {
+    color: #4f46e5;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-right: 6px;
+    font-weight: 600;
+}
+.blupal-inline-action:hover {
+    color: #3730a3;
+}
+.blupal-toggle-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    flex-wrap: wrap;
 }
-
-.blupal-test-title {
+.blupal-toggle-info {
+    flex: 1;
+}
+.blupal-toggle-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 4px 0;
+}
+.blupal-toggle-desc {
+    font-size: 12px;
+    color: #64748b;
+    margin: 0;
+    line-height: 1.6;
+}
+.blupal-switch {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 28px;
+    flex-shrink: 0;
+}
+.blupal-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+.blupal-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #cbd5e1;
+    transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 34px;
+}
+.blupal-slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.blupal-switch input:checked + .blupal-slider {
+    background-color: #10b981;
+}
+.blupal-switch input:checked + .blupal-slider:before {
+    transform: translateX(24px);
+}
+.blupal-notice-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-top: 14px;
     display: flex;
     align-items: flex-start;
     gap: 12px;
 }
-
-.blupal-test-icon {
-    font-size: 24px;
+.blupal-notice-icon {
+    font-size: 18px;
     line-height: 1;
-    background: #eef2ff;
-    padding: 8px;
-    border-radius: 10px;
+    margin-top: 2px;
 }
-
-.blupal-test-title strong {
+.blupal-notice-content {
+    font-size: 12px;
+    color: #334155;
+    line-height: 1.7;
+}
+.blupal-notice-content strong {
+    color: #0f172a;
+}
+.blupal-notice-content code {
+    background: #e2e8f0;
+    color: #1e1b4b;
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 700;
+}
+.blupal-test-container {
+    background: #faf5ff;
+    border: 1px solid #e9d5ff;
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+}
+.blupal-test-header-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+.blupal-test-intro {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.blupal-test-intro-icon {
+    width: 40px;
+    height: 40px;
+    background: #f3e8ff;
+    color: #9333ea;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+.blupal-test-intro-text strong {
     display: block;
     font-size: 14px;
-    color: #1e1b4b;
-    margin-bottom: 3px;
+    color: #581c87;
+    margin-bottom: 2px;
 }
-
-.blupal-test-title p {
+.blupal-test-intro-text p {
     margin: 0;
-    font-size: 12px;
-    color: #64748b;
+    font-size: 11px;
+    color: #7e22ce;
 }
-
 .blupal-btn-test {
-    background: #4f46e5 !important;
-    border-color: #4338ca !important;
+    background: #7c3aed !important;
+    border: 1px solid #6d28d9 !important;
     color: #ffffff !important;
-    font-weight: 600 !important;
-    padding: 6px 18px !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    padding: 10px 20px !important;
     height: auto !important;
-    border-radius: 8px !important;
+    border-radius: 10px !important;
     display: inline-flex !important;
     align-items: center !important;
     gap: 8px !important;
-    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2) !important;
-    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25) !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
 }
-
 .blupal-btn-test:hover {
-    background: #4338ca !important;
+    background: #6d28d9 !important;
+    transform: translateY(-1px);
 }
-
 .blupal-spinner {
     display: inline-block;
     width: 14px;
@@ -1085,145 +2363,232 @@ export function generateAdminCss(): string {
     border-radius: 50%;
     animation: blupal-spin 0.8s linear infinite;
 }
-
 @keyframes blupal-spin {
     to { transform: rotate(360deg); }
 }
-
 .blupal-test-result {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px dashed #e2e8f0;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px dashed #d8b4fe;
 }
-
 .blupal-alert {
     border-radius: 10px;
     padding: 14px 18px;
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1.7;
 }
-
 .blupal-alert-success {
     background: #f0fdf4;
     border: 1px solid #bbf7d0;
     color: #166534;
 }
-
 .blupal-alert-error {
     background: #fef2f2;
     border: 1px solid #fecaca;
     color: #991b1b;
 }
-
 .blupal-alert-head {
-    font-size: 14px;
+    font-size: 13px;
     margin-bottom: 6px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
 }
-
 .blupal-latency {
     font-size: 11px;
-    font-weight: bold;
+    font-weight: 700;
     background: #dcfce7;
     color: #15803d;
     padding: 2px 8px;
     border-radius: 6px;
     border: 1px solid #86efac;
 }
-
-.blupal-alert-msg {
-    margin: 0 0 10px 0;
-}
-
 .blupal-details-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
     background: #ffffff;
-    border: 1px solid #dcfce7;
+    border: 1px solid #bbf7d0;
     border-radius: 8px;
     padding: 12px;
     margin-top: 10px;
 }
-
 .blupal-grid-item {
-    font-size: 12px;
+    font-size: 11px;
     display: flex;
     flex-direction: column;
     gap: 2px;
 }
-
 .blupal-grid-item span {
     color: #64748b;
-    font-size: 11px;
+    font-size: 10px;
 }
-
 .blupal-troubleshoot-hint {
-    background: #fff;
+    background: #ffffff;
     padding: 8px 12px;
     border-radius: 6px;
-    border: 1px solid #fee2e2;
+    border: 1px solid #fecaca;
     font-size: 11px;
     color: #7f1d1d;
     margin-top: 8px;
 }
-
-.blupal-c2c-banner {
+.blupal-preview-wrap {
     background: #f8fafc;
-    border: 1px solid #cbd5e1;
+    border: 1px solid #e2e8f0;
     border-radius: 12px;
-    padding: 18px 22px;
-    margin-bottom: 24px;
-    font-family: inherit;
-    font-size: 13px;
-    line-height: 1.8;
+    padding: 16px;
+    margin-top: 14px;
 }
-
-.blupal-c2c-banner-header {
+.blupal-preview-header {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.blupal-checkout-mock {
+    background: #ffffff;
+    border: 2px solid #4f46e5;
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
+    transition: opacity 0.2s;
+}
+.blupal-checkout-mock.is-disabled {
+    opacity: 0.45;
+    border-color: #cbd5e1;
+}
+.blupal-mock-radio-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #e2e8f0;
+    gap: 12px;
 }
-
-.blupal-c2c-banner-header h3 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: bold;
-    color: #1e293b;
+.blupal-mock-radio-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
-
-.blupal-badge {
-    background: #e0e7ff;
-    color: #4338ca;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 6px;
+.blupal-mock-radio {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 5px solid #4f46e5;
+    background: #ffffff;
+    flex-shrink: 0;
 }
-
-.blupal-c2c-banner-body p {
-    margin: 0 0 6px 0;
-    color: #475569;
-}
-
-.blupal-c2c-banner-body code {
-    background: #e2e8f0;
-    padding: 2px 7px;
-    border-radius: 4px;
-    font-weight: bold;
+.blupal-mock-title {
+    font-size: 13px;
+    font-weight: 700;
     color: #0f172a;
-    font-family: monospace;
 }
-
-.blupal-c2c-ok {
-    margin-top: 10px !important;
-    color: #059669 !important;
-    font-weight: 600;
+.blupal-mock-icon {
+    height: 24px;
+    width: auto;
+}
+.blupal-mock-desc-box {
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+    margin-top: 10px;
+    padding-top: 10px;
+    font-size: 12px;
+    color: #475569;
+    line-height: 1.6;
+}
+.blupal-specs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+}
+.blupal-spec-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px 14px;
+}
+.blupal-spec-card strong {
+    display: block;
+    font-size: 12px;
+    color: #1e293b;
+    margin-bottom: 4px;
+}
+.blupal-spec-card p {
+    font-size: 11px;
+    color: #64748b;
+    margin: 0;
+    line-height: 1.5;
+}
+p.submit {
+    margin: 24px 0 0 0 !important;
+    padding: 0 !important;
+}
+p.submit .button-primary,
+p.submit .woocommerce-save-button {
+    background: #4f46e5 !important;
+    border: 1px solid #4338ca !important;
+    color: #ffffff !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    padding: 12px 32px !important;
+    height: auto !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3) !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+}
+p.submit .button-primary:hover,
+p.submit .woocommerce-save-button:hover {
+    background: #4338ca !important;
+    transform: translateY(-1px);
+}
+@media (max-width: 782px) {
+    .blupal-admin-wrap {
+        margin: 10px 0 30px 0;
+    }
+    .blupal-hero-banner {
+        padding: 18px 18px;
+        border-radius: 12px;
+    }
+    .blupal-hero-title {
+        font-size: 16px;
+    }
+    .blupal-card {
+        padding: 18px 16px;
+        border-radius: 12px;
+    }
+    .blupal-toggle-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    .blupal-switch {
+        align-self: flex-end;
+    }
+    .blupal-input-wrap {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .blupal-btn-action {
+        width: 100%;
+    }
+    .blupal-test-header-wrap {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .blupal-btn-test {
+        width: 100%;
+        justify-content: center;
+    }
+    p.submit .button-primary,
+    p.submit .woocommerce-save-button {
+        width: 100% !important;
+        text-align: center !important;
+    }
 }
 `;
 }
