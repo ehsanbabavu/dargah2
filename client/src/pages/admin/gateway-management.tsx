@@ -14,8 +14,7 @@ import { createAuthenticatedRequest } from "@/lib/auth";
 import { 
   ShieldCheck, ShieldAlert, Lock, Unlock, Search, Globe, 
   CreditCard, Key, Copy, Check, Edit, RefreshCw, AlertCircle, 
-  CheckCircle2, User, Phone, Sparkles, ExternalLink, Shield,
-  BookOpen, Code, Terminal
+  CheckCircle2, User, Phone, Sparkles, ExternalLink, Shield, BookOpen
 } from "lucide-react";
 
 interface GatewayAdminItem {
@@ -57,7 +56,6 @@ export default function AdminGatewayManagementPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLockStatus, setFilterLockStatus] = useState<"all" | "locked" | "unlocked">("all");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [showDocsModal, setShowDocsModal] = useState(false);
 
   // Domain edit modal
   const [editingDomainItem, setEditingDomainItem] = useState<GatewayAdminItem | null>(null);
@@ -210,15 +208,6 @@ export default function AdminGatewayManagementPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowDocsModal(true)}
-              className="gap-1.5 text-xs rounded-xl border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/40"
-            >
-              <BookOpen className="w-3.5 h-3.5 text-purple-600" />
-              مستندات اتصال و افزونه
-            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -732,150 +721,6 @@ export default function AdminGatewayManagementPage() {
                   <Check className="w-3.5 h-3.5" />
                 )}
                 ذخیره تنظیمات درگاه
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Modal 3: Documentation & Plugin Technical Reference (blupal.top/documentation) */}
-        <Dialog open={showDocsModal} onOpenChange={setShowDocsModal}>
-          <DialogContent className="max-w-3xl rounded-2xl max-h-[88vh] overflow-y-auto" dir="rtl">
-            <DialogHeader className="text-right space-y-1.5">
-              <div className="flex items-center justify-between gap-3">
-                <DialogTitle className="text-base font-bold flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-purple-600" />
-                  مستندات فنی اتصال وب‌سرویس و درگاه بلوپال
-                </DialogTitle>
-                <a
-                  href="https://blupal.top/documentation"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 hover:underline shrink-0"
-                >
-                  <span>مشاهده مستندات برخط (blupal.top)</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              </div>
-              <DialogDescription className="text-xs">
-                خلاصه مشخصات فنی Endpointها، هدرهای احراز هویت، و رفتار وب‌هوک تایید سفارشات جهت راهنمایی مدیر و توسعه‌دهندگان
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 py-2 text-right">
-              {/* Endpoints Table */}
-              <div className="overflow-x-auto rounded-xl border border-border">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/40">
-                      <TableHead className="text-right text-xs">عملیات</TableHead>
-                      <TableHead className="text-center text-xs">متد</TableHead>
-                      <TableHead className="text-left text-xs font-mono">Endpoint</TableHead>
-                      <TableHead className="text-right text-xs">هدرهای احراز هویت</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody className="text-xs">
-                    <TableRow>
-                      <TableCell className="font-semibold">ایجاد فاکتور جدید</TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 font-mono text-[10px]">
-                          POST
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-left font-mono text-indigo-600 dark:text-indigo-400" dir="ltr">
-                        /api/v1/invoices/create
-                      </TableCell>
-                      <TableCell>
-                        <code className="text-[11px] bg-muted px-1.5 py-0.5 rounded font-mono" dir="ltr">
-                          Authorization: Bearer &lt;API_KEY&gt;
-                        </code>
-                      </TableCell>
-                    </TableRow>
-
-                    <TableRow>
-                      <TableCell className="font-semibold">استعلام لحظه‌ای وضعیت فاکتور</TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-950 font-mono text-[10px]">
-                          GET
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-left font-mono text-indigo-600 dark:text-indigo-400" dir="ltr">
-                        /api/v1/invoices/:invoice_id
-                      </TableCell>
-                      <TableCell>
-                        <code className="text-[11px] bg-muted px-1.5 py-0.5 rounded font-mono" dir="ltr">
-                          Authorization: Bearer &lt;API_KEY&gt;
-                        </code>
-                      </TableCell>
-                    </TableRow>
-
-                    <TableRow>
-                      <TableCell className="font-semibold">تست ارتباط با ووکامرس</TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 font-mono text-[10px]">
-                          POST
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-left font-mono text-indigo-600 dark:text-indigo-400" dir="ltr">
-                        /api/v1/woocommerce/test-connection
-                      </TableCell>
-                      <TableCell>
-                        <code className="text-[11px] bg-muted px-1.5 py-0.5 rounded font-mono" dir="ltr">
-                          X-WP-API-KEY: &lt;API_KEY&gt;
-                        </code>
-                      </TableCell>
-                    </TableRow>
-
-                    <TableRow>
-                      <TableCell className="font-semibold">وب‌هوک بازگشت آنی ووکامرس</TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-950 font-mono text-[10px]">
-                          POST
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-left font-mono text-indigo-600 dark:text-indigo-400" dir="ltr">
-                        /?wc-api=wc_blupal_c2c
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-[11px]">
-                        پاسخ استاندارد: <code>{`{"received": true}`}</code>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Security & Binding Rules */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                <div className="p-3 bg-muted/30 rounded-xl border border-border space-y-1.5">
-                  <div className="font-bold flex items-center gap-1.5 text-foreground">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                    قفل امنیتی دامنه‌ها (Domain Binding)
-                  </div>
-                  <p className="text-muted-foreground leading-relaxed">
-                    هر پذیرنده با اولین درخواست وب‌سرویس موفق از سایت وردپرسی خود، دامنه‌اش به صورت خودکار به درگاه متصل و قفل می‌گردد. در صورت نیاز به تغییر دامنه، مدیر می‌تواند از ستون «عملیات مدیریت» دامنه کاربر را ویرایش یا آزاد کند.
-                  </p>
-                </div>
-
-                <div className="p-3 bg-muted/30 rounded-xl border border-border space-y-1.5">
-                  <div className="font-bold flex items-center gap-1.5 text-foreground">
-                    <CheckCircle2 className="w-4 h-4 text-indigo-600" />
-                    تایید لحظه‌ای و خودکار تراکنش‌ها
-                  </div>
-                  <p className="text-muted-foreground leading-relaxed">
-                    به محض واریز موفقیت‌آمیز وجه توسط مشتری در درگاه و تطابق کد رهگیری یا هش واریز، وب‌هوک به فروشگاه وردپرسی شلیک شده و سفارش بدون نیاز به تایید دستی به حالت «تکمیل شده» (Completed) تغییر وضعیت می‌دهد.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <DialogFooter className="pt-3 border-t border-border">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowDocsModal(false)}
-                className="rounded-xl text-xs"
-              >
-                بستن
               </Button>
             </DialogFooter>
           </DialogContent>

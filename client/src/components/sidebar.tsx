@@ -345,23 +345,6 @@ export function AppSidebar() {
                   تراکنش‌ها و واریزی‌ها
                 </Button>
               </li>
-              <li key="/blupal-docs-admin">
-                <a 
-                  href="https://blupal.top/documentation" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="block w-full"
-                >
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-50 dark:hover:bg-indigo-950/50"
-                  >
-                    <BookOpen className="w-5 h-5 ml-2" />
-                    مستندات بلوپال
-                    <ExternalLink className="w-3.5 h-3.5 mr-auto opacity-70" />
-                  </Button>
-                </a>
-              </li>
             </>
           )}
 
@@ -374,23 +357,6 @@ export function AppSidebar() {
               {userMenuItems.map(renderMenuItem)}
               {level1MenuItems.map(renderMenuItem)}
               {renderCollapsibleMenu("تیکت‌ها", ticketItems, isTicketsOpen, setIsTicketsOpen)}
-              <li key="/blupal-docs-level1">
-                <a 
-                  href="https://blupal.top/documentation" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="block w-full"
-                >
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-50 dark:hover:bg-indigo-950/50"
-                  >
-                    <BookOpen className="w-5 h-5 ml-2" />
-                    مستندات بلوپال
-                    <ExternalLink className="w-3.5 h-3.5 mr-auto opacity-70" />
-                  </Button>
-                </a>
-              </li>
             </>
           )}
 

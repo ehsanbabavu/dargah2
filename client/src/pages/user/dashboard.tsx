@@ -471,20 +471,6 @@ export default function UserDashboard() {
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  <a
-                    href="https://blupal.top/documentation"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button
-                      size="sm"
-                      className="h-9 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs gap-1.5 shadow-sm"
-                    >
-                      <BookOpen className="w-4 h-4" />
-                      مستندات بلوپال
-                      <ExternalLink className="w-3.5 h-3.5 opacity-80" />
-                    </Button>
-                  </a>
                   <Button
                     asChild
                     variant="outline"

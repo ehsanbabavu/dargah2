@@ -1153,10 +1153,6 @@ if (!class_exists('WC_Gateway_Blupal_C2C') && class_exists('WC_Payment_Gateway')
                                 <span>📋 کپی</span>
                             </button>
                         </div>
-                        <div class="blupal-field-hint">
-                            آدرس دامنه سامانه بدون اسلش پایانی. 
-                            <span class="blupal-inline-action" onclick="document.getElementById('woocommerce_blupal_c2c_server_url').value='${safeBaseUrl}';">تنظیم خودکار آدرس (${safeBaseUrl})</span>
-                        </div>
                     </div>
 
                     <!-- API Key -->
@@ -1273,55 +1269,6 @@ if (!class_exists('WC_Gateway_Blupal_C2C') && class_exists('WC_Payment_Gateway')
                             <div id="blupal-preview-desc" class="blupal-mock-desc-box">
                                 <?php echo esc_html($this->description); ?>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- CARD 5: WEBHOOK & SPECS -->
-                <div class="blupal-card">
-                    <div class="blupal-card-header">
-                        <div class="blupal-card-title">
-                            <span class="blupal-card-icon">⚙️</span>
-                            <div>
-                                <h3>اطلاعات وب‌هوک و امنیت پرداخت</h3>
-                                <p class="blupal-card-desc">مشخصات فنی بازگشت خودکار و تایید تراکنش‌ها</p>
-                            </div>
-                        </div>
-                        <span class="blupal-badge-soft">سیستم خودکار</span>
-                    </div>
-
-                    <div class="blupal-form-group">
-                        <label class="blupal-label">
-                            <span>آدرس وب‌هوک اختصاصی بازگشت (Callback / Webhook URL)</span>
-                        </label>
-                        <div class="blupal-input-wrap">
-                            <input 
-                                type="text" 
-                                readonly 
-                                value="<?php echo esc_attr($callback_url); ?>" 
-                                id="blupal_callback_url_field"
-                                class="blupal-input blupal-input-ltr" 
-                                dir="ltr" 
-                                style="background: #f8fafc; color: #475569;"
-                            />
-                            <button type="button" class="blupal-btn-action" onclick="blupalCopyInput('blupal_callback_url_field', this)">
-                                <span>📋 کپی آدرس وب‌هوک</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="blupal-specs-grid">
-                        <div class="blupal-spec-card">
-                            <strong>⚡ تایید بدون نیاز به دخالت</strong>
-                            <p>به محض انتقال وجه شتاب، وب‌هوک بلافاصله وضعیت سفارش را تکمیل (Completed) می‌نماید.</p>
-                        </div>
-                        <div class="blupal-spec-card">
-                            <strong>🛡️ امنیت بدون ذخیره کارت</strong>
-                            <p>اطلاعات شماره کارت و نام پذیرنده از سرور امن خوانده شده و در دیتابیس وردپرس ذخیره نمی‌شود.</p>
-                        </div>
-                        <div class="blupal-spec-card">
-                            <strong>📦 سازگار با HPOS</strong>
-                            <p>افزونه به طور کامل با معماری پرسرعت Custom Order Tables ووکامرس سازگاری دارد.</p>
                         </div>
                     </div>
                 </div>
@@ -2760,8 +2707,6 @@ blupal-card-to-card-gateway/
 ۴. پس از نصب، افزونه را «فعال» کنید.
 ۵. به منوی «ووکامرس > پیکربندی > زبانه پرداخت‌ها > پرداخت کارت به کارت هوشمند» بروید.
 ۶. کلید اختصاصی API Key خود را وارد کرده و ذخیره نمایید.
-
-مستندات کامل وب‌سرویس: https://blupal.top/documentation
 
 توجه: دامنه سایت وردپرسی شما باید در پنل درگاه به عنوان دامنه مجاز ثبت شده باشد.
 
