@@ -34,10 +34,12 @@ import crypto from 'crypto';
 let jwtSecret: string;
 if (process.env.JWT_SECRET) {
   jwtSecret = process.env.JWT_SECRET;
+} else if (process.env.SESSION_SECRET) {
+  jwtSecret = process.env.SESSION_SECRET;
 } else {
   if (process.env.NODE_ENV === 'production') {
-    console.warn("⚠️ JWT_SECRET environment variable is not set. Using secure fallback secret for production.");
-    jwtSecret = process.env.SESSION_SECRET || 'prod_fallback_jwt_secret_persian_management_rakhsh_secure_key_2026_943';
+    console.error("❌ CRITICAL SECURITY FATAL: JWT_SECRET environment variable is NOT set in production environment!");
+    process.exit(1);
   } else {
     console.warn("🔧 DEV MODE: Using fixed JWT secret for development - set JWT_SECRET env var for production");
     // Use a fixed secret in development to prevent token invalidation on restart
@@ -266,8 +268,7 @@ interface AuthRequest extends Request {
 
 const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers["authorization"];
-  const queryToken = typeof req.query?.token === "string" ? req.query.token : undefined;
-  const token = (authHeader && authHeader.split(" ")[1]) || queryToken;
+  const token = authHeader && authHeader.startsWith("Bearer ") ? authHeader.substring(7) : undefined;
 
   if (!token) {
     return res.status(401).json({ message: "توکن احراز هویت مورد نیاز است" });
@@ -520,16 +521,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const smsConfig = smsService.getConfig();
       const isTestMode = !smsConfig.token?.trim();
+      const showTestCode = isTestMode && process.env.NODE_ENV !== 'production';
 
       res.json({
         success: true,
-        message: isTestMode 
+        message: showTestCode 
           ? `کد تایید ارسال شد (حالت تستی: ${code})` 
           : "کد تایید با موفقیت به شماره موبایل شما پیامک شد",
         mobile: normalizedMobile,
         expiresInSeconds: 120,
         isTestMode,
-        ...(isTestMode ? { testCode: code } : {}),
+        ...(showTestCode ? { testCode: code } : {}),
       });
     } catch (error: any) {
       console.error("Error in /api/auth/register/send-otp:", error);
@@ -750,7 +752,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const rawPassword = password.trim();
-      const hashedPassword = await bcrypt.hash(normalizeDigits(rawPassword), 10);
+      const hashedPassword = await bcrypt.hash(normalizeDigits(rawPassword), 12);
 
       const user = await storage.createUser({
         firstName: firstName.trim(),
@@ -884,6 +886,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Public Telegram Webhook Endpoint
   app.post("/api/telegram/webhook", async (req: Request, res: Response) => {
     try {
+      const configuredSecret = process.env.TELEGRAM_SECRET_TOKEN;
+      if (configuredSecret) {
+        const incomingSecret = req.headers["x-telegram-bot-api-secret-token"];
+        if (incomingSecret !== configuredSecret) {
+          console.warn("⚠️ Unauthorized Telegram webhook attempt with invalid secret token.");
+          return res.status(401).json({ ok: false, error: "Unauthorized webhook request" });
+        }
+      }
+
       const update = req.body;
       if (update && typeof update === "object") {
         await telegramService.handleWebhookUpdate(update, storage);
@@ -6828,9 +6839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (originalName.endsWith('.sql')) {
-        const { exec } = await import("child_process");
-        const { promisify } = await import("util");
-        const execAsync = promisify(exec);
+        const { spawn } = await import("child_process");
         const databaseUrl = process.env.DATABASE_URL;
         
         if (!databaseUrl) {
@@ -6838,7 +6847,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         try {
-          await execAsync(`psql "${databaseUrl}" < "${backupFilePath}"`);
+          await new Promise<void>((resolve, reject) => {
+            const child = spawn("psql", [databaseUrl], { stdio: ["pipe", "pipe", "pipe"] });
+            const fileStream = fs.createReadStream(backupFilePath);
+            fileStream.pipe(child.stdin);
+            
+            let stderr = "";
+            child.stderr.on("data", (data) => {
+              stderr += data.toString();
+            });
+
+            child.on("close", (code) => {
+              if (code === 0) {
+                resolve();
+              } else {
+                reject(new Error(stderr || `psql process exited with code ${code}`));
+              }
+            });
+
+            child.on("error", (err) => reject(err));
+          });
+
           return res.json({ 
             message: "بک‌آپ SQL دیتابیس با موفقیت بازیابی شد",
             filename: req.file.originalname
@@ -8201,7 +8230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // 10. گرفتن اسکرین‌شات از صفحات
-  app.post("/api/admin/capture-page-screenshot", async (req, res) => {
+  app.post("/api/admin/capture-page-screenshot", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const { urlPath, outputName } = req.body;
       const targetUrl = urlPath || "/post/online-store-guide-rakhsh";

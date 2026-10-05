@@ -354,19 +354,9 @@ export async function generateAndSaveInvoice(orderId: string): Promise<string> {
     // ذخیره فایل
     fs.writeFileSync(filepath, imageBuffer);
     
-    // ساخت URL عمومی
-    let publicUrl: string;
-    
-    if (process.env.REPLIT_DEV_DOMAIN) {
-      // اضافه کردن https:// به REPLIT_DEV_DOMAIN
-      publicUrl = `https://${process.env.REPLIT_DEV_DOMAIN}/invoices/${filename}`;
-    } else if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
-      // Manual construction for Replit
-      publicUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/invoices/${filename}`;
-    } else {
-      // Fallback for local development
-      publicUrl = `http://localhost:5000/invoices/${filename}`;
-    }
+    // ساخت URL عمومی فاکتور
+    const baseUrl = process.env.PUBLIC_BASE_URL || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : '');
+    const publicUrl = baseUrl ? `${baseUrl.replace(/\/$/, '')}/invoices/${filename}` : `/invoices/${filename}`;
     
     console.log(`✅ فاکتور ذخیره شد: ${publicUrl}`);
     

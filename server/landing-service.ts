@@ -582,7 +582,28 @@ export class LandingService {
       const page = await browser.newPage();
       await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
 
-      const targetUrl = urlPath.startsWith("http") ? urlPath : `http://localhost:3000${urlPath.startsWith("/") ? "" : "/"}${urlPath}`;
+      // SSRF Protection: Validate target URL
+      let targetUrl = "";
+      if (urlPath.startsWith("http://") || urlPath.startsWith("https://")) {
+        const parsed = new URL(urlPath);
+        const host = parsed.hostname.toLowerCase();
+        // Block private metadata and internal IP ranges
+        if (
+          host === "169.254.169.254" ||
+          host.startsWith("10.") ||
+          host.startsWith("192.168.") ||
+          host.startsWith("0.") ||
+          /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host)
+        ) {
+          throw new Error("دسترسی به آدرس‌های آی‌پی خصوصی و متادیتا غیرمجاز است");
+        }
+        targetUrl = urlPath;
+      } else {
+        const port = process.env.PORT || "3000";
+        const cleanPath = urlPath.startsWith("/") ? urlPath : `/${urlPath}`;
+        targetUrl = `http://127.0.0.1:${port}${cleanPath}`;
+      }
+
       await page.goto(targetUrl, { waitUntil: "networkidle2", timeout: 15000 });
       await new Promise((r) => setTimeout(r, 1500));
 

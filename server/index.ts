@@ -1,4 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { cleanupService } from "./cleanup-service";
@@ -9,8 +11,21 @@ import fs from "fs";
 
 const app = express();
 
-// Trust proxy - برای دریافت صحیح IP واقعی کاربر از طریق پروکسی Replit
-app.set('trust proxy', true);
+// Helmet security headers (CSP disabled for SPA compatibility)
+app.use(helmet({ contentSecurityPolicy: false }));
+
+// Rate limiting for auth endpoints (max 30 requests per 15 minutes per IP)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "تعداد درخواست‌های احراز هویت بیش از حد مجاز است. لطفاً ۱۵ دقیقه دیگر مجدداً تلاش کنید." },
+});
+app.use("/api/auth/", authLimiter);
+
+// Trust proxy - configured for 1 reverse proxy level
+app.set('trust proxy', 1);
 
 // JSON parsing middleware - با بررسی content-type و افزایش محدودیت سایز برای فاکتورها
 app.use((req, res, next) => {
@@ -18,9 +33,9 @@ app.use((req, res, next) => {
     // برای multipart requests، JSON parsing را نادیده می‌گیریم
     return next();
   }
-  express.json({ limit: '50mb' })(req, res, next);
+  express.json({ limit: '10mb' })(req, res, next);
 });
-app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
 // Static serving for uploaded files
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
@@ -70,8 +85,15 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      if (capturedJsonResponse && typeof capturedJsonResponse === "object") {
+        // Mask sensitive fields from response log
+        const masked = { ...capturedJsonResponse };
+        for (const key of ["token", "password", "secret", "code", "testCode", "otp", "accessToken"]) {
+          if (key in masked) {
+            masked[key] = "***MASKED***";
+          }
+        }
+        logLine += ` :: ${JSON.stringify(masked)}`;
       }
 
       if (logLine.length > 80) {
@@ -92,8 +114,9 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    throw err;
+    if (!res.headersSent) {
+      res.status(status).json({ message });
+    }
   });
 
   // In production (e.g. running from compiled dist bundle or NODE_ENV=production), serve static files.

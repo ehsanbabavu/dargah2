@@ -114,6 +114,13 @@ interface TelegramConfig {
     lastActiveAt?: string;
   };
   logs: TelegramLogEntry[];
+  databaseExport?: {
+    isEnabled: boolean;
+    intervalMinutes: number;
+    format: "json" | "sql";
+    targetChatId?: string;
+    lastSentAt?: string;
+  };
   updatedAt?: string;
 }
 

@@ -305,6 +305,13 @@ export class TelegramService {
     }
   }
 
+  public saveConfig(config?: TelegramConfig): boolean {
+    if (config) {
+      this.config = config;
+    }
+    return this.saveConfigToFile(this.config);
+  }
+
   public addLog(type: TelegramLogEntry["type"], message: string, details?: any) {
     const entry: TelegramLogEntry = {
       id: Math.random().toString(36).substring(2, 9),
