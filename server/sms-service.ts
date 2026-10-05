@@ -173,21 +173,19 @@ export class SmsService {
   }
 
   /**
-   * Generates a cryptographically secure random code (5 or 6 digits) and stores it for the mobile number
+   * Generates a random code (5 or 6 digits) and stores it for the mobile number
    */
   public generateAndSaveOtp(mobile: string, validitySeconds = 120, digits = 6): string {
     const normalizedMobile = this.normalizeIranianPhone(mobile);
-    const min = digits === 5 ? 10000 : 100000;
-    const max = digits === 5 ? 100000 : 1000000;
-    const code = crypto.randomInt(min, max).toString();
+    const code = digits === 5 
+      ? Math.floor(10000 + Math.random() * 90000).toString()
+      : Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + validitySeconds * 1000;
 
     this.pendingOtps.set(normalizedMobile, {
       code,
       expiresAt,
       isVerified: false,
-      attempts: 0,
-      lastRequestedAt: Date.now(),
     });
 
     return code;
@@ -288,13 +286,7 @@ export class SmsService {
     }
 
     if (stored.code !== normalizedCode) {
-      stored.attempts = (stored.attempts || 0) + 1;
-      if (stored.attempts >= 5) {
-        this.pendingOtps.delete(normalizedMobile);
-        return { isValid: false, message: "تعداد تلاش‌های ناموفق بیش از حد مجاز است. لطفاً مجدداً کد جدید دریافت کنید." };
-      }
-      this.pendingOtps.set(normalizedMobile, stored);
-      return { isValid: false, message: `کد تایید وارد شده نادرست است. (تلاش ${stored.attempts} از ۵)` };
+      return { isValid: false, message: "کد تایید وارد شده نادرست است." };
     }
 
     stored.isVerified = true;

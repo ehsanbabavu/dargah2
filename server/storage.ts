@@ -380,26 +380,19 @@ export class MemStorage implements IStorage {
   }
 
   public async initializeAdminUser() {
-    const adminUsername = process.env.ADMIN_USERNAME || "ehsan";
-    const adminEmail = process.env.ADMIN_EMAIL || "ehsan@admin.com";
-    const adminPhone = process.env.ADMIN_PHONE || "09134336627";
-    const adminPassword = process.env.ADMIN_PASSWORD || "DevAdminSecret123!";
-
-    if (!process.env.ADMIN_PASSWORD && process.env.NODE_ENV === "production") {
-      console.error("❌ CRITICAL SECURITY FATAL: ADMIN_PASSWORD environment variable is not set in production!");
-      throw new Error("ADMIN_PASSWORD environment variable must be set in production");
-    }
-
-    console.log(`🔑 کاربر ادمین در حافظه ایجاد شد - نام کاربری: ${adminUsername}`);
+    // Use environment variable for admin password, fallback to default 232111Eee@
+    const adminPassword = process.env.ADMIN_PASSWORD || "232111Eee@";
+    console.log("🔑 کاربر ادمین ایجاد شد - نام کاربری: ehsan");
+    console.log(`🔑 رمز عبور: ${adminPassword}`);
     
-    const hashedPassword = await bcrypt.hash(adminPassword, 12);
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
     const adminUser: User = {
       id: randomUUID(),
-      username: adminUsername,
-      firstName: "مدیر",
-      lastName: "سیستم",
-      email: adminEmail,
-      phone: adminPhone,
+      username: "ehsan",
+      firstName: "احسان",
+      lastName: "مدیر",
+      email: "ehsan@admin.com",
+      phone: "09134336627",
       bankCardNumber: null,
       bankCardHolderName: null,
       bankCardApprovalStatus: "approved",
