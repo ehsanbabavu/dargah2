@@ -458,33 +458,6 @@ export default function UserDashboard() {
 
           return (
             <div className="space-y-4">
-              {/* Blupal Gateway Status & Documentation Banner */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="w-5 h-5 text-indigo-400" />
-                    <h2 className="text-sm sm:text-base font-bold">درگاه پرداخت کارت به کارت بلوپال</h2>
-                  </div>
-                  <p className="text-xs text-indigo-200/80 leading-relaxed">
-                    تنظیمات درگاه، دریافت API Key و دانلود افزونه ووکامرس جهت اتصال خودکار تسویه حساب
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="sm"
-                    className="h-9 px-3.5 rounded-xl border-indigo-400/40 text-white hover:bg-white/10 text-xs font-semibold"
-                  >
-                    <Link href="/level1/settings">
-                      <Settings className="w-3.5 h-3.5 ml-1" />
-                      تنظیمات
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-
               {/* Financial Metrics Grid: Amounts */}
               <div className="grid grid-cols-2 gap-2.5">
                 <div className="p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 shadow-sm">

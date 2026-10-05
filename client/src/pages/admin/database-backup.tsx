@@ -31,6 +31,7 @@ interface Backup {
   size: number;
   createdAt: string;
   modifiedAt: string;
+  type?: string;
 }
 
 interface MaintenanceStatus {
@@ -123,10 +124,11 @@ export default function DatabaseBackupPage() {
     },
   });
 
-  const handleCreateBackup = async () => {
+  const handleCreateBackup = async (type: "system" | "sql" = "system") => {
     try {
       setIsCreatingBackup(true);
-      const response = await createAuthenticatedRequest("/api/admin/backup/create");
+      const urlPath = type === "sql" ? "/api/admin/backup/create?type=sql" : "/api/admin/backup/create?type=system";
+      const response = await createAuthenticatedRequest(urlPath);
       
       if (!response.ok) {
         const error = await response.json();
@@ -136,7 +138,7 @@ export default function DatabaseBackupPage() {
       const blob = await response.blob();
       const contentDisposition = response.headers.get('Content-Disposition');
       const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
-      const filename = filenameMatch ? filenameMatch[1] : `backup-${Date.now()}.sql`;
+      const filename = filenameMatch ? filenameMatch[1] : (type === "sql" ? `backup-${Date.now()}.sql` : `system-backup-${Date.now()}.json`);
 
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -149,7 +151,7 @@ export default function DatabaseBackupPage() {
 
       toast({
         title: "موفقیت‌آمیز",
-        description: "بک‌آپ با موفقیت ایجاد و دانلود شد",
+        description: "بک‌آپ کامل با موفقیت ایجاد و دانلود شد",
       });
 
       queryClient.invalidateQueries({ queryKey: ["backups"] });
@@ -167,10 +169,10 @@ export default function DatabaseBackupPage() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.name.endsWith('.sql')) {
+      if (!file.name.endsWith('.sql') && !file.name.endsWith('.json')) {
         toast({
           title: "خطا",
-          description: "فقط فایل‌های SQL مجاز هستند",
+          description: "فقط فایل‌های بک‌آپ با پسوند JSON یا SQL مجاز هستند",
           variant: "destructive",
         });
         return;
@@ -328,53 +330,71 @@ export default function DatabaseBackupPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Database className="w-5 h-5" />
-                ایجاد بک‌آپ جدید
+                <Database className="w-5 h-5 text-primary" />
+                پشتیبان‌گیری کامل سیستم و دیتابیس
               </CardTitle>
               <CardDescription>
-                یک نسخه کامل از دیتابیس فعلی ایجاد و دانلود کنید
+                گرفتن نسخه پشتیبان کامل از تمامی داده‌ها، وضعیت دکمه‌ها، تنظیمات مدیر و کاربر، اشتراک‌ها و دیتابیس
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Button
-                onClick={handleCreateBackup}
+                onClick={() => handleCreateBackup("system")}
                 disabled={isCreatingBackup}
-                className="w-full"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
                 size="lg"
               >
                 {isCreatingBackup ? (
                   <>
-                    <Clock className="w-4 h-4 mr-2 animate-spin" />
-                    در حال ایجاد بک‌آپ...
+                    <Clock className="w-4 h-4 ml-2 animate-spin" />
+                    در حال ایجاد بک‌آپ سیستم...
                   </>
                 ) : (
                   <>
-                    <Download className="w-4 h-4 mr-2" />
-                    ایجاد و دانلود بک‌آپ
+                    <Download className="w-4 h-4 ml-2" />
+                    ایجاد بک‌آپ کامل سیستم (JSON)
                   </>
                 )}
               </Button>
-              <p className="text-sm text-muted-foreground">
-                یک فایل SQL حاوی تمام جداول و داده‌ها ایجاد و دانلود می‌شود
-              </p>
+
+              <Button
+                onClick={() => handleCreateBackup("sql")}
+                disabled={isCreatingBackup}
+                variant="outline"
+                className="w-full border-slate-300"
+                size="default"
+              >
+                <Database className="w-4 h-4 ml-2" />
+                دانلود بک‌آپ ساختاری (SQL Dump)
+              </Button>
+
+              <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-xs text-muted-foreground space-y-1">
+                <p className="font-semibold text-slate-700 dark:text-slate-300">محتویات بک‌آپ کامل سیستم (JSON):</p>
+                <ul className="list-disc list-inside space-y-0.5 pr-1">
+                  <li>کل جداول دیتابیس (کاربران، تراکنش‌ها، سفارش‌ها، محصولات، تیکت‌ها)</li>
+                  <li>وضعیت تمام دکمه‌ها، سوئیچ‌ها و فعال‌سازی‌های مدیر و کاربر</li>
+                  <li>اشتراک‌ها، پلان‌ها و تاریخ انقضای کاربران</li>
+                  <li>تنظیمات ربات تلگرام، سامانه پیامک، صفحه‌ساز و صفحات سفارشی</li>
+                </ul>
+              </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Upload className="w-5 h-5" />
-                بازیابی از بک‌آپ
+                <Upload className="w-5 h-5 text-indigo-600" />
+                بازیابی کامل از بک‌آپ
               </CardTitle>
               <CardDescription>
-                فایل بک‌آپ را آپلود و دیتابیس را بازیابی کنید
+                آپلود فایل بک‌آپ (.json یا .sql) و بازیابی کلیه داده‌ها و تنظیمات دکمه‌ها
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <input
                   type="file"
-                  accept=".sql"
+                  accept=".json,.sql"
                   onChange={handleFileSelect}
                   className="hidden"
                   id="backup-file-input"
@@ -382,23 +402,24 @@ export default function DatabaseBackupPage() {
                 <label htmlFor="backup-file-input">
                   <Button
                     variant="outline"
-                    className="w-full"
+                    className="w-full border-dashed border-2 py-6"
                     size="lg"
                     asChild
                   >
-                    <span>
-                      <Upload className="w-4 h-4 mr-2" />
-                      انتخاب فایل بک‌آپ (.sql)
+                    <span className="cursor-pointer flex flex-col items-center gap-1">
+                      <Upload className="w-5 h-5 text-muted-foreground" />
+                      <span className="font-medium text-sm">انتخاب فایل بک‌آپ (.json یا .sql)</span>
+                      <span className="text-xs text-muted-foreground">برای بازیابی کامل سیستم، فایل JSON بک‌آپ را انتخاب کنید</span>
                     </span>
                   </Button>
                 </label>
               </div>
               
               {uploadingFile && (
-                <div className="p-3 bg-muted rounded-lg">
-                  <p className="text-sm font-medium">{uploadingFile.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatFileSize(uploadingFile.size)}
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                  <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">{uploadingFile.name}</p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                    حجم: {formatFileSize(uploadingFile.size)} | فرمت: {uploadingFile.name.endsWith('.json') ? 'بک‌آپ کامل سیستم (JSON)' : 'دیتابیس (SQL)'}
                   </p>
                 </div>
               )}
@@ -412,13 +433,13 @@ export default function DatabaseBackupPage() {
               >
                 {isRestoringBackup ? (
                   <>
-                    <Clock className="w-4 h-4 mr-2 animate-spin" />
-                    در حال بازیابی...
+                    <Clock className="w-4 h-4 ml-2 animate-spin" />
+                    در حال بازیابی اطلاعات...
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                    بازیابی بک‌آپ
+                    <CheckCircle2 className="w-4 h-4 ml-2" />
+                    تایید و بازیابی اطلاعات سیستم
                   </>
                 )}
               </Button>
@@ -427,6 +448,9 @@ export default function DatabaseBackupPage() {
         </div>
 
         <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">لیست فایل‌های بک‌آپ موجود در سرور</CardTitle>
+          </CardHeader>
           <CardContent className="p-6">
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">
@@ -438,6 +462,7 @@ export default function DatabaseBackupPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-right">نام فایل</TableHead>
+                      <TableHead className="text-right">نوع بک‌آپ</TableHead>
                       <TableHead className="text-right">تاریخ ایجاد</TableHead>
                       <TableHead className="text-right">حجم</TableHead>
                       <TableHead className="text-center">عملیات</TableHead>
@@ -446,7 +471,12 @@ export default function DatabaseBackupPage() {
                   <TableBody>
                     {backupsData.backups.map((backup) => (
                       <TableRow key={backup.filename}>
-                        <TableCell className="font-medium">{backup.filename}</TableCell>
+                        <TableCell className="font-medium dir-ltr text-right">{backup.filename}</TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${backup.filename.endsWith('.json') ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300'}`}>
+                            {backup.type || (backup.filename.endsWith('.json') ? 'سیستم (JSON)' : 'دیتابیس (SQL)')}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-muted-foreground">
                           {formatDate(backup.createdAt)}
                         </TableCell>
@@ -458,6 +488,7 @@ export default function DatabaseBackupPage() {
                             <Button
                               variant="outline"
                               size="sm"
+                              title="دانلود بک‌آپ"
                               onClick={() => handleDownloadBackup(backup.filename)}
                             >
                               <Download className="w-4 h-4" />
@@ -465,6 +496,7 @@ export default function DatabaseBackupPage() {
                             <Button
                               variant="outline"
                               size="sm"
+                              title="حذف بک‌آپ"
                               onClick={() => {
                                 if (window.confirm(`آیا مطمئن هستید که می‌خواهید "${backup.filename}" را حذف کنید؟`)) {
                                   deleteMutation.mutate(backup.filename);

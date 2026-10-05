@@ -23,6 +23,7 @@ import { registerWooCommerceRoutes } from "./woocommerce-routes";
 import { notifyWooCommerceWebhook } from "./woocommerce-service";
 import { smsService } from "./sms-service";
 import { telegramService } from "./telegram-service";
+import { createFullSystemBackup, restoreFullSystemBackup } from "./backup-service";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,10 +34,12 @@ import crypto from 'crypto';
 let jwtSecret: string;
 if (process.env.JWT_SECRET) {
   jwtSecret = process.env.JWT_SECRET;
+} else if (process.env.SESSION_SECRET) {
+  jwtSecret = process.env.SESSION_SECRET;
 } else {
   if (process.env.NODE_ENV === 'production') {
-    console.warn("⚠️ JWT_SECRET environment variable is not set. Using secure fallback secret for production.");
-    jwtSecret = process.env.SESSION_SECRET || 'prod_fallback_jwt_secret_persian_management_rakhsh_secure_key_2026_943';
+    console.error("❌ CRITICAL SECURITY FATAL: JWT_SECRET environment variable is NOT set in production environment!");
+    process.exit(1);
   } else {
     console.warn("🔧 DEV MODE: Using fixed JWT secret for development - set JWT_SECRET env var for production");
     // Use a fixed secret in development to prevent token invalidation on restart
@@ -265,8 +268,7 @@ interface AuthRequest extends Request {
 
 const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers["authorization"];
-  const queryToken = typeof req.query?.token === "string" ? req.query.token : undefined;
-  const token = (authHeader && authHeader.split(" ")[1]) || queryToken;
+  const token = authHeader && authHeader.startsWith("Bearer ") ? authHeader.substring(7) : undefined;
 
   if (!token) {
     return res.status(401).json({ message: "توکن احراز هویت مورد نیاز است" });
@@ -519,16 +521,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const smsConfig = smsService.getConfig();
       const isTestMode = !smsConfig.token?.trim();
+      const showTestCode = isTestMode && process.env.NODE_ENV !== 'production';
 
       res.json({
         success: true,
-        message: isTestMode 
+        message: showTestCode 
           ? `کد تایید ارسال شد (حالت تستی: ${code})` 
           : "کد تایید با موفقیت به شماره موبایل شما پیامک شد",
         mobile: normalizedMobile,
         expiresInSeconds: 120,
         isTestMode,
-        ...(isTestMode ? { testCode: code } : {}),
+        ...(showTestCode ? { testCode: code } : {}),
       });
     } catch (error: any) {
       console.error("Error in /api/auth/register/send-otp:", error);
@@ -749,7 +752,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const rawPassword = password.trim();
-      const hashedPassword = await bcrypt.hash(normalizeDigits(rawPassword), 10);
+      const hashedPassword = await bcrypt.hash(normalizeDigits(rawPassword), 12);
 
       const user = await storage.createUser({
         firstName: firstName.trim(),
@@ -883,6 +886,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Public Telegram Webhook Endpoint
   app.post("/api/telegram/webhook", async (req: Request, res: Response) => {
     try {
+      const configuredSecret = process.env.TELEGRAM_SECRET_TOKEN;
+      if (configuredSecret) {
+        const incomingSecret = req.headers["x-telegram-bot-api-secret-token"];
+        if (incomingSecret !== configuredSecret) {
+          console.warn("⚠️ Unauthorized Telegram webhook attempt with invalid secret token.");
+          return res.status(401).json({ ok: false, error: "Unauthorized webhook request" });
+        }
+      }
+
       const update = req.body;
       if (update && typeof update === "object") {
         await telegramService.handleWebhookUpdate(update, storage);
@@ -1260,6 +1272,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error sending direct Telegram message:", error);
       res.status(500).json({ message: "خطا در ارسال پیام: " + error.message });
+    }
+  });
+
+  // Admin: Send Database/System Backup immediately to Telegram
+  app.post("/api/admin/telegram/send-database-now", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const { targetChatId, format } = req.body;
+      const result = await telegramService.sendDatabaseBackupToTelegram(targetChatId, format);
+      if (result.success) {
+        res.json(result);
+      } else {
+        res.status(400).json(result);
+      }
+    } catch (error: any) {
+      console.error("Error sending database to Telegram:", error);
+      res.status(500).json({ success: false, message: "خطا در ارسال دیتابیس به تلگرام: " + error.message });
+    }
+  });
+
+  // Admin: Save Telegram Database Export Config & Timer
+  app.post("/api/admin/telegram/database-export-config", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const { isEnabled, intervalMinutes, format, targetChatId } = req.body;
+
+      const currentConfig = telegramService.getConfig();
+      currentConfig.databaseExport = {
+        isEnabled: Boolean(isEnabled),
+        intervalMinutes: [15, 30, 45, 60].includes(Number(intervalMinutes)) ? Number(intervalMinutes) : 15,
+        format: format === "sql" ? "sql" : "json",
+        targetChatId: targetChatId ? String(targetChatId).trim() : (currentConfig.adminChatId || ""),
+        lastSentAt: currentConfig.databaseExport?.lastSentAt,
+      };
+
+      telegramService.saveConfig(currentConfig);
+      telegramService.startDatabaseExportScheduler();
+
+      res.json({
+        success: true,
+        message: "تنظیمات ارسال خودکار دیتابیس به تلگرام با موفقیت ذخیره شد",
+        config: currentConfig.databaseExport,
+      });
+    } catch (error: any) {
+      console.error("Error saving Telegram database export config:", error);
+      res.status(500).json({ message: "خطا در ذخیره تنظیمات: " + error.message });
     }
   });
 
@@ -6674,63 +6730,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve invoice files
   app.use("/invoice", express.static(path.join(process.cwd(), "invoice")));
 
-  // ====== Database Backup & Restore Routes ======
+  // ====== System & Database Backup & Restore Routes ======
   
-  // Create and download database backup
+  // Create and download full system backup (or SQL backup)
   app.get("/api/admin/backup/create", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user || req.user.role !== "admin") {
         return res.status(403).json({ message: "دسترسی غیرمجاز" });
       }
 
-      const { exec } = await import("child_process");
-      const { promisify } = await import("util");
-      const execAsync = promisify(exec);
+      const backupType = req.query.type as string;
 
-      // Create backups directory if it doesn't exist
-      const backupsDir = path.join(process.cwd(), "backups");
-      if (!fs.existsSync(backupsDir)) {
-        fs.mkdirSync(backupsDir, { recursive: true });
+      if (backupType === "sql") {
+        const { exec } = await import("child_process");
+        const { promisify } = await import("util");
+        const execAsync = promisify(exec);
+
+        const backupsDir = path.join(process.cwd(), "backups");
+        if (!fs.existsSync(backupsDir)) {
+          fs.mkdirSync(backupsDir, { recursive: true });
+        }
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        const backupFileName = `backup-${timestamp}.sql`;
+        const backupFilePath = path.join(backupsDir, backupFileName);
+
+        const databaseUrl = process.env.DATABASE_URL;
+        if (!databaseUrl) {
+          return res.status(500).json({ message: "تنظیمات دیتابیس یافت نشد" });
+        }
+
+        try {
+          await execAsync(`pg_dump --clean --if-exists "${databaseUrl}" > "${backupFilePath}"`);
+          return res.download(backupFilePath, backupFileName);
+        } catch (error: any) {
+          console.error("Error creating SQL dump, falling back to full JSON system backup:", error);
+        }
       }
 
-      // Generate backup filename with timestamp
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-      const backupFileName = `backup-${timestamp}.sql`;
-      const backupFilePath = path.join(backupsDir, backupFileName);
-
-      // Get database connection URL from environment
-      const databaseUrl = process.env.DATABASE_URL;
-      if (!databaseUrl) {
-        return res.status(500).json({ message: "تنظیمات دیتابیس یافت نشد" });
-      }
-
-      // Execute pg_dump to create backup with --clean and --if-exists flags
-      // This ensures the backup includes DROP statements for proper restoration
-      try {
-        await execAsync(`pg_dump --clean --if-exists "${databaseUrl}" > "${backupFilePath}"`);
-        
-        // Send file for download
-        res.download(backupFilePath, backupFileName, (err) => {
-          if (err) {
-            console.error("Error downloading backup:", err);
-          }
-          // Optionally delete the file after download
-          // fs.unlinkSync(backupFilePath);
-        });
-      } catch (error: any) {
-        console.error("Error creating backup:", error);
-        res.status(500).json({ 
-          message: "خطا در ایجاد بک‌آپ",
-          error: error.message 
-        });
-      }
+      // Default or fallback: Create full JSON system backup (includes database, button states, JSON configs, subscriptions, etc.)
+      const { backupFilePath, backupFileName } = await createFullSystemBackup();
+      return res.download(backupFilePath, backupFileName, (err) => {
+        if (err) {
+          console.error("Error downloading system backup file:", err);
+        }
+      });
     } catch (error) {
       console.error("Error in backup route:", error);
-      res.status(500).json({ message: "خطا در ایجاد بک‌آپ دیتابیس" });
+      res.status(500).json({ message: "خطا در ایجاد بک‌آپ سیستم" });
     }
   });
 
-  // Multer configuration for backup file uploads
+  // Multer configuration for backup file uploads (.json and .sql)
   const backup_storage_config = multer.diskStorage({
     destination: (req, file, cb) => {
       const uploadPath = path.join(process.cwd(), "backups");
@@ -6748,15 +6799,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     storage: backup_storage_config,
     limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
     fileFilter: (req: any, file: any, cb: any) => {
-      if (file.originalname.endsWith('.sql')) {
+      if (file.originalname.endsWith('.sql') || file.originalname.endsWith('.json')) {
         cb(null, true);
       } else {
-        cb(new Error("فقط فایل‌های SQL مجاز هستند"));
+        cb(new Error("فقط فایل‌های JSON یا SQL مجاز هستند"));
       }
     },
   });
 
-  // Restore database from backup file
+  // Restore database and system state from backup file
   app.post("/api/admin/backup/restore", authenticateToken, uploadBackup.single('backupFile'), async (req: AuthRequest, res) => {
     try {
       if (!req.user || req.user.role !== "admin") {
@@ -6767,32 +6818,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "فایل بک‌آپ ارسال نشده است" });
       }
 
-      const { exec } = await import("child_process");
-      const { promisify } = await import("util");
-      const execAsync = promisify(exec);
-
       const backupFilePath = req.file.path;
-      const databaseUrl = process.env.DATABASE_URL;
-      
-      if (!databaseUrl) {
-        return res.status(500).json({ message: "تنظیمات دیتابیس یافت نشد" });
+      const originalName = req.file.originalname.toLowerCase();
+
+      if (originalName.endsWith('.json')) {
+        try {
+          const rawContent = fs.readFileSync(backupFilePath, 'utf-8');
+          const backupData = JSON.parse(rawContent);
+          const result = await restoreFullSystemBackup(backupData);
+
+          return res.json({
+            message: result.message || "بک‌آپ کامل سیستم با موفقیت بازیابی شد",
+            filename: req.file.originalname,
+            details: result
+          });
+        } catch (jsonErr: any) {
+          console.error("Error parsing JSON backup file:", jsonErr);
+          return res.status(400).json({ message: "فایل بک‌آپ JSON نامعتبر یا آسیب‌دیده است", error: jsonErr.message });
+        }
       }
 
-      // Execute psql to restore backup
-      try {
-        await execAsync(`psql "${databaseUrl}" < "${backupFilePath}"`);
+      if (originalName.endsWith('.sql')) {
+        const { spawn } = await import("child_process");
+        const databaseUrl = process.env.DATABASE_URL;
         
-        res.json({ 
-          message: "بک‌آپ با موفقیت بازیابی شد",
-          filename: req.file.originalname
-        });
-      } catch (error: any) {
-        console.error("Error restoring backup:", error);
-        res.status(500).json({ 
-          message: "خطا در بازیابی بک‌آپ",
-          error: error.message 
-        });
+        if (!databaseUrl) {
+          return res.status(500).json({ message: "تنظیمات دیتابیس یافت نشد" });
+        }
+
+        try {
+          await new Promise<void>((resolve, reject) => {
+            const child = spawn("psql", [databaseUrl], { stdio: ["pipe", "pipe", "pipe"] });
+            const fileStream = fs.createReadStream(backupFilePath);
+            fileStream.pipe(child.stdin);
+            
+            let stderr = "";
+            child.stderr.on("data", (data) => {
+              stderr += data.toString();
+            });
+
+            child.on("close", (code) => {
+              if (code === 0) {
+                resolve();
+              } else {
+                reject(new Error(stderr || `psql process exited with code ${code}`));
+              }
+            });
+
+            child.on("error", (err) => reject(err));
+          });
+
+          return res.json({ 
+            message: "بک‌آپ SQL دیتابیس با موفقیت بازیابی شد",
+            filename: req.file.originalname
+          });
+        } catch (error: any) {
+          console.error("Error restoring SQL backup:", error);
+          return res.status(500).json({ 
+            message: "خطا در بازیابی بک‌آپ SQL",
+            error: error.message 
+          });
+        }
       }
+
+      return res.status(400).json({ message: "فرمت فایل پشتیبانی نمی‌شود" });
     } catch (error) {
       console.error("Error in restore route:", error);
       res.status(500).json({ message: "خطا در بازیابی بک‌آپ دیتابیس" });
@@ -6814,7 +6903,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const files = fs.readdirSync(backupsDir);
       const backups = files
-        .filter(file => file.endsWith('.sql'))
+        .filter(file => file.endsWith('.sql') || file.endsWith('.json'))
         .map(file => {
           const filePath = path.join(backupsDir, file);
           const stats = fs.statSync(filePath);
@@ -6822,7 +6911,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             filename: file,
             size: stats.size,
             createdAt: stats.birthtime,
-            modifiedAt: stats.mtime
+            modifiedAt: stats.mtime,
+            type: file.endsWith('.json') ? 'سیستم (JSON)' : 'دیتابیس (SQL)'
           };
         })
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -6848,9 +6938,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "نام فایل نامعتبر است" });
       }
 
-      // Ensure filename ends with .sql
-      if (!filename.endsWith('.sql')) {
-        return res.status(400).json({ message: "فقط فایل‌های SQL مجاز هستند" });
+      // Ensure filename ends with .sql or .json
+      if (!filename.endsWith('.sql') && !filename.endsWith('.json')) {
+        return res.status(400).json({ message: "فقط فایل‌های JSON و SQL مجاز هستند" });
       }
 
       const backupsDir = path.resolve(process.cwd(), "backups");
@@ -6894,9 +6984,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "نام فایل نامعتبر است" });
       }
 
-      // Ensure filename ends with .sql
-      if (!filename.endsWith('.sql')) {
-        return res.status(400).json({ message: "فقط فایل‌های SQL مجاز هستند" });
+      // Ensure filename ends with .sql or .json
+      if (!filename.endsWith('.sql') && !filename.endsWith('.json')) {
+        return res.status(400).json({ message: "فقط فایل‌های JSON و SQL مجاز هستند" });
       }
 
       const backupsDir = path.resolve(process.cwd(), "backups");
@@ -8140,7 +8230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // 10. گرفتن اسکرین‌شات از صفحات
-  app.post("/api/admin/capture-page-screenshot", async (req, res) => {
+  app.post("/api/admin/capture-page-screenshot", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const { urlPath, outputName } = req.body;
       const targetUrl = urlPath || "/post/online-store-guide-rakhsh";

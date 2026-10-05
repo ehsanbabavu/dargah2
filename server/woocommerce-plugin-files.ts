@@ -12,7 +12,7 @@ export function generateMainPluginPhp(serverBaseUrl: string, prefilledApiKey?: s
 
   return `<?php
 /**
- * Plugin Name: درگاه پرداخت کارت به کارت هوشمند (بلوپال)
+ * Plugin Name: درگاه پرداخت کارت به کارت هوشمند (رخش پی )
  * Plugin URI: ${safeBaseUrl}
  * Description: افزونه درگاه پرداخت کارت به کارت خودکار ووکامرس با تایید آنی شتاب، استعلام لحظه‌ای و پیگیری سفارشات.
  * Version: 1.1.0
@@ -393,7 +393,7 @@ if (!class_exists('WC_Gateway_Blupal_C2C') && class_exists('WC_Payment_Gateway')
                     'title'       => __('آدرس وب‌سرویس / سرور پرداخت (API Base URL)', 'wc-blupal-c2c'),
                     'type'        => 'text',
                     'description' => sprintf(
-                        __('آدرس سرور یا دامنه سامانه پرداخت بلوپال بدون اسلش پایانی. پیش‌فرض: <strong dir="ltr">%s</strong>', 'wc-blupal-c2c'),
+                        __('آدرس سرور یا دامنه سامانه پرداخت رخش پی بدون اسلش پایانی. پیش‌فرض: <strong dir="ltr">%s</strong>', 'wc-blupal-c2c'),
                         esc_html('${safeBaseUrl}')
                     ),
                     'default'     => defined('BLUPAL_C2C_DEFAULT_SERVER') ? BLUPAL_C2C_DEFAULT_SERVER : '${safeBaseUrl}',
@@ -1094,7 +1094,7 @@ if (!class_exists('WC_Gateway_Blupal_C2C') && class_exists('WC_Payment_Gateway')
                             </svg>
                         </div>
                         <div>
-                            <h1 class="blupal-hero-title">درگاه پرداخت کارت به کارت هوشمند (بلوپال)</h1>
+                            <h1 class="blupal-hero-title">درگاه پرداخت کارت به کارت هوشمند (رخش پی )</h1>
                             <p class="blupal-hero-subtitle">سامانه تایید واریزهای شتاب با اتصال مستقیم به وب‌سرویس و استعلام آنی</p>
                         </div>
                     </div>
@@ -1128,7 +1128,7 @@ if (!class_exists('WC_Gateway_Blupal_C2C') && class_exists('WC_Payment_Gateway')
                             <span class="blupal-card-icon">🔑</span>
                             <div>
                                 <h3>مشخصات وب‌سرویس و کلید دسترسی</h3>
-                                <p class="blupal-card-desc">اطلاعات اتصال را از پنل کاربری خود در سامانه بلوپال کپی کرده و وارد نمایید.</p>
+                                <p class="blupal-card-desc">اطلاعات اتصال را از پنل کاربری خود در سامانه رخش پی کپی کرده و وارد نمایید.</p>
                             </div>
                         </div>
                         <span class="blupal-badge-soft">تنظیمات وب‌سرویس</span>
@@ -1187,7 +1187,7 @@ if (!class_exists('WC_Gateway_Blupal_C2C') && class_exists('WC_Payment_Gateway')
                         <div class="blupal-notice-icon">🛡️</div>
                         <div class="blupal-notice-content">
                             <strong>دامنه مجاز سایت شما: <code dir="ltr"><?php echo esc_html($clean_host); ?></code></strong>
-                            <p style="margin: 2px 0 0 0;">جهت تایید خودکار واریزی‌ها، مطمئن شوید این دامنه دقیقاً در تنظیمات درگاه شما در سامانه پرداخت بلوپال به عنوان دامنه مجاز ثبت شده باشد.</p>
+                            <p style="margin: 2px 0 0 0;">جهت تایید خودکار واریزی‌ها، مطمئن شوید این دامنه دقیقاً در تنظیمات درگاه شما در سامانه پرداخت رخش پی به عنوان دامنه مجاز ثبت شده باشد.</p>
                         </div>
                     </div>
                 </div>

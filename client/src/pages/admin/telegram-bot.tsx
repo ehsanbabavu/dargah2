@@ -27,7 +27,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { createAuthenticatedRequest } from "@/lib/auth";
 import {
-  Send, Bot, Key, Shield, Bell, MessageSquare, Terminal, Globe,
+  Send, Bot, Key, Shield, Bell, MessageSquare, Terminal, Globe, Database,
   RefreshCw, CheckCircle2, AlertTriangle, XCircle, Play, Sparkles,
   ExternalLink, Trash2, Plus, Eye, EyeOff, Radio, Cpu,
   Layers, ShoppingCart, UserCheck, MessageCircle, Info, PhoneCall,
@@ -204,6 +204,13 @@ export default function TelegramBotPage() {
   const [usersTargetChatId, setUsersTargetChatId] = useState("");
   const [copiedCommand, setCopiedCommand] = useState(false);
 
+  // Database Auto-Backup Export States
+  const [dbExportEnabled, setDbExportEnabled] = useState(false);
+  const [dbExportInterval, setDbExportInterval] = useState<number>(15);
+  const [dbExportFormat, setDbExportFormat] = useState<"json" | "sql">("json");
+  const [dbExportTargetChatId, setDbExportTargetChatId] = useState("");
+  const [isSendingDbNow, setIsSendingDbNow] = useState(false);
+
   // Fetch Telegram Bot Users
   const {
     data: botUsers = [],
@@ -274,8 +281,80 @@ export default function TelegramBotPage() {
       if (config.adminChatId && !testChatId) {
         setTestChatId(config.adminChatId);
       }
+      if (config.databaseExport) {
+        setDbExportEnabled(config.databaseExport.isEnabled ?? false);
+        setDbExportInterval(config.databaseExport.intervalMinutes || 15);
+        setDbExportFormat(config.databaseExport.format || "json");
+        setDbExportTargetChatId(config.databaseExport.targetChatId || config.adminChatId || "");
+      }
     }
   }, [config]);
+
+  // Save Database Export Settings Mutation
+  const saveDbExportConfigMutation = useMutation({
+    mutationFn: async () => {
+      const res = await createAuthenticatedRequest("/api/admin/telegram/database-export-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          isEnabled: dbExportEnabled,
+          intervalMinutes: dbExportInterval,
+          format: dbExportFormat,
+          targetChatId: dbExportTargetChatId || adminChatId,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "خطا در ذخیره تنظیمات");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/telegram/config"] });
+      toast({
+        title: "موفقیت‌آمیز",
+        description: data.message || "تنظیمات ارسال خودکار دیتابیس با موفقیت ذخیره شد",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "خطا",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSendDbNow = async () => {
+    try {
+      setIsSendingDbNow(true);
+      const res = await createAuthenticatedRequest("/api/admin/telegram/send-database-now", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetChatId: dbExportTargetChatId || adminChatId,
+          format: dbExportFormat,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "خطا در ارسال فایل به تلگرام");
+      }
+      toast({
+        title: "ارسال موفقیت‌آمیز",
+        description: data.message || "فایل دیتابیس با موفقیت به چت تلگرام ارسال گردید",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/telegram/config"] });
+    } catch (err: any) {
+      toast({
+        title: "خطا",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingDbNow(false);
+    }
+  };
 
   // Mutations
   const saveConfigMutation = useMutation({
@@ -1540,6 +1619,14 @@ export default function TelegramBotPage() {
             >
               <Send className="w-3.5 h-3.5 ml-1 shrink-0" />
               ارسال پیام همگانی
+            </TabsTrigger>
+
+            <TabsTrigger 
+              value="database-export" 
+              className="rounded-lg px-3 py-1.5 text-xs font-bold data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs transition-all flex items-center shrink-0 text-emerald-700"
+            >
+              <Database className="w-3.5 h-3.5 ml-1 shrink-0 text-emerald-600" />
+              ارسال دیتابیس در ربات
             </TabsTrigger>
           </TabsList>
 
@@ -3235,6 +3322,199 @@ export default function TelegramBotPage() {
 
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* ============================================================ */}
+          {/* TAB 7: Automatic Database Export to Telegram                 */}
+          {/* ============================================================ */}
+          <TabsContent value="database-export" className="space-y-4">
+            <div className="max-w-4xl mx-auto space-y-4">
+              
+              {/* Header Info Banner */}
+              <Card className="rounded-xl border border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-xs">
+                <CardContent className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 bg-emerald-600 text-white rounded-xl shadow-xs shrink-0">
+                      <Database className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-emerald-900 dark:text-emerald-200">
+                        ارسال و پشتیبان‌گیری خودکار دیتابیس در تلگرام
+                      </h3>
+                      <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
+                        ارسال زمان‌بندی‌شده فایل کامل دیتابیس، تنظیمات دکمه‌ها و کلیدهای فعال‌سازی به حساب تلگرام مدیریت یا گروه‌ها.
+                      </p>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={handleSendDbNow}
+                    disabled={isSendingDbNow || !botToken}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-9 px-4 rounded-xl text-xs shadow-sm shrink-0 border border-emerald-500 gap-1.5"
+                  >
+                    {isSendingDbNow ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        در حال ارسال دیتابیس...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-3.5 h-3.5" />
+                        ارسال هم‌اکنون دیتابیس به تلگرام
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Timer and Export Configuration Card */}
+              <Card className="rounded-xl border border-gray-100 bg-white shadow-xs">
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2 text-gray-800">
+                    <Clock className="w-4 h-4 text-emerald-600" />
+                    تنظیمات تایمر زمان‌بندی و ارسال خودکار
+                  </CardTitle>
+                  <CardDescription className="text-[11px] text-gray-400">
+                    بازه زمانی (از ۱۵ دقیقه تا ۱ ساعت) و فرمت ارسال پشتیبان خودکار دیتابیس را تعیین کنید.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 space-y-4">
+                  
+                  {/* Enable Switch */}
+                  <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="db-export-enable" className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                        فعال‌سازی ارسال زمان‌بندی‌شده دیتابیس در تلگرام
+                      </Label>
+                      <p className="text-[11px] text-gray-500">
+                        با فعال‌سازی این گزینه، فایل بک‌آ‌پ طبق تایمر انتخاب شده به صورت خودکار به تلگرام ارسال می‌شود.
+                      </p>
+                    </div>
+                    <Switch
+                      id="db-export-enable"
+                      checked={dbExportEnabled}
+                      onCheckedChange={(checked) => setDbExportEnabled(checked)}
+                      className="data-[state=checked]:bg-emerald-600"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Timer Combobox (15 mins to 1 hour) */}
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] font-bold text-gray-700 flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                        تایمر ارسال زمان‌بندی‌شده (کومبو باکس) <span className="text-red-500">*</span>
+                      </Label>
+                      <Select
+                        value={String(dbExportInterval)}
+                        onValueChange={(val) => setDbExportInterval(Number(val))}
+                      >
+                        <SelectTrigger className="h-9 text-xs rounded-lg border-gray-200 bg-white">
+                          <SelectValue placeholder="انتخاب تایمر..." />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl">
+                          <SelectItem value="15">⏱️ هر ۱۵ دقیقه یک‌بار (پیشنها‌دی)</SelectItem>
+                          <SelectItem value="30">⏱️ هر ۳۰ دقیقه یک‌بار</SelectItem>
+                          <SelectItem value="45">⏱️ هر ۴۵ دقیقه یک‌بار</SelectItem>
+                          <SelectItem value="60">⏱️ هر ۱ ساعت یک‌بار (۶۰ دقیقه)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[10px] text-gray-400">
+                        سیستم به طور مرتب تایمر انتخاب‌شده را بررسی کرده و بک‌آپ دیتابیس را به تلگرام ارسال می‌کند.
+                      </p>
+                    </div>
+
+                    {/* File Format */}
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] font-bold text-gray-700 flex items-center gap-1">
+                        <FileText className="w-3.5 h-3.5 text-blue-600" />
+                        فرمت فایل پشتیبان <span className="text-red-500">*</span>
+                      </Label>
+                      <Select
+                        value={dbExportFormat}
+                        onValueChange={(val: "json" | "sql") => setDbExportFormat(val)}
+                      >
+                        <SelectTrigger className="h-9 text-xs rounded-lg border-gray-200 bg-white">
+                          <SelectValue placeholder="انتخاب فرمت..." />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl">
+                          <SelectItem value="json">📦 کامل سیستم (JSON - دیتابیس + وضعیت دکمه‌ها)</SelectItem>
+                          <SelectItem value="sql">🗄️ فایل SQL Dump (ساختار دیتابیس)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[10px] text-gray-400">
+                        فرمت JSON شامل کل داده‌ها، اشتراک‌ها و تنظیمات کامل دکمه‌ها می‌باشد.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Target Chat ID */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="dbTargetChatId" className="text-[11px] font-bold text-gray-700">
+                      شناسه چت دریافت‌کننده (Target Chat ID)
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="dbTargetChatId"
+                        value={dbExportTargetChatId}
+                        onChange={(e) => setDbExportTargetChatId(e.target.value)}
+                        placeholder={adminChatId || "مثلاً: 123456789 یا -100123456789"}
+                        className="h-9 text-xs rounded-lg border-gray-200 font-mono text-left dir-ltr"
+                      />
+                      {adminChatId && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setDbExportTargetChatId(adminChatId)}
+                          className="h-9 text-xs shrink-0 rounded-lg"
+                        >
+                          استفاده از چت مدیریت ({adminChatId})
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-gray-400">
+                      می‌توانید شناسه چت شخصی مدیریت یا شناسه کانال/گروه تلگرام را وارد کنید.
+                    </p>
+                  </div>
+
+                  {/* Last Sent Info Card */}
+                  {config?.databaseExport?.lastSentAt && (
+                    <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-lg text-xs text-emerald-800 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>آخرین ارسال موفق دیتابیس به تلگرام:</span>
+                      </div>
+                      <span className="font-semibold dir-ltr">
+                        {new Intl.DateTimeFormat('fa-IR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(config.databaseExport.lastSentAt))}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Save Button */}
+                  <div className="pt-2 flex justify-end">
+                    <Button
+                      onClick={() => saveDbExportConfigMutation.mutate()}
+                      disabled={saveDbExportConfigMutation.isPending}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-9 px-6 rounded-xl text-xs shadow-sm gap-1.5"
+                    >
+                      {saveDbExportConfigMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          در حال ذخیره...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          ذخیره تنظیمات تایمر ارسال دیتابیس
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                </CardContent>
+              </Card>
+
+            </div>
           </TabsContent>
 
         </Tabs>

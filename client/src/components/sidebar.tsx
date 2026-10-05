@@ -371,18 +371,6 @@ export function AppSidebar() {
           {user?.role === "admin" && (
             <>
               {communicationItems.map(renderMenuItem)}
-              <li key="/admin/telegram">
-                <Link href="/admin/telegram">
-                  <Button 
-                    variant={isActive("/admin/telegram") ? "default" : "ghost"} 
-                    className={cn("w-full justify-start relative", isActive("/admin/telegram") && "bg-primary text-primary-foreground")}
-                    onClick={() => handleNavigate("/admin/telegram")}
-                  >
-                    <Bot className="w-5 h-5 ml-2" />
-                    مدیریت ربات تلگرام
-                  </Button>
-                </Link>
-              </li>
               {renderCollapsibleMenu("مدیریت کاربران", usersManagementItems, isUsersOpen, setIsUsersOpen)}
               {renderCollapsibleMenu("تنظیمات", settingsItems, isSettingsOpen, setIsSettingsOpen)}
               <li key="/admin/landing">

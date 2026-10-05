@@ -106,6 +106,15 @@ export interface TelegramConfig {
     lastActiveAt?: string;
   };
 
+  // Database Auto-Backup to Telegram
+  databaseExport?: {
+    isEnabled: boolean;
+    intervalMinutes: number; // 15, 30, 45, 60
+    format: "json" | "sql";
+    targetChatId?: string;
+    lastSentAt?: string;
+  };
+
   // Recent Action Logs
   logs: TelegramLogEntry[];
   
@@ -231,6 +240,12 @@ export const DEFAULT_TELEGRAM_CONFIG: TelegramConfig = {
     totalMessagesSent: 0,
     totalUpdatesReceived: 0,
   },
+  databaseExport: {
+    isEnabled: false,
+    intervalMinutes: 15,
+    format: "json",
+    targetChatId: "",
+  },
   logs: [],
 };
 
@@ -241,9 +256,11 @@ export class TelegramService {
   private lastUpdateId: number = 0;
   private storageInstance: IStorage | null = null;
   private pollingLoopRunning: boolean = false;
+  private databaseExportTimer: NodeJS.Timeout | null = null;
 
   constructor() {
     this.config = this.loadConfig();
+    this.startDatabaseExportScheduler();
   }
 
   private loadConfig(): TelegramConfig {
@@ -1950,6 +1967,185 @@ export class TelegramService {
     await this.sendMessage(chatId, defaultMsg, { parse_mode: "HTML", reply_markup: mainReplyKeyboard });
 
     return { handled: true };
+  }
+
+  /**
+   * Send local file document via Telegram sendDocument API
+   */
+  public async sendDocumentFile(
+    chatId: string | number,
+    filePath: string,
+    captionText: string
+  ): Promise<{ success: boolean; messageId?: number; error?: string }> {
+    const token = this.config.botToken?.trim();
+    if (!token) {
+      return { success: false, error: "توکن ربات تلگرام تنظیم نشده است" };
+    }
+    if (!fs.existsSync(filePath)) {
+      return { success: false, error: "فایل بک‌آپ در سرور یافت نشد" };
+    }
+
+    try {
+      const fileBuffer = fs.readFileSync(filePath);
+      const fileName = path.basename(filePath);
+      const formData = new FormData();
+
+      formData.append("chat_id", String(chatId));
+      if (captionText) {
+        formData.append("caption", captionText);
+        formData.append("parse_mode", "HTML");
+      }
+
+      const blob = new Blob([fileBuffer]);
+      formData.append("document", blob, fileName);
+
+      const url = `${this.getBaseUrl()}/bot${token}/sendDocument`;
+
+      const response = await fetch(url, {
+        method: "POST",
+        body: formData,
+        signal: AbortSignal.timeout(30000),
+      });
+
+      const result = await response.json();
+      if (result.ok && result.result) {
+        return { success: true, messageId: result.result.message_id };
+      } else {
+        return { success: false, error: result.description || "خطا در ارسال فایل به تلگرام" };
+      }
+    } catch (err: any) {
+      console.error("Error sending document file to telegram:", err);
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Generates database/system backup and sends it directly to specified Telegram chat
+   */
+  public async sendDatabaseBackupToTelegram(
+    customChatId?: string,
+    customFormat?: "json" | "sql"
+  ): Promise<{ success: boolean; message: string; filename?: string }> {
+    const targetChatId = customChatId || this.config.databaseExport?.targetChatId || this.config.adminChatId || (this.config.botUsers && this.config.botUsers[0]?.chatId);
+    
+    if (!targetChatId) {
+      return {
+        success: false,
+        message: "چت‌شناسایی (Chat ID) برای ارسال دیتابیس مشخص نشده است. ابتدا چت‌شناسایی مدیریت یا گیرنده را وارد کنید.",
+      };
+    }
+
+    const exportFormat = customFormat || this.config.databaseExport?.format || "json";
+
+    let filePath = "";
+    let fileName = "";
+
+    if (exportFormat === "json") {
+      const { createFullSystemBackup } = await import("./backup-service");
+      const result = await createFullSystemBackup();
+      filePath = result.backupFilePath;
+      fileName = result.backupFileName;
+    } else {
+      const { exec } = await import("child_process");
+      const { promisify } = await import("util");
+      const execAsync = promisify(exec);
+
+      const backupsDir = path.join(process.cwd(), "backups");
+      if (!fs.existsSync(backupsDir)) {
+        fs.mkdirSync(backupsDir, { recursive: true });
+      }
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      fileName = `backup-${timestamp}.sql`;
+      filePath = path.join(backupsDir, fileName);
+
+      const databaseUrl = process.env.DATABASE_URL;
+      if (databaseUrl) {
+        try {
+          await execAsync(`pg_dump --clean --if-exists "${databaseUrl}" > "${filePath}"`);
+        } catch (err) {
+          const { createFullSystemBackup } = await import("./backup-service");
+          const result = await createFullSystemBackup();
+          filePath = result.backupFilePath;
+          fileName = result.backupFileName;
+        }
+      } else {
+        const { createFullSystemBackup } = await import("./backup-service");
+        const result = await createFullSystemBackup();
+        filePath = result.backupFilePath;
+        fileName = result.backupFileName;
+      }
+    }
+
+    const nowFa = new Intl.DateTimeFormat('fa-IR', {
+      dateStyle: 'full',
+      timeStyle: 'medium'
+    }).format(new Date());
+
+    const caption = `📦 <b>نسخه پشتیبان دیتابیس و سیستم</b>\n\n` +
+      `📅 <b>زمان ارسال:</b> ${nowFa}\n` +
+      `📄 <b>نوع فایل:</b> ${exportFormat === "json" ? "JSON (کامل سیستم + تنظیمات)" : "SQL Dump"}\n` +
+      `📁 <b>نام فایل:</b> <code>${fileName}</code>\n\n` +
+      `🤖 <i>ارسال شده توسط سیستم پشتیبان‌گیری خودکار ربات تلگرام رخش</i>`;
+
+    const sendResult = await this.sendDocumentFile(targetChatId, filePath, caption);
+
+    if (sendResult.success) {
+      if (!this.config.databaseExport) {
+        this.config.databaseExport = {
+          isEnabled: false,
+          intervalMinutes: 15,
+          format: "json",
+          targetChatId: targetChatId,
+        };
+      }
+      this.config.databaseExport.lastSentAt = new Date().toISOString();
+      this.addLog("success", `بک‌آ‌پ دیتابیس (${fileName}) با موفقیت به چت ${targetChatId} در تلگرام ارسال شد.`);
+      this.saveConfig(this.config);
+
+      return {
+        success: true,
+        message: `بک‌آ‌پ دیتابیس با موفقیت به تلگرام ارسال شد. (Chat ID: ${targetChatId})`,
+        filename: fileName,
+      };
+    } else {
+      this.addLog("error", `خطا در ارسال بک‌آ‌پ دیتابیس به تلگرام: ${sendResult.error}`);
+      return {
+        success: false,
+        message: `خطا در ارسال فایل به تلگرام: ${sendResult.error || "خطای ناشناخته"}`,
+      };
+    }
+  }
+
+  /**
+   * Starts background scheduler for automated database backup exports to Telegram
+   */
+  public startDatabaseExportScheduler() {
+    if (this.databaseExportTimer) {
+      clearInterval(this.databaseExportTimer);
+      this.databaseExportTimer = null;
+    }
+
+    // Check every 60 seconds
+    this.databaseExportTimer = setInterval(async () => {
+      try {
+        const dbConfig = this.config.databaseExport;
+        if (!dbConfig || !dbConfig.isEnabled || !this.config.isEnabled || !this.config.botToken) {
+          return;
+        }
+
+        const intervalMs = (dbConfig.intervalMinutes || 15) * 60 * 1000;
+        const lastSentMs = dbConfig.lastSentAt ? new Date(dbConfig.lastSentAt).getTime() : 0;
+        const nowMs = Date.now();
+
+        if (nowMs - lastSentMs >= intervalMs) {
+          console.log(`⏰ [Telegram Auto-Backup] Running scheduled database backup export (${dbConfig.intervalMinutes}m interval)...`);
+          await this.sendDatabaseBackupToTelegram();
+        }
+      } catch (err) {
+        console.error("Error in database export scheduler:", err);
+      }
+    }, 60 * 1000);
   }
 }
 

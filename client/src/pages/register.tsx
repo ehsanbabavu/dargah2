@@ -65,11 +65,6 @@ export default function Register() {
   const [canResend, setCanResend] = useState(false);
   const [testCodeNotice, setTestCodeNotice] = useState<string | null>(null);
 
-  // Telegram OTP states
-  const [isSendingTelegramOtp, setIsSendingTelegramOtp] = useState(false);
-  const [botUsername, setBotUsername] = useState("");
-  const [telegramError, setTelegramError] = useState<string | null>(null);
-
   // Fetch Page Customization Config
   const { data: pageConfig } = useQuery<LoginPageConfig>({
     queryKey: ["/api/public/login-page/config"],
@@ -275,56 +270,6 @@ export default function Register() {
       });
     } finally {
       setIsSendingCallOtp(false);
-    }
-  };
-
-  // Step 1.8: Send OTP via Telegram
-  const handleSendTelegramOtp = async () => {
-    const cleanMobile = normalizePhone(mobile);
-    if (!cleanMobile) return;
-
-    setIsSendingTelegramOtp(true);
-    setTelegramError(null);
-    setTestCodeNotice(null);
-
-    try {
-      const response = await fetch("/api/auth/register/send-telegram-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mobile: cleanMobile }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (data.code === "TELEGRAM_USER_NOT_FOUND") {
-          setBotUsername(data.botUsername || "");
-          setTelegramError(data.message || "شماره شما در میان مخاطبان ربات تلگرام یافت نشد.");
-        }
-        throw new Error(data.message || "خطا در درخواست ارسال کد به تلگرام");
-      }
-
-      toast({
-        title: "کد تایید به تلگرام ارسال شد",
-        description: data.message || "کد تایید با موفقیت از طریق ربات تلگرام برای شما ارسال گردید.",
-      });
-
-      if (data.isTestMode && data.testCode) {
-        setTestCodeNotice(data.testCode);
-      }
-
-      setCountdown(data.expiresInSeconds || 120);
-      setCanResend(false);
-      setIsCallOtpActive(false);
-      setStep("otp");
-    } catch (error: any) {
-      toast({
-        title: "خطا در ارسال تلگرام",
-        description: error.message || "خطایی در ارسال کد به تلگرام رخ داد",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSendingTelegramOtp(false);
     }
   };
 
@@ -655,8 +600,8 @@ export default function Register() {
                   <Button
                     type="button"
                     onClick={() => handleSendOtp()}
-                    className="h-11 text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-xs hover:shadow-sm transition-all"
-                    disabled={isSendingOtp || isSendingTelegramOtp || !mobile.trim()}
+                    className="h-11 w-full text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-xs hover:shadow-sm transition-all"
+                    disabled={isSendingOtp || !mobile.trim()}
                     data-testid="button-send-otp"
                   >
                     {isSendingOtp ? (
@@ -671,50 +616,7 @@ export default function Register() {
                       </>
                     )}
                   </Button>
-
-                  <Button
-                    type="button"
-                    onClick={() => handleSendTelegramOtp()}
-                    className="h-11 text-xs font-bold bg-blue-500 hover:bg-blue-600 text-white rounded-xl shadow-xs hover:shadow-sm transition-all"
-                    disabled={isSendingOtp || isSendingTelegramOtp || !mobile.trim()}
-                    data-testid="button-send-telegram"
-                  >
-                    {isSendingTelegramOtp ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 ml-1.5 animate-spin" />
-                        در حال ارسال به تلگرام...
-                      </>
-                    ) : (
-                      <>
-                        <MessageCircle className="w-3.5 h-3.5 ml-1.5" />
-                        دریافت از طریق تلگرام
-                      </>
-                    )}
-                  </Button>
                 </div>
-
-                {telegramError && (
-                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-right space-y-2 animate-in fade-in duration-300 w-full mt-3">
-                    <div className="flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                      <div className="space-y-1">
-                        <h5 className="text-xs font-bold text-amber-950">شماره در تلگرام رخش یافت نشد</h5>
-                        <p className="text-[10px] text-amber-900 leading-relaxed">
-                          شماره موبایل شما در لیست اعضای ربات تلگرام ما نیست. ابتدا وارد ربات رخش شده و دکمه <b>«📱 ارسال شماره تلفن من»</b> را بزنید؛ سپس مجدداً گزینه تلگرام را کلیک کنید.
-                        </p>
-                      </div>
-                    </div>
-                    <a
-                      href={`https://t.me/${botUsername || "your_bot_username"}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="h-8 w-full inline-flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold rounded-lg shadow-2xs transition-all"
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                      ورود به ربات و ارسال شماره تلفن
-                    </a>
-                  </div>
-                )}
 
                 <div className="text-center pt-3 border-t border-gray-100 mt-4 space-y-2">
                   <div className="text-xs text-gray-600">
@@ -800,20 +702,11 @@ export default function Register() {
                       <button
                         type="button"
                         onClick={() => handleSendOtp()}
-                        disabled={isSendingOtp || isSendingCallOtp || isSendingTelegramOtp}
+                        disabled={isSendingOtp || isSendingCallOtp}
                         className="text-blue-600 hover:text-blue-800 hover:underline font-bold flex items-center gap-1 bg-blue-50/50 hover:bg-blue-50 px-2 py-1 rounded-lg border border-blue-200"
                       >
                         <RotateCcw className="w-3 h-3" />
                         مجدد با پیامک
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleSendTelegramOtp()}
-                        disabled={isSendingOtp || isSendingCallOtp || isSendingTelegramOtp}
-                        className="text-indigo-600 hover:text-indigo-800 hover:underline font-bold flex items-center gap-1 bg-indigo-50/50 hover:bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-200"
-                      >
-                        <MessageCircle className="w-3 h-3" />
-                        مجدد با تلگرام
                       </button>
                     </div>
                   )}
@@ -828,14 +721,14 @@ export default function Register() {
                     </div>
                   </div>
                   <p className="text-[11px] text-gray-500 leading-relaxed text-right w-full">
-                    در صورتی که پیامک یا تلگرام برای شما ارسال نشده است، می‌توانید از طریق تماس صوتی کد را دریافت کنید.
+                    در صورتی که پیامک برای شما ارسال نشده است، می‌توانید از طریق تماس صوتی کد را دریافت کنید.
                   </p>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={handleSendCallOtp}
-                    disabled={isSendingCallOtp || isSendingOtp || isSendingTelegramOtp}
+                    disabled={isSendingCallOtp || isSendingOtp}
                     className="h-9 text-xs font-bold text-emerald-700 border-emerald-300 hover:bg-emerald-100 hover:text-emerald-900 bg-white shadow-2xs w-full flex items-center justify-center gap-1.5"
                   >
                     {isSendingCallOtp ? (
@@ -851,29 +744,6 @@ export default function Register() {
                     )}
                   </Button>
                 </div>
-
-                {telegramError && (
-                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-right space-y-2 animate-in fade-in duration-300 w-full mt-1">
-                    <div className="flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                      <div className="space-y-1">
-                        <h5 className="text-xs font-bold text-amber-950">شماره در تلگرام رخش یافت نشد</h5>
-                        <p className="text-[10px] text-amber-900 leading-relaxed">
-                          شماره موبایل شما در لیست اعضای ربات تلگرام ما نیست. ابتدا وارد ربات رخش شده و دکمه <b>«📱 ارسال شماره تلفن من»</b> را بزنید؛ سپس مجدداً تلاش کنید.
-                        </p>
-                      </div>
-                    </div>
-                    <a
-                      href={`https://t.me/${botUsername || "your_bot_username"}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="h-8 w-full inline-flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold rounded-lg shadow-2xs transition-all"
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                      ورود به ربات و ارسال شماره تلفن
-                    </a>
-                  </div>
-                )}
 
                 <Button
                   type="submit"
