@@ -296,7 +296,7 @@ export default function SellerChats() {
               </div>
 
               {/* Messages Content */}
-              <ScrollArea className="flex-1 bg-[url('/chat-bg.png')] bg-repeat bg-center opacity-95">
+              <ScrollArea className="flex-1 bg-slate-50/60 dark:bg-slate-900/60 opacity-95">
                 <div className="p-6 space-y-6">
                   {selectedSellerChats.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground">

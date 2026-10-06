@@ -3,6 +3,17 @@ import { storage } from './storage';
 import * as fs from 'fs';
 import * as path from 'path';
 
+// Helper to escape HTML and prevent HTML/XSS injection in invoice templates
+function escapeHtml(text: any): string {
+  if (text === null || text === undefined) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // تابع فرمت کردن قیمت به ریال
 function formatPriceRial(price: string | number): string {
   const num = typeof price === 'string' ? parseInt(price) : price;
@@ -227,13 +238,13 @@ async function generateInvoiceHTML(orderId: string): Promise<string> {
         <!-- Seller Section -->
         <div class="section-header" style="text-align: right;">مشخصات فروشنده</div>
         <div class="section-content">
-          نام شخص / سازمان : ${seller?.firstName && seller?.lastName ? `${seller.firstName} ${seller.lastName}` : 'فروشنده'}
+          نام شخص / سازمان : ${escapeHtml(seller?.firstName && seller?.lastName ? `${seller.firstName} ${seller.lastName}` : 'فروشنده')}
         </div>
         
         <!-- Customer Section -->
         <div class="section-header" style="text-align: right;">مشخصات خریدار</div>
         <div class="section-content customer-details">
-          نام شخص / سازمان : ${buyer?.firstName && buyer?.lastName ? `${buyer.firstName} ${buyer.lastName}` : 'مشتری گرامی'} - آدرس : ${address?.fullAddress || '-'} - کد پستی : ${address?.postalCode || '-'} - تلفن : ${buyer?.phone || '-'}
+          نام شخص / سازمان : ${escapeHtml(buyer?.firstName && buyer?.lastName ? `${buyer.firstName} ${buyer.lastName}` : 'مشتری گرامی')} - آدرس : ${escapeHtml(address?.fullAddress || '-')} - کد پستی : ${escapeHtml(address?.postalCode || '-')} - تلفن : ${escapeHtml(buyer?.phone || '-')}
         </div>
         
         <!-- Items Table -->
@@ -253,7 +264,7 @@ async function generateInvoiceHTML(orderId: string): Promise<string> {
               return `
               <tr>
                 <td>${index + 1}</td>
-                <td class="text-right">${item.productName}</td>
+                <td class="text-right">${escapeHtml(item.productName)}</td>
                 <td>${item.quantity}</td>
                 <td>${formatPriceRial(item.unitPrice)}</td>
                 <td>${formatPriceRial(itemTotal)}</td>
@@ -294,20 +305,43 @@ export async function generateInvoiceImage(orderId: string): Promise<Buffer> {
     // تولید HTML فاکتور
     const html = await generateInvoiceHTML(orderId);
     
-    // راه‌اندازی Puppeteer با chromium سیستمی
-    browser = await puppeteer.launch({
+    // شناسایی مسیر اجرایی کرومیوم
+    const customPath = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_BIN;
+    const fallbackNixPath = '/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium-browser';
+    const executablePath = customPath || (fs.existsSync(fallbackNixPath) ? fallbackNixPath : undefined);
+
+    // راه‌اندازی Puppeteer با chromium امن
+    const launchOptions: any = {
       headless: true,
-      executablePath: '/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium-browser',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
+        '--disable-extensions',
       ],
-    });
+    };
+
+    if (executablePath) {
+      launchOptions.executablePath = executablePath;
+    }
+
+    browser = await puppeteer.launch(launchOptions);
     
     const page = await browser.newPage();
     
+    // غیرفعال‌سازی جاوااسکریپت و مسدودسازی دسترسی شبکه خارجی
+    await page.setJavaScriptEnabled(false);
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      const url = req.url();
+      if (url.startsWith('data:') || url.startsWith('about:')) {
+        req.continue();
+      } else {
+        req.abort();
+      }
+    });
+
     // تنظیم محتوای HTML
     await page.setContent(html, {
       waitUntil: 'domcontentloaded',

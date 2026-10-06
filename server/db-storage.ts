@@ -1586,8 +1586,8 @@ export class DbStorage implements IStorage {
   async getUserBalance(userId: string): Promise<number> {
     const result = await db.select({
       balance: sql<number>`COALESCE(SUM(CASE 
-        WHEN type IN ('deposit', 'commission') THEN amount::numeric
-        WHEN type IN ('withdraw', 'order_payment') THEN -amount::numeric
+        WHEN type IN ('deposit', 'commission') THEN ABS(amount::numeric)
+        WHEN type IN ('withdraw', 'order_payment') THEN -ABS(amount::numeric)
         ELSE 0
       END), 0)::numeric`
     })

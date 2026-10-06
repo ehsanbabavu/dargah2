@@ -44,14 +44,14 @@ export default function Home() {
             </nav>
           </div>
 
-          {/* Trailing Action */}
+            {/* Trailing Action */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <Link
               href="/login"
               className="inline-flex items-center justify-center px-4 py-2 sm:px-6 sm:h-12 rounded-xl bg-[#2848d3] text-white font-semibold text-[13px] sm:text-[15px] shadow-xs hover:bg-[#1932B8] hover:shadow-[0_8px_20px_rgba(40,72,211,0.28)] active:scale-95 transition-all duration-200 whitespace-nowrap"
             >
-              <span className="sm:hidden">ورود</span>
-              <span className="hidden sm:inline">ورود به پنل فروشندگان</span>
+              <span className="sm:hidden">پنل اختصاصی کاربر</span>
+              <span className="hidden sm:inline">ورود به پنل اختصاصی کاربر</span>
             </Link>
           </div>
         </div>
@@ -73,7 +73,7 @@ export default function Home() {
                 </h1>
 
                 <p className="text-[13px] sm:text-[15px] lg:text-[16px] leading-[24px] sm:leading-[27px] lg:leading-[28px] text-[#c5c5d7] max-w-xl leading-relaxed text-justify">
-                  رخش پی بستری جامع برای فروشندگان فراهم کرده تا بدون نیاز به دانش فنی، درگاه پرداخت اختصاصی کارت به کارت با لینک اختصاصی و افزونه ووکامرس را در یک پنل هوشمند دریافت کنند.
+                  رخش پی بستری جامع برای فروشندگان و پذیرندگان فراهم کرده تا بدون نیاز به دانش فنی، درگاه پرداخت اختصاصی کارت به کارت با لینک اختصاصی و افزونه ووکامرس را در پنل اختصاصی کاربر دریافت کنند.
                 </p>
               </div>
 
@@ -120,7 +120,7 @@ export default function Home() {
                     href="/login"
                     className="inline-flex items-center justify-center w-full px-6 sm:px-8 h-11 sm:h-12 rounded-xl bg-[#2848d3] text-white font-semibold text-[14px] sm:text-[15px] hover:bg-[#1932B8] hover:shadow-[0_8px_20px_rgba(40,72,211,0.35)] active:scale-98 transition-all duration-200 text-center shadow-lg"
                   >
-                    ورود به پنل فروشندگان
+                    ورود به پنل اختصاصی کاربر
                   </Link>
                 </div>
               </div>
@@ -150,7 +150,7 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-2 font-bold text-[#4B5563] dark:text-slate-300 text-[13px] sm:text-[14px] lg:text-[13.5px] xl:text-[15px] whitespace-nowrap">
               <span className="material-symbols-outlined text-[#002db6] dark:text-[#bac3ff] text-xl sm:text-2xl shrink-0">dashboard</span>
-              <span>پنل اختصاصی</span>
+              <span>پنل اختصاصی کاربر</span>
             </div>
             <div className="flex items-center gap-2 font-bold text-[#4B5563] dark:text-slate-300 text-[13px] sm:text-[14px] lg:text-[13.5px] xl:text-[15px] whitespace-nowrap">
               <span className="material-symbols-outlined text-[#002db6] dark:text-[#bac3ff] text-xl sm:text-2xl shrink-0">share</span>
@@ -226,7 +226,7 @@ export default function Home() {
                   گزارش‌گیری زنده و استعلام آنی تراکنش‌های بلو بانک
                 </h2>
                 <p className="text-[13px] sm:text-[15px] lg:text-[16px] leading-[24px] sm:leading-[27px] lg:leading-[28px] text-[#4B5563] dark:text-slate-400 leading-relaxed text-justify">
-                  در پیشخوان فروشندگان، وضعیت لحظه‌ای تراکنش‌های دریافتی، مبالغ کل فروش، درآمد امروز، تعداد تراکنش‌های موفق و تراکنش‌های معلق نمایش داده می‌شود. در صورت نیاز به بررسی مجدد هر فاکتور، دکمه استعلام و تایید دستی از سرور بلو بانک در اختیار شما قرار دارد.
+                  در پنل اختصاصی کاربر، وضعیت لحظه‌ای تراکنش‌های دریافتی، مبالغ کل فروش، درآمد امروز، تعداد تراکنش‌های موفق و تراکنش‌های معلق نمایش داده می‌شود. در صورت نیاز به بررسی مجدد هر فاکتور، دکمه استعلام و تایید دستی از سرور بلو بانک در اختیار شما قرار دارد.
                 </p>
 
                 {/* Bullet Matrix */}
@@ -429,7 +429,7 @@ export default function Home() {
                 href="/login"
                 className="inline-flex items-center justify-center w-full sm:w-auto px-6 sm:px-8 h-11 sm:h-12 rounded-xl bg-white text-[#2848d3] font-bold text-[14px] sm:text-[15px] hover:bg-slate-50 shadow-lg active:scale-98 transition-all duration-200 text-center"
               >
-                ورود به پنل فروشندگان
+                ورود به پنل اختصاصی کاربر
               </Link>
             </div>
           </div>

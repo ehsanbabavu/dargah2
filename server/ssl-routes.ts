@@ -7,13 +7,20 @@ interface AuthRequest extends Request {
   user?: User;
 }
 
+// Helper to sanitize SSL certificate data (strip sensitive private keys)
+const sanitizeCert = (cert: any) => {
+  if (!cert) return cert;
+  const { privateKeyPem, ...safe } = cert;
+  return safe;
+};
+
 export function registerSslRoutes(app: Express, authenticateToken: any) {
-  // 1. GET ALL CERTIFICATES (Admin gets all, User gets their own + system)
+  // 1. GET ALL CERTIFICATES (Admin gets all, User gets their own)
   app.get("/api/ssl/certificates", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const user = req.user;
       const certs = await storage.getSslCertificates(user?.role === "admin" ? undefined : user?.id);
-      res.json(certs);
+      res.json(certs.map(sanitizeCert));
     } catch (error) {
       console.error("Error fetching SSL certificates:", error);
       res.status(500).json({ message: "خطا در دریافت لیست گواهینامه‌های SSL" });
@@ -24,11 +31,17 @@ export function registerSslRoutes(app: Express, authenticateToken: any) {
   app.get("/api/ssl/certificates/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
+      const user = req.user;
       const cert = await storage.getSslCertificateById(id);
       if (!cert) {
         return res.status(404).json({ message: "گواهینامه یافت نشد" });
       }
-      res.json(cert);
+
+      if (user?.role !== "admin" && cert.userId !== user?.id) {
+        return res.status(403).json({ message: "دسترسی غیرمجاز به این گواهینامه" });
+      }
+
+      res.json(sanitizeCert(cert));
     } catch (error) {
       console.error("Error fetching SSL certificate:", error);
       res.status(500).json({ message: "خطا در دریافت اطلاعات گواهینامه" });
@@ -120,7 +133,7 @@ cmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMTUwNjA0MTEwNDM4
       res.status(201).json({
         success: true,
         message: `گواهینامه امنیتی رایگان SSL برای دامنه ${cleanDomain} با موفقیت صادر و پروتکل HTTPS فعال گردید.`,
-        certificate: newCert,
+        certificate: sanitizeCert(newCert),
       });
     } catch (error: any) {
       console.error("Error issuing SSL certificate:", error);
@@ -132,9 +145,14 @@ cmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMTUwNjA0MTEwNDM4
   app.post("/api/ssl/certificates/:id/renew", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
+      const user = req.user;
       const cert = await storage.getSslCertificateById(id);
       if (!cert) {
         return res.status(404).json({ message: "گواهینامه یافت نشد" });
+      }
+
+      if (user?.role !== "admin" && cert.userId !== user?.id) {
+        return res.status(403).json({ message: "دسترسی غیرمجاز برای تمدید این گواهینامه" });
       }
 
       const now = new Date();
@@ -165,7 +183,7 @@ cmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMTUwNjA0MTEwNDM4
       res.json({
         success: true,
         message: `گواهینامه امنیتی دامنه ${cert.domain} با موفقیت تمدید شد.`,
-        certificate: updated,
+        certificate: sanitizeCert(updated),
       });
     } catch (error: any) {
       console.error("Error renewing certificate:", error);
@@ -177,9 +195,14 @@ cmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMTUwNjA0MTEwNDM4
   app.patch("/api/ssl/certificates/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
+      const user = req.user;
       const cert = await storage.getSslCertificateById(id);
       if (!cert) {
         return res.status(404).json({ message: "گواهینامه یافت نشد" });
+      }
+
+      if (user?.role !== "admin" && cert.userId !== user?.id) {
+        return res.status(403).json({ message: "دسترسی غیرمجاز برای تغییر تنظیمات این گواهینامه" });
       }
 
       const { forceHttpsRedirect, enableHsts, enableTls13, enableOcspStapling, autoRenew } = req.body;
@@ -205,7 +228,7 @@ cmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMTUwNjA0MTEwNDM4
       res.json({
         success: true,
         message: "تنظیمات پروتکل HTTPS با موفقیت ذخیره شد.",
-        certificate: updated,
+        certificate: sanitizeCert(updated),
       });
     } catch (error: any) {
       console.error("Error updating SSL certificate:", error);
@@ -217,9 +240,14 @@ cmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMTUwNjA0MTEwNDM4
   app.delete("/api/ssl/certificates/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
+      const user = req.user;
       const cert = await storage.getSslCertificateById(id);
       if (!cert) {
         return res.status(404).json({ message: "گواهینامه یافت نشد" });
+      }
+
+      if (user?.role !== "admin" && cert.userId !== user?.id) {
+        return res.status(403).json({ message: "دسترسی غیرمجاز برای حذف این گواهینامه" });
       }
 
       await storage.deleteSslCertificate(id);

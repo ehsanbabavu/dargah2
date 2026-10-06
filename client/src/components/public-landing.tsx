@@ -127,9 +127,9 @@ export function PublicLanding() {
                 </Button>
               </Link>
               <Link href="/login">
-                <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5">
+                <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5 font-bold">
                   <LogIn className="w-3.5 h-3.5" />
-                  <span>ورود</span>
+                  <span>ورود به پنل اختصاصی</span>
                 </Button>
               </Link>
               <Link href="/register">

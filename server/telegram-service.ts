@@ -305,6 +305,15 @@ export class TelegramService {
     }
   }
 
+  public saveConfig(config: TelegramConfig): boolean {
+    this.config = config;
+    return this.saveConfigToFile(config);
+  }
+
+  public getSecretToken(): string | undefined {
+    return process.env.TELEGRAM_SECRET_TOKEN || (this.config as any).secretToken;
+  }
+
   public addLog(type: TelegramLogEntry["type"], message: string, details?: any) {
     const entry: TelegramLogEntry = {
       id: Math.random().toString(36).substring(2, 9),
@@ -1057,14 +1066,20 @@ export class TelegramService {
         cleanUrl = `https://${cleanUrl}`;
       }
 
+      const secretToken = this.getSecretToken();
+      const webhookPayload: any = {
+        url: cleanUrl,
+        allowed_updates: ["message", "edited_message", "callback_query", "channel_post"],
+      };
+      if (secretToken) {
+        webhookPayload.secret_token = secretToken;
+      }
+
       const url = `${this.getBaseUrl()}/bot${token}/setWebhook`;
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: cleanUrl,
-          allowed_updates: ["message", "edited_message", "callback_query", "channel_post"],
-        }),
+        body: JSON.stringify(webhookPayload),
       });
 
       const result = await response.json();

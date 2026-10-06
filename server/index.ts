@@ -12,6 +12,14 @@ const app = express();
 // Trust proxy - برای دریافت صحیح IP واقعی کاربر از طریق پروکسی Replit
 app.set('trust proxy', true);
 
+// Standard Security Headers
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
 // JSON parsing middleware - با بررسی content-type و افزایش محدودیت سایز برای فاکتورها
 app.use((req, res, next) => {
   if (req.headers['content-type']?.startsWith('multipart/form-data')) {

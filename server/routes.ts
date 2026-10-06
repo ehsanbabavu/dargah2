@@ -884,6 +884,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Public Telegram Webhook Endpoint
   app.post("/api/telegram/webhook", async (req: Request, res: Response) => {
     try {
+      const secretToken = telegramService.getSecretToken();
+      if (secretToken) {
+        const receivedHeader = req.headers["x-telegram-bot-api-secret-token"];
+        if (!receivedHeader || typeof receivedHeader !== "string") {
+          return res.status(401).json({ ok: false, error: "Missing secret token header" });
+        }
+        const expectedBuf = Buffer.from(secretToken);
+        const receivedBuf = Buffer.from(receivedHeader);
+        if (expectedBuf.length !== receivedBuf.length || !crypto.timingSafeEqual(expectedBuf, receivedBuf)) {
+          return res.status(403).json({ ok: false, error: "Invalid secret token" });
+        }
+      }
+
       const update = req.body;
       if (update && typeof update === "object") {
         await telegramService.handleWebhookUpdate(update, storage);
@@ -1341,7 +1354,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: username,
         phone: req.body.phone,
         password: req.body.password,
-        role: req.body.role || "user_level_1",
+        role: "user_level_1",
         email: req.body.email || undefined
       };
       
@@ -1971,8 +1984,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/reset-password", async (req, res) => {
     const { username, mobile, otp, newPassword } = req.body;
     const target = mobile || username;
-    if (!target || !newPassword) {
-      return res.status(400).json({ success: false, message: "تمام فیلدها الزامی هستند" });
+    if (!target || !newPassword || !otp) {
+      return res.status(400).json({ success: false, message: "شماره موبایل، کد تایید و رمز عبور جدید الزامی هستند" });
     }
     const user = await findExistingUserByMobile(target);
     if (!user) {
@@ -1980,15 +1993,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const phone = user.phone || user.username;
     const normalizedMobile = smsService.normalizeIranianPhone(phone);
-    if (otp) {
-      const verification = smsService.verifyOtp(normalizedMobile, otp);
-      if (!verification.isValid) {
-        return res.status(400).json({ success: false, message: verification.message });
-      }
+    const verification = smsService.verifyOtp(normalizedMobile, String(otp));
+    if (!verification.isValid) {
+      return res.status(400).json({ success: false, message: verification.message });
     }
     const hashedPassword = await bcrypt.hash(normalizeDigits(newPassword.trim()), 10);
     await storage.updateUserPassword(user.id, hashedPassword);
     smsService.clearOtp(normalizedMobile);
+    loginLockouts.delete(`user_${user.id}`);
     res.json({ success: true, message: "رمز عبور با موفقیت تغییر کرد" });
   });
 
@@ -2053,8 +2065,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "مدیر سیستم یافت نشد" });
       }
       
-      // Return admin with password removed
-      const { password, ...adminSafe } = admin;
+      // Return safe public admin profile for chat
+      const adminSafe = {
+        id: admin.id,
+        username: admin.username,
+        firstName: admin.firstName,
+        lastName: admin.lastName,
+        role: admin.role,
+        profilePicture: admin.profilePicture,
+      };
       res.json(adminSafe);
     } catch (error) {
       console.error("Error getting admin user:", error);
@@ -2802,8 +2821,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/tickets", authenticateToken, async (req: AuthRequest, res) => {
     try {
       let tickets;
-      // مدیر و کاربر سطح ۱ هر دو تیکت‌های کل سیستم را ببینند
-      if (req.user!.role === "admin" || req.user!.role === "user_level_1") {
+      // Only system admin sees all tickets; regular users only see their own tickets
+      if (req.user!.role === "admin") {
         tickets = await storage.getAllTickets();
       } else {
         tickets = await storage.getTicketsByUser(req.user!.id);
@@ -2841,7 +2860,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/tickets/:id/reply", authenticateToken, requireAdminOrLevel1, async (req, res) => {
+  app.put("/api/tickets/:id/reply", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { id } = req.params;
       
@@ -2856,12 +2875,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!ticket) {
         return res.status(404).json({ message: "تیکت یافت نشد" });
       }
+
+      // Authorization: Admin or ticket owner only
+      const isAdmin = req.user!.role === "admin";
+      if (!isAdmin && ticket.userId !== req.user!.id) {
+        return res.status(403).json({ message: "دسترسی غیرمجاز به این تیکت" });
+      }
       
       // Parse existing conversation thread
       const existingThread = parseConversationThread(ticket.adminReply);
       
-      // Add new admin message to conversation thread
-      const updatedThread = addMessageToThread(existingThread, message, true, 'پشتیبانی');
+      // Add message to conversation thread
+      const senderName = isAdmin ? 'پشتیبانی' : `${req.user!.firstName || ''} ${req.user!.lastName || ''}`.trim() || 'کاربر';
+      const updatedThread = addMessageToThread(existingThread, message, isAdmin, senderName);
       
       // Serialize conversation thread back to JSON
       const serializedThread = serializeConversationThread(updatedThread);
@@ -2870,7 +2896,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedTicket = await storage.updateTicket(id, {
         adminReply: serializedThread,
         adminReplyAt: new Date(),
-        status: "read",
+        status: isAdmin ? "read" : "unread",
         lastResponseAt: new Date(),
       });
       
@@ -2887,11 +2913,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/tickets/:id", authenticateToken, requireAdminOrLevel1, async (req, res) => {
+  app.delete("/api/tickets/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { id } = req.params;
+      const ticket = await storage.getTicket(id);
+      if (!ticket) {
+        return res.status(404).json({ message: "تیکت یافت نشد" });
+      }
+
+      // Authorization: Admin or ticket owner only
+      if (req.user!.role !== "admin" && ticket.userId !== req.user!.id) {
+        return res.status(403).json({ message: "دسترسی غیرمجاز برای حذف این تیکت" });
+      }
+
       const success = await storage.deleteTicket(id);
-      
       if (!success) {
         return res.status(404).json({ message: "تیکت یافت نشد" });
       }
@@ -3463,14 +3498,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         const durationInDays = subscription.duration === 'monthly' ? 30 : 365;
         const existingSubscription = await storage.getUserSubscription(req.user!.id);
+        if (existingSubscription && existingSubscription.status === "active" && existingSubscription.remainingDays > 0) {
+          return res.status(400).json({ 
+            message: `شما در حال حاضر یک اشتراک فعال با ${existingSubscription.remainingDays} روز اعتبار دارید. امکان فعال‌سازی مجدد طرح رایگان تا اتمام دوره فعلی وجود ندارد.` 
+          });
+        }
+
         if (existingSubscription) {
-          const currentDays = existingSubscription.remainingDays > 0 ? existingSubscription.remainingDays : 0;
-          const newRemainingDays = currentDays + durationInDays;
           const updated = await storage.updateUserSubscription(existingSubscription.id, {
             subscriptionId: subscriptionId,
-            remainingDays: newRemainingDays,
+            remainingDays: durationInDays,
             status: "active",
-            endDate: new Date(Date.now() + newRemainingDays * 24 * 60 * 60 * 1000),
+            startDate: new Date(),
+            endDate: new Date(Date.now() + durationInDays * 24 * 60 * 60 * 1000),
           });
           return res.json({ success: true, requiresPayment: false, activated: true, subscription: updated });
         }
@@ -3691,9 +3731,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Reorder categories (must be before :id routes)
-  app.put("/api/categories/reorder", authenticateToken, requireAdminOrUserLevel1, async (req, res) => {
+  app.put("/api/categories/reorder", authenticateToken, requireAdminOrUserLevel1, async (req: AuthRequest, res) => {
     try {
       const updates = z.array(updateCategoryOrderSchema).parse(req.body);
+      const userId = req.user!.id;
+      const isAdmin = req.user!.role === 'admin';
+
+      // Check for self-parent cycles
+      for (const update of updates) {
+        if (update.newParentId && update.newParentId === update.categoryId) {
+          return res.status(400).json({ message: "دسته‌بندی نمی‌تواند والد خودش باشد" });
+        }
+      }
+
+      // Check ownership of each category
+      if (!isAdmin) {
+        for (const update of updates) {
+          const cat = await storage.getCategory(update.categoryId, userId, req.user!.role);
+          if (!cat || cat.createdBy !== userId) {
+            return res.status(403).json({ message: "دسترسی غیرمجاز به ویرایش این دسته‌بندی" });
+          }
+          if (update.newParentId) {
+            const parentCat = await storage.getCategory(update.newParentId, userId, req.user!.role);
+            if (!parentCat || parentCat.createdBy !== userId) {
+              return res.status(403).json({ message: "دسته‌بندی والد نامعتبر است" });
+            }
+          }
+        }
+      }
       
       // Map client format to storage format
       const mappedUpdates = updates.map(update => ({
@@ -4206,7 +4271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: req.user!.id,
           orderId: order.id,
           type: 'order_payment',
-          amount: `-${subtotal}`,
+          amount: `${subtotal}`,
           status: 'completed',
           transactionDate: new Date().toLocaleDateString('fa-IR'),
           transactionTime: new Date().toLocaleTimeString('fa-IR'),
@@ -4417,9 +4482,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "سفارش یافت نشد" });
       }
 
-      // Check if user has access to this order
-      
-      if (req.user!.role === 'user_level_1' && order.sellerId !== req.user!.id) {
+      // Check if user has access to this order (admin, buyer/customer, or seller)
+      const user = req.user!;
+      const isAllowed = user.role === 'admin' || order.userId === user.id || order.sellerId === user.id;
+      if (!isAllowed) {
         return res.status(403).json({ message: "دسترسی به سفارش ندارید" });
       }
 
@@ -4534,9 +4600,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new transaction (deposit/withdraw)
   app.post("/api/transactions", authenticateToken, async (req: AuthRequest, res) => {
     try {
+      const isAdmin = req.user!.role === "admin";
+      const rawAmount = parseFloat(String(req.body.amount || "0").replace(/,/g, ''));
+      if (isNaN(rawAmount) || rawAmount <= 0) {
+        return res.status(400).json({ message: "مبلغ تراکنش باید یک عدد مثبت بزرگتر از صفر باشد" });
+      }
+
+      // Non-admin users cannot self-approve deposits or create completed credit transactions
+      const allowedType = req.body.type === "withdraw" ? "withdraw" : "deposit";
+      const status = isAdmin ? (req.body.status || "pending") : "pending";
+
       const validatedData = insertTransactionSchema.parse({
         ...req.body,
-        userId: req.user!.id
+        userId: isAdmin && req.body.userId ? req.body.userId : req.user!.id,
+        type: isAdmin && req.body.type ? req.body.type : allowedType,
+        amount: String(Math.abs(rawAmount)),
+        status,
       });
 
       const transaction = await storage.createTransaction(validatedData);
@@ -5515,6 +5594,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return { isPaid: false };
   }
 
+  // Helper for safe public invoice status response (prevents sensitive PII/token leakage)
+  const toSafePublicInvoice = (tx: any) => ({
+    invoiceId: tx.invoiceId,
+    status: tx.status,
+    amount: tx.amount,
+    finalAmount: tx.finalAmount,
+    destCardNumber: tx.destCardNumber,
+    destCardHolder: tx.destCardHolder,
+    description: tx.description,
+    expiresAt: tx.expiresAt,
+    trackingCode: tx.trackingCode,
+    paidAt: tx.paidAt,
+  });
+
   // PUBLIC: Check invoice status (polled by payer screen)
   app.get("/api/blupal/public/invoice-status/:invoiceId", async (req, res) => {
     try {
@@ -5529,7 +5622,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (tx.status !== "paid" && ((tx.expiresAt && new Date().getTime() > new Date(tx.expiresAt).getTime()) || isOver20Min)) {
         await storage.updateBlupalTransaction(invoiceId, { status: "failed" });
         tx.status = "failed";
-        return res.json(tx);
+        return res.json(toSafePublicInvoice(tx));
       }
 
       // If pending or verifying, perform live verification check with Blupal API
@@ -5552,19 +5645,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (confirmedTx?.callbackUrl) {
               notifyWooCommerceWebhook(confirmedTx, confirmedTx.trackingCode || undefined).catch(console.error);
             }
-            return res.json(confirmedTx);
+            return res.json(toSafePublicInvoice(confirmedTx));
           }
         }
       }
 
-      res.json(tx);
+      res.json(toSafePublicInvoice(tx));
     } catch (error) {
       console.error("Error checking invoice status:", error);
       res.status(500).json({ message: "خطا در بررسی وضعیت فاکتور" });
     }
   });
 
-  // PUBLIC: Payer submits transfer details (Does NOT directly mark as paid - only sets 'verifying' and tests real API)
+  // PUBLIC: Payer submits transfer details (Does NOT self-approve paid - sets 'verifying' or validates real API)
   app.post("/api/blupal/public/confirm-transfer", async (req, res) => {
     try {
       const { invoiceId, trackingCode, cardLastFour } = req.body;
@@ -5578,7 +5671,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           verified: true,
           status: "paid", 
           message: "این واریز قبلاً تایید شده است.", 
-          transaction: tx 
+          transaction: toSafePublicInvoice(tx) 
         });
       }
 
@@ -5593,10 +5686,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         realCheck = await checkBlupalInvoiceRealStatus(tx, gateway);
       }
 
-      const isDirectCardTransfer = !gateway?.apiKey?.trim() || tx.mode === "mock" || tx.mode === "test" || !tx.blupalInvoiceId;
-
-      if (realCheck.isPaid || isDirectCardTransfer) {
-        // Confirmed by Blupal API or Direct Card-to-Card transfer
+      // Only mark paid if confirmed by real bank API check
+      if (realCheck.isPaid) {
         const confirmedTx = await storage.updateBlupalTransaction(invoiceId, {
           status: "paid",
           trackingCode: realCheck.trackingCode || cleanTracking || tx.trackingCode || `TRX-${Date.now().toString().slice(-6)}`,
@@ -5646,12 +5737,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({
           verified: true,
           status: "paid",
-          message: "واریز کارت به کارت شما با موفقیت تایید شد و اشتراک شما فعال گردید.",
-          transaction: confirmedTx,
+          message: "واریز کارت به کارت شما با موفقیت استعلام و تایید شد.",
+          transaction: toSafePublicInvoice(confirmedTx),
         });
       }
 
-      // If not yet verified by bank, set to "verifying" (waiting for webhook or bank SMS detection)
+      // If not yet verified by bank API, set to "verifying" (waiting for webhook or merchant verification)
       const updatedTx = await storage.updateBlupalTransaction(invoiceId, {
         status: "verifying",
         trackingCode: cleanTracking || tx.trackingCode,
@@ -5661,8 +5752,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         verified: false,
         status: "verifying",
-        message: "اطلاعات پرداخت ثبت شد. سامانه در حال استعلام و انتظار برای دریافت تاییدیه قطعی از وب‌هوک بانکی بلوپال است...",
-        transaction: updatedTx,
+        message: "اطلاعات پرداخت ثبت شد و در وضعیت در حال بررسی قرار گرفت.",
+        transaction: toSafePublicInvoice(updatedTx || tx),
       });
     } catch (error) {
       console.error("Error confirming transfer:", error);
@@ -6490,23 +6581,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get user by ID (for getting parent info)
+  // Get user by ID (for getting parent/child info)
   app.get("/api/users/:userId", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { userId } = req.params;
       const user = req.user!;
 
-      // Check permission: only admin, self, or parent/child relationship
-      if (user.role !== "admin" && user.id !== userId) {
-        // Check if it's parent-child relationship
-        if (user.parentUserId !== userId && user.role !== "user_level_1") {
-          return res.status(403).json({ message: "دسترسی مجاز نیست" });
-        }
-      }
-
       const targetUser = await storage.getUser(userId);
       if (!targetUser) {
         return res.status(404).json({ message: "کاربر یافت نشد" });
+      }
+
+      // Check permission: only admin, self, or legitimate parent/child relationship
+      const isSelf = user.id === userId;
+      const isAdmin = user.role === "admin";
+      const isChildOfTarget = user.parentUserId === targetUser.id;
+      const isParentOfTarget = targetUser.parentUserId === user.id;
+
+      if (!isAdmin && !isSelf && !isChildOfTarget && !isParentOfTarget) {
+        return res.status(403).json({ message: "دسترسی مجاز نیست" });
       }
 
       // Return limited info for security
@@ -6515,8 +6608,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: targetUser.username,
         firstName: targetUser.firstName,
         lastName: targetUser.lastName,
-        email: targetUser.email,
-        phone: targetUser.phone,
+        email: isAdmin || isSelf ? targetUser.email : undefined,
+        phone: isAdmin || isSelf || isParentOfTarget ? targetUser.phone : undefined,
         role: targetUser.role,
         profilePicture: targetUser.profilePicture,
       };
@@ -6633,7 +6726,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { orderId, imageData } = req.body;
       
-      if (!orderId || !imageData) {
+      if (!orderId || !imageData || typeof imageData !== "string") {
         return res.status(400).json({ message: "داده‌های فاکتور ناقص است" });
       }
 
@@ -6643,10 +6736,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "سفارش یافت نشد" });
       }
 
-      // دریافت اطلاعات کاربر
-      const user = await storage.getUser(order.userId);
-      if (!user) {
-        return res.status(404).json({ message: "کاربر یافت نشد" });
+      // Authorization check: User must be admin, buyer, or seller
+      const isAllowed = req.user!.role === 'admin' || order.userId === req.user!.id || order.sellerId === req.user!.id;
+      if (!isAllowed) {
+        return res.status(403).json({ message: "دسترسی غیرمجاز به فاکتور این سفارش" });
       }
 
       // ایجاد پوشه invoice در صورت عدم وجود
@@ -6656,12 +6749,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // استخراج داده تصویر از data URL
-      const base64Data = imageData.replace(/^data:image\/png;base64,/, '');
+      const base64Data = imageData.replace(/^data:image\/(png|jpeg|webp);base64,/, '');
       const imageBuffer = Buffer.from(base64Data, 'base64');
+      if (imageBuffer.length > 10 * 1024 * 1024) {
+        return res.status(400).json({ message: "حجم تصویر فاکتور بیش از حد مجاز است (حداکثر ۱۰ مگابایت)" });
+      }
 
       // نام فایل یونیک با timestamp
+      const safeOrderId = String(orderId).replace(/[^a-zA-Z0-9_-]/g, '');
       const timestamp = Date.now();
-      const filename = `فاکتور-سفارش-${orderId}-${timestamp}.png`;
+      const filename = `invoice-${safeOrderId}-${timestamp}.png`;
       const filepath = path.join(invoiceDir, filename);
 
       // ذخیره فایل
@@ -6680,21 +6777,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete temporary file endpoint
+  // Delete temporary file endpoint with strict path traversal prevention
   app.delete("/api/delete-temp/:filename", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const filename = req.params.filename;
-      // بررسی هر دو پوشه برای حذف فایل
+      const rawFilename = req.params.filename;
+      const safeFilename = path.basename(rawFilename);
+      if (!safeFilename || safeFilename === '.' || safeFilename === '..' || safeFilename !== rawFilename || /[/\\:]/.test(rawFilename)) {
+        return res.status(400).json({ message: "نام فایل نامعتبر است" });
+      }
+
+      const uploadsDir = path.resolve(process.cwd(), "uploads");
+      const clientUploadsDir = path.resolve(process.cwd(), "UploadsPicClienet");
+
       const uploadPaths = [
-        path.join(process.cwd(), "uploads", filename),
-        path.join(process.cwd(), "UploadsPicClienet", filename)
+        path.join(uploadsDir, safeFilename),
+        path.join(clientUploadsDir, safeFilename),
       ];
 
       let fileDeleted = false;
       for (const filePath of uploadPaths) {
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-          console.log(`🗑️ فایل موقت حذف شد: ${filename}`);
+        const resolvedPath = path.resolve(filePath);
+        if ((resolvedPath.startsWith(uploadsDir) || resolvedPath.startsWith(clientUploadsDir)) && fs.existsSync(resolvedPath)) {
+          fs.unlinkSync(resolvedPath);
+          console.log(`🗑️ فایل موقت حذف شد: ${safeFilename}`);
           fileDeleted = true;
           break;
         }
@@ -6780,7 +6885,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       cb(null, uploadPath);
     },
     filename: (req, file, cb) => {
-      cb(null, file.originalname);
+      const safeExt = file.originalname.toLowerCase().endsWith('.sql') ? '.sql' : '.json';
+      cb(null, `restore-${Date.now()}-${Math.round(Math.random() * 1e9)}${safeExt}`);
     }
   });
 
@@ -6797,17 +6903,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Restore database and system state from backup file
-  app.post("/api/admin/backup/restore", authenticateToken, uploadBackup.single('backupFile'), async (req: AuthRequest, res) => {
+  app.post("/api/admin/backup/restore", authenticateToken, requireAdmin, uploadBackup.single('backupFile'), async (req: AuthRequest, res) => {
+    let backupFilePath: string | null = null;
     try {
-      if (!req.user || req.user.role !== "admin") {
-        return res.status(403).json({ message: "دسترسی غیرمجاز" });
-      }
-
       if (!req.file) {
         return res.status(400).json({ message: "فایل بک‌آپ ارسال نشده است" });
       }
 
-      const backupFilePath = req.file.path;
+      backupFilePath = req.file.path;
       const originalName = req.file.originalname.toLowerCase();
 
       if (originalName.endsWith('.json')) {
@@ -6856,6 +6959,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error in restore route:", error);
       res.status(500).json({ message: "خطا در بازیابی بک‌آپ دیتابیس" });
+    } finally {
+      if (backupFilePath && fs.existsSync(backupFilePath)) {
+        try { fs.unlinkSync(backupFilePath); } catch (e) {}
+      }
     }
   });
 
@@ -8298,19 +8405,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/seo/settings", async (req, res) => {
     try {
       const settings = await storage.getSeoSettings();
-      res.json(settings);
+      const safe = { ...settings };
+      delete (safe as any).googleServiceAccountPrivateKey;
+      delete (safe as any).googleServiceAccountKey;
+      res.json(safe);
     } catch (error) {
       console.error("Error fetching SEO settings:", error);
       res.status(500).json({ message: "خطا در دریافت تنظیمات سئو" });
     }
   });
 
-  // 2. UPDATE SEO SETTINGS
-  app.post("/api/seo/settings", authenticateToken, async (req: AuthRequest, res) => {
+  // 2. UPDATE SEO SETTINGS (Admin only)
+  app.post("/api/seo/settings", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const updates = req.body;
       const updated = await storage.updateSeoSettings(updates);
-      res.json({ message: "تنظیمات سئو با موفقیت به‌روزرسانی شد", settings: updated });
+      const safe = { ...updated };
+      delete (safe as any).googleServiceAccountPrivateKey;
+      delete (safe as any).googleServiceAccountKey;
+      res.json({ message: "تنظیمات سئو با موفقیت به‌روزرسانی شد", settings: safe });
     } catch (error) {
       console.error("Error updating SEO settings:", error);
       res.status(500).json({ message: "خطا در ذخیره تنظیمات سئو" });
@@ -8335,6 +8448,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const finalSiteScore = Math.min(100, siteScore);
 
       const logs = await storage.getSeoIndexingLogs(10);
+      const safeSettings = { ...settings };
+      delete (safeSettings as any).googleServiceAccountPrivateKey;
+      delete (safeSettings as any).googleServiceAccountKey;
 
       res.json({
         healthScore: finalSiteScore,
@@ -8342,7 +8458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         robotsUrl: `${siteBaseUrl}/robots.txt`,
         homepageUrl: siteBaseUrl,
         siteBaseUrl,
-        settings,
+        settings: safeSettings,
         recentLogs: logs,
         lastGooglePingAt: settings.lastGooglePingAt,
         totalGoogleSubmissions: settings.totalGoogleSubmissions || 0,
@@ -8353,8 +8469,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 4. PING GOOGLE SITEMAP (Real ping to Google Webmaster engine)
-  app.post("/api/seo/ping-google", async (req, res) => {
+  // 4. PING GOOGLE SITEMAP (Admin only)
+  app.post("/api/seo/ping-google", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSeoSettings();
       const host = req.get("host") || "localhost:3000";
@@ -8406,8 +8522,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 5. SUBMIT HOMEPAGE OR CUSTOM URL TO GOOGLE INDEXING
-  app.post("/api/seo/index-url", async (req, res) => {
+  // 5. SUBMIT HOMEPAGE OR CUSTOM URL TO GOOGLE INDEXING (Admin only)
+  app.post("/api/seo/index-url", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const { url, type = "homepage" } = req.body;
       const settings = await storage.getSeoSettings();
@@ -8442,8 +8558,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 6. BATCH SUBMIT ALL PAGES TO GOOGLE
-  app.post("/api/seo/batch-index-all", async (req, res) => {
+  // 6. BATCH SUBMIT ALL PAGES TO GOOGLE (Admin only)
+  app.post("/api/seo/batch-index-all", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSeoSettings();
       const host = req.get("host") || "localhost:3000";
@@ -8479,8 +8595,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 8. GET INDEXING LOGS
-  app.get("/api/seo/logs", async (req, res) => {
+  // 8. GET INDEXING LOGS (Admin only)
+  app.get("/api/seo/logs", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
       const logs = await storage.getSeoIndexingLogs(limit);

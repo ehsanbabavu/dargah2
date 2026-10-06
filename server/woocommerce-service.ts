@@ -156,6 +156,52 @@ export function ensurePluginZipFile(serverBaseUrl: string): string {
 }
 
 /**
+ * Validates a URL against SSRF vulnerabilities (loopback, private ranges, metadata services)
+ */
+export function isSafePublicWebhookUrl(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      return false;
+    }
+
+    const hostname = parsed.hostname.toLowerCase().trim();
+    if (!hostname) return false;
+
+    // Block localhost, link-local, loopback, cloud metadata
+    const blockedHosts = [
+      'localhost',
+      '127.0.0.1',
+      '0.0.0.0',
+      '::1',
+      'metadata.google.internal',
+      '169.254.169.254',
+      'instance-data',
+    ];
+    if (blockedHosts.includes(hostname) || hostname.endsWith('.local') || hostname.endsWith('.internal')) {
+      return false;
+    }
+
+    // Check IPv4 private ranges
+    const ipMatch = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (ipMatch) {
+      const a = parseInt(ipMatch[1], 10);
+      const b = parseInt(ipMatch[2], 10);
+      if (a === 10) return false; // 10.0.0.0/8
+      if (a === 127) return false; // 127.0.0.0/8
+      if (a === 169 && b === 254) return false; // 169.254.0.0/16
+      if (a === 172 && b >= 16 && b <= 31) return false; // 172.16.0.0/12
+      if (a === 192 && b === 168) return false; // 192.168.0.0/16
+      if (a === 0) return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Notifies the customer's WooCommerce site when an invoice is confirmed as paid
  */
 export async function notifyWooCommerceWebhook(tx: BlupalTransaction, trackingCode?: string): Promise<boolean> {
@@ -163,6 +209,11 @@ export async function notifyWooCommerceWebhook(tx: BlupalTransaction, trackingCo
 
   try {
     const notifyUrl = tx.callbackUrl;
+    if (!isSafePublicWebhookUrl(notifyUrl)) {
+      console.warn(`[SSRF-PREVENTION] Blocked unsafe WooCommerce webhook URL: ${notifyUrl}`);
+      return false;
+    }
+
     console.log(`Sending WooCommerce Webhook to: ${notifyUrl} for invoice: ${tx.invoiceId}`);
 
     const res = await fetch(notifyUrl, {
@@ -182,6 +233,7 @@ export async function notifyWooCommerceWebhook(tx: BlupalTransaction, trackingCo
         status: "paid",
         paid_at: tx.paidAt || new Date().toISOString(),
       }),
+      redirect: "error",
       signal: AbortSignal.timeout(10000),
     });
 

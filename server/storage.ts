@@ -380,10 +380,9 @@ export class MemStorage implements IStorage {
   }
 
   public async initializeAdminUser() {
-    // Use environment variable for admin password, fallback to default 232111Eee@
+    // Use environment variable for admin password
     const adminPassword = process.env.ADMIN_PASSWORD || "232111Eee@";
-    console.log("🔑 کاربر ادمین ایجاد شد - نام کاربری: ehsan");
-    console.log(`🔑 رمز عبور: ${adminPassword}`);
+    console.log("🔑 کاربر ادمین سامانه آماده‌سازی شد");
     
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
     const adminUser: User = {
@@ -1733,8 +1732,8 @@ export class MemStorage implements IStorage {
     
     let balance = 0;
     completedTransactions.forEach(transaction => {
-      const amount = parseFloat(transaction.amount);
-      if (transaction.type === 'deposit') {
+      const amount = Math.abs(parseFloat(transaction.amount) || 0);
+      if (transaction.type === 'deposit' || transaction.type === 'commission') {
         balance += amount;
       } else if (transaction.type === 'withdraw' || transaction.type === 'order_payment') {
         balance -= amount;

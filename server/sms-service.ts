@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { randomInt } from "node:crypto";
 
 export interface SmsConfig {
   token: string;
@@ -21,6 +22,8 @@ export const DEFAULT_SMS_CONFIG: SmsConfig = {
 interface StoredOtp {
   code: string;
   expiresAt: number;
+  attempts: number;
+  maxAttempts: number;
   isVerified?: boolean;
 }
 
@@ -177,14 +180,16 @@ export class SmsService {
    */
   public generateAndSaveOtp(mobile: string, validitySeconds = 120, digits = 6): string {
     const normalizedMobile = this.normalizeIranianPhone(mobile);
-    const code = digits === 5 
-      ? Math.floor(10000 + Math.random() * 90000).toString()
-      : Math.floor(100000 + Math.random() * 900000).toString();
+    const min = digits === 5 ? 10000 : 100000;
+    const max = digits === 5 ? 100000 : 1000000;
+    const code = randomInt(min, max).toString();
     const expiresAt = Date.now() + validitySeconds * 1000;
 
     this.pendingOtps.set(normalizedMobile, {
       code,
       expiresAt,
+      attempts: 0,
+      maxAttempts: 5,
       isVerified: false,
     });
 
@@ -270,6 +275,10 @@ export class SmsService {
    */
   public verifyOtp(mobile: string, enteredCode: string): { isValid: boolean; message: string } {
     const normalizedMobile = this.normalizeIranianPhone(mobile);
+    if (!enteredCode) {
+      return { isValid: false, message: "کد تایید الزامی است." };
+    }
+
     const normalizedCode = enteredCode
       .replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d).toString())
       .replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d).toString())
@@ -285,8 +294,16 @@ export class SmsService {
       return { isValid: false, message: "کد تایید منقضی شده است. لطفاً مجدداً درخواست کد دهید." };
     }
 
+    stored.attempts = (stored.attempts || 0) + 1;
+    if (stored.attempts > (stored.maxAttempts || 5)) {
+      this.pendingOtps.delete(normalizedMobile);
+      return { isValid: false, message: "تعداد تلاش‌های ناموفق بیش از حد مجاز بود. لطفاً مجدداً درخواست کد جدید دهید." };
+    }
+
     if (stored.code !== normalizedCode) {
-      return { isValid: false, message: "کد تایید وارد شده نادرست است." };
+      this.pendingOtps.set(normalizedMobile, stored);
+      const remaining = Math.max(0, (stored.maxAttempts || 5) - stored.attempts);
+      return { isValid: false, message: `کد تایید وارد شده نادرست است. (${remaining} تلاش باقی‌مانده)` };
     }
 
     stored.isVerified = true;

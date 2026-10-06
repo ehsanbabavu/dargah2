@@ -108,6 +108,13 @@ interface TelegramConfig {
   menuButtons: TelegramButton[];
   botCommands?: TelegramCommandResponse[];
   botUsers?: TelegramBotUser[];
+  databaseExport?: {
+    isEnabled: boolean;
+    intervalMinutes: number;
+    format: "json" | "sql";
+    targetChatId?: string;
+    lastSentAt?: string;
+  };
   stats: {
     totalMessagesSent: number;
     totalUpdatesReceived: number;
