@@ -74,50 +74,38 @@ export class DbStorage implements IStorage {
 
   public async initializeAdminUser() {
     try {
-      const adminUsername = process.env.ADMIN_USERNAME || "ehsan";
-      const adminEmail = process.env.ADMIN_EMAIL || "ehsan@admin.com";
-      const adminPhone = process.env.ADMIN_PHONE || "09134336627";
-      const adminPassword = process.env.ADMIN_PASSWORD;
-
-      if (!adminPassword && process.env.NODE_ENV === "production") {
-        console.error("❌ CRITICAL SECURITY FATAL: ADMIN_PASSWORD environment variable is not set in production!");
-        throw new Error("ADMIN_PASSWORD environment variable must be set in production");
-      }
-
-      const effectivePassword = adminPassword || "DevAdminSecret123!";
-
-      // Check if admin user exists by username or role "admin"
+      // Check if admin user exists by username "ehsan" or role "admin"
       const existingAdmin = await db
         .select()
         .from(users)
-        .where(or(eq(users.username, adminUsername), eq(users.role, "admin")))
+        .where(or(eq(users.username, "ehsan"), eq(users.role, "admin")))
         .limit(1);
 
-      const hashedPassword = await bcrypt.hash(effectivePassword, 12);
+      const adminPassword = process.env.ADMIN_PASSWORD || "232111Eee@";
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
       if (existingAdmin.length === 0) {
-        console.log(`🔑 کاربر ادمین اولیه ایجاد شد - نام کاربری: ${adminUsername}`);
+        console.log("🔑 کاربر ادمین ایجاد شد - نام کاربری: ehsan");
+        console.log(`🔑 رمز عبور: ${adminPassword}`);
         
         await db.insert(users).values({
-          username: adminUsername,
-          firstName: "مدیر",
-          lastName: "سیستم",
-          email: adminEmail,
-          phone: adminPhone,
+          username: "ehsan",
+          firstName: "احسان",
+          lastName: "مدیر",
+          email: "ehsan@admin.com",
+          phone: "09134336627",
           password: hashedPassword,
           role: "admin",
         });
       } else {
-        // Force update password if environment variable explicitly provided
-        if (adminPassword) {
-          await db.update(users)
-            .set({ 
-              password: hashedPassword,
-              phone: adminPhone
-            })
-            .where(eq(users.id, existingAdmin[0].id));
-          console.log(`✅ مشخصات و رمز عبور کاربر مدیر با موفقیت بروزرسانی شد.`);
-        }
+        // Force update password and phone number to match environment variable or default
+        await db.update(users)
+          .set({ 
+            password: hashedPassword,
+            phone: "09134336627"
+          })
+          .where(eq(users.id, existingAdmin[0].id));
+        console.log(`✅ رمز عبور کاربر مدیر به "${adminPassword}" و شماره تلفن به "09134336627" تغییر و بروزرسانی یافت.`);
       }
     } catch (error) {
       console.error("Error initializing admin user:", error);

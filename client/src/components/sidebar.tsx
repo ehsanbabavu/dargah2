@@ -182,7 +182,6 @@ export function AppSidebar() {
 
   const settingsItems = [
     { path: "/admin/sms-settings", label: "تنظیمات پیامک و OTP", icon: MessageSquare },
-    { path: "/admin/telegram", label: "مدیریت ربات تلگرام", icon: Send },
     ...(isSeoPluginEnabled ? [{ path: "/admin/seo", label: "سئو و گوگل", icon: Search }] : []),
     ...(isSslPluginEnabled ? [{ path: "/admin/ssl", label: "ssl", icon: Lock }] : []),
     ...(isLoginLogsPluginEnabled ? [{ path: "/login-logs", label: "لاگ ورود", icon: History }] : []),

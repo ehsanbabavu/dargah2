@@ -52,7 +52,6 @@ import VisualLandingBuilderPage from "@/pages/admin/landing-builder";
 import SeoDashboard from "@/pages/admin/seo";
 import HttpsSslManagementPage from "@/pages/admin/ssl";
 import SmsSettingsPage from "@/pages/admin/sms-settings";
-import TelegramBotPage from "@/pages/admin/telegram-bot";
 import AdminGatewayManagementPage from "@/pages/admin/gateway-management";
 import PublicLanding from "@/components/public-landing";
 import BuySubscriptionPage from "@/pages/user/buy-subscription";
@@ -397,8 +396,6 @@ function Router() {
       <Route path="/admin/ssl" component={() => <PluginAwareAdminRoute component={HttpsSslManagementPage} pluginName="ssl" />} />
       <Route path="/admin/sms-settings" component={() => <AdminRoute component={SmsSettingsPage} />} />
       <Route path="/sms-settings" component={() => <AdminRoute component={SmsSettingsPage} />} />
-      <Route path="/admin/telegram" component={() => <AdminRoute component={TelegramBotPage} />} />
-      <Route path="/telegram" component={() => <AdminRoute component={TelegramBotPage} />} />
       <Route path="/ssl" component={() => <AdminOrLevel1Route component={() => (
         <PluginGatedRoute pluginName="ssl">
           <HttpsSslManagementPage />

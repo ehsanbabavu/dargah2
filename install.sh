@@ -116,14 +116,13 @@ DOCKERFILE_END
 # ۵. تنظیم فایل‌های .env و docker-compose.yml
 if [ ! -f .env ]; then
   DB_PASSWORD=$(openssl rand -hex 16 2>/dev/null || echo "rakhsh_pass_123")
-  RANDOM_ADMIN_PASS=$(openssl rand -hex 12 2>/dev/null || echo "rakhsh_admin_pass_$(date +%s)")
   cat <<ENV_EOF > .env
 PORT=3000
 NODE_ENV=production
 DATABASE_URL=postgresql://postgres:${DB_PASSWORD}@db:5432/rakhsh_db
 SESSION_SECRET=$(openssl rand -hex 32)
 JWT_SECRET=$(openssl rand -hex 32)
-ADMIN_PASSWORD=${RANDOM_ADMIN_PASS}
+ADMIN_PASSWORD=admin123
 SMS_API_TOKEN=
 TELEGRAM_BOT_TOKEN=
 ENV_EOF
