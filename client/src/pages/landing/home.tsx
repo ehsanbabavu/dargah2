@@ -68,7 +68,7 @@ export default function Home() {
             <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
               {/* Hero Text Content */}
               <div className="lg:col-span-7 flex flex-col items-start gap-4 sm:gap-6 text-right">
-                <h1 className="text-[22px] sm:text-[28px] md:text-[36px] lg:text-[44px] font-black leading-[34px] text-center w-full text-white tracking-tight">
+                <h1 className="text-[22px] sm:text-[28px] leading-[34px] text-center lg:text-[33px] lg:leading-[53px] lg:text-justify font-black w-full text-white tracking-tight">
                   سامانه یکپارچه درگاه پرداخت، فروشگاه آنلاین و مدیریت فروش
                 </h1>
 
