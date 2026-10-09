@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { 
-  ArrowRight, Home, Smartphone, KeyRound, Lock, Eye, EyeOff, 
+  ArrowRight, Home, Smartphone, Lock, Eye, EyeOff, 
   ShieldAlert, Loader2, Sparkles, UserPlus, CheckCircle2, 
   RotateCcw, Clock, AlertTriangle, LogIn
 } from "lucide-react";
@@ -410,13 +410,6 @@ export default function Login() {
             
             {/* Header / Brand Title */}
             <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-purple-600 text-white shadow-lg mb-3">
-                {step === "phone" ? (
-                  <Smartphone className="w-7 h-7" />
-                ) : (
-                  <KeyRound className="w-7 h-7" />
-                )}
-              </div>
               <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
                 {step === "phone" ? "ورود به حساب کاربری" : "رمز عبور را وارد کنید"}
               </h1>
