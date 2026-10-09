@@ -410,31 +410,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ================= BIG ACTION BANNER ================= */}
-        <section className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-          <div className="rounded-2xl sm:rounded-3xl bg-[#2848d3] text-white p-6 sm:p-10 lg:p-16 text-center relative overflow-hidden shadow-2xl">
-            {/* Glowing background sphere */}
-            <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-80 sm:w-96 h-80 sm:h-96 bg-[#1932B8] rounded-full blur-3xl opacity-60 pointer-events-none"></div>
-            <div className="relative z-10 max-w-2xl mx-auto flex flex-col items-center gap-4 sm:gap-6">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-inner">
-                <span className="material-symbols-outlined text-2xl sm:text-3xl text-[#ffba38]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
-              </div>
-              <h2 className="text-[22px] sm:text-[28px] lg:text-[44px] font-black tracking-tight text-white leading-tight sm:leading-snug">
-                شروع فعالیت در سامانه پذیرندگان رخش پی
-              </h2>
-              <p className="text-[13px] sm:text-[15px] lg:text-[16px] text-[#c5ccff] max-w-xl">
-                همین حالا وارد پنل خود شوید و درگاه کارت به کارت اختصاصی خود را در کمتر از ۵ دقیقه راه‌اندازی کنید
-              </p>
-              <Link
-                href="/login"
-                className="inline-flex items-center justify-center w-full sm:w-auto px-6 sm:px-8 h-11 sm:h-12 rounded-xl bg-white text-[#2848d3] font-bold text-[14px] sm:text-[15px] hover:bg-slate-50 shadow-lg active:scale-98 transition-all duration-200 text-center"
-              >
-                ورود به پنل اختصاصی کاربر
-              </Link>
-            </div>
-          </div>
-        </section>
-
       </main>
 
       {/* ================= FOOTER ================= */}
