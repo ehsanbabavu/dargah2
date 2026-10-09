@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import loginVideo from "@assets/YouCut_20250930_005437820_1759181322984.mp4";
 
 export interface LoginPageConfig {
   gradientType?: "preset" | "custom";
@@ -722,23 +721,20 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Left Side: Media / Custom Image Container (Identical to Register Layout) */}
+      {/* Left Side: Media / Site Logo Container */}
       <div className="hidden lg:flex lg:w-1/2 bg-white items-center justify-center p-8 relative overflow-hidden">
         <div className="relative z-10 text-center w-full max-w-lg flex items-center justify-center">
           {showCustomImage ? (
             <img 
               src={pageConfig?.imageUrl} 
               alt="Login Visual" 
-              className={`max-h-[80vh] w-auto max-w-full mx-auto object-${pageConfig?.imageFit || "contain"} rounded-2xl shadow-sm transition-all duration-300`}
+              className={`max-h-[80vh] w-auto max-w-full mx-auto object-${pageConfig?.imageFit || "contain"} transition-all duration-300 border-0 outline-none shadow-none ring-0`}
             />
           ) : (
-            <video 
-              src={loginVideo} 
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="h-[80vh] w-auto mx-auto mb-6 object-cover rounded-2xl shadow-sm"
+            <img 
+              src="/images/rakhsh_logo.png" 
+              alt="لوگوی سایت رخش پی" 
+              className="h-[80vh] w-auto max-w-full mx-auto object-contain transition-all duration-300 border-0 outline-none shadow-none ring-0 select-none"
             />
           )}
         </div>

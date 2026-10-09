@@ -65,6 +65,11 @@ export class SmsService {
     return { ...this.config };
   }
 
+  public reloadConfig(): SmsConfig {
+    this.config = this.loadConfig();
+    return { ...this.config };
+  }
+
   public updateConfig(newConfig: Partial<SmsConfig>): SmsConfig {
     this.config = {
       ...this.config,

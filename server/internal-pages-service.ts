@@ -230,6 +230,11 @@ export class InternalPagesService {
     return this.config;
   }
 
+  public reloadConfig(): InternalPagesConfig {
+    this.config = this.loadConfig();
+    return this.config;
+  }
+
   public getActiveTemplate(): InternalPageTemplateItem | undefined {
     return (
       this.config.templates.find((t) => t.id === this.config.activeTemplateId) ||

@@ -425,6 +425,11 @@ export class NotFoundService {
     return { ...this.config };
   }
 
+  public reloadConfig(): NotFoundConfig {
+    this.config = this.loadConfig();
+    return { ...this.config };
+  }
+
   public getActiveTemplate(): NotFoundTemplateItem | undefined {
     return (
       this.config.templates.find((t) => t.id === this.config.activeTemplateId) ||

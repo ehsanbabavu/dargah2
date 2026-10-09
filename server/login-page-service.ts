@@ -81,6 +81,11 @@ export class LoginPageService {
     return { ...this.config };
   }
 
+  public reloadConfig(): LoginPageConfig {
+    this.config = this.loadConfig();
+    return { ...this.config };
+  }
+
   public updateConfig(updates: Partial<LoginPageConfig>): LoginPageConfig {
     this.config = {
       ...this.config,

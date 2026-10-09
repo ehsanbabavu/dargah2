@@ -7048,6 +7048,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Direct restore a specific backup file stored on the server
+  app.post("/api/admin/backup/:filename/restore", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user || req.user.role !== "admin") {
+        return res.status(403).json({ message: "دسترسی غیرمجاز" });
+      }
+
+      const { filename } = req.params;
+
+      if (filename.includes('/') || filename.includes('\\') || filename.includes('..')) {
+        return res.status(400).json({ message: "نام فایل نامعتبر است" });
+      }
+
+      if (!filename.endsWith('.sql') && !filename.endsWith('.json')) {
+        return res.status(400).json({ message: "فقط فایل‌های JSON و SQL مجاز هستند" });
+      }
+
+      const backupsDir = path.resolve(process.cwd(), "backups");
+      const requestedFilePath = path.resolve(backupsDir, filename);
+
+      if (!requestedFilePath.startsWith(backupsDir + path.sep)) {
+        return res.status(400).json({ message: "دسترسی به فایل غیرمجاز است" });
+      }
+
+      if (!fs.existsSync(requestedFilePath)) {
+        return res.status(404).json({ message: "فایل بک‌آپ یافت نشد" });
+      }
+
+      if (filename.endsWith('.json')) {
+        const rawContent = fs.readFileSync(requestedFilePath, 'utf-8');
+        const backupData = JSON.parse(rawContent);
+        const result = await restoreFullSystemBackup(backupData);
+
+        return res.json({
+          message: result.message || "بک‌آپ کامل سیستم با موفقیت بازیابی شد",
+          filename,
+          details: result,
+        });
+      }
+
+      if (filename.endsWith('.sql')) {
+        const { exec } = await import("child_process");
+        const { promisify } = await import("util");
+        const execAsync = promisify(exec);
+        const databaseUrl = process.env.DATABASE_URL;
+
+        if (!databaseUrl) {
+          return res.status(500).json({ message: "تنظیمات دیتابیس یافت نشد" });
+        }
+
+        await execAsync(`psql "${databaseUrl}" < "${requestedFilePath}"`);
+        return res.json({
+          message: "بک‌آپ SQL دیتابیس با موفقیت بازیابی شد",
+          filename,
+        });
+      }
+
+      return res.status(400).json({ message: "فرمت فایل پشتیبانی نمی‌شود" });
+    } catch (error: any) {
+      console.error("Error restoring backup file directly:", error);
+      res.status(500).json({ message: error.message || "خطا در بازیابی فایل بک‌آپ" });
+    }
+  });
+
   // Delete a backup file
   app.delete("/api/admin/backup/:filename", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -7088,24 +7152,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ====== Maintenance Mode Routes ======
-  
+  let memoryMaintenanceMode = { id: "m-default", isEnabled: false, updatedAt: new Date() };
+
   // Get maintenance mode status (no authentication - public endpoint)
   app.get("/api/maintenance/status", async (req, res) => {
     try {
-      const [status] = await db.select().from(maintenanceMode).limit(1);
-      
-      if (!status) {
-        // Create default record if doesn't exist
-        const [newStatus] = await db.insert(maintenanceMode).values({
-          isEnabled: false
-        }).returning();
-        return res.json({ isEnabled: false });
+      if (process.env.DATABASE_URL) {
+        const [status] = await db.select().from(maintenanceMode).limit(1);
+        if (status) {
+          return res.json({ isEnabled: Boolean(status.isEnabled) });
+        }
       }
-      
-      res.json({ isEnabled: status.isEnabled });
+      return res.json({ isEnabled: memoryMaintenanceMode.isEnabled });
     } catch (error) {
       console.error("Error getting maintenance status:", error);
-      res.status(500).json({ message: "خطا در دریافت وضعیت" });
+      res.json({ isEnabled: memoryMaintenanceMode.isEnabled });
     }
   });
 
@@ -7117,28 +7178,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { isEnabled } = req.body;
+      const boolVal = Boolean(isEnabled);
+      memoryMaintenanceMode.isEnabled = boolVal;
+      memoryMaintenanceMode.updatedAt = new Date();
 
-      const [status] = await db.select().from(maintenanceMode).limit(1);
-      
-      if (!status) {
-        // Create new record
-        const [newStatus] = await db.insert(maintenanceMode).values({
-          isEnabled: isEnabled
-        }).returning();
-        return res.json(newStatus);
+      if (process.env.DATABASE_URL) {
+        const [status] = await db.select().from(maintenanceMode).limit(1);
+        if (!status) {
+          const [newStatus] = await db.insert(maintenanceMode).values({ isEnabled: boolVal }).returning();
+          return res.json(newStatus || memoryMaintenanceMode);
+        }
+        const [updated] = await db
+          .update(maintenanceMode)
+          .set({ isEnabled: boolVal, updatedAt: new Date() })
+          .where(eq(maintenanceMode.id, status.id))
+          .returning();
+        return res.json(updated || memoryMaintenanceMode);
       }
-      
-      // Update existing record
-      const [updated] = await db
-        .update(maintenanceMode)
-        .set({ 
-          isEnabled: isEnabled,
-          updatedAt: new Date()
-        })
-        .where(eq(maintenanceMode.id, status.id))
-        .returning();
-      
-      res.json(updated);
+
+      res.json(memoryMaintenanceMode);
     } catch (error) {
       console.error("Error toggling maintenance mode:", error);
       res.status(500).json({ message: "خطا در تغییر وضعیت" });

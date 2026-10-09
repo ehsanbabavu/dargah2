@@ -89,6 +89,11 @@ export class LandingService {
     this.initDefaultPreview();
   }
 
+  public reloadConfig(): LandingConfig {
+    this.config = this.loadConfig();
+    return this.config;
+  }
+
   private ensureDirectoryExists(dir: string) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });

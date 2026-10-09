@@ -330,6 +330,11 @@ export class TelegramService {
     return { ...this.config };
   }
 
+  public reloadConfig(): TelegramConfig {
+    this.config = this.loadConfig();
+    return { ...this.config };
+  }
+
   public getBotUsers(): TelegramBotUser[] {
     return this.config.botUsers || [];
   }

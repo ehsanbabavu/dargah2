@@ -14,7 +14,6 @@ import {
   RotateCcw,
   ExternalLink,
   Check,
-  Video,
   Eye,
   Link as LinkIcon,
   Trash2,
@@ -26,7 +25,6 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createAuthenticatedRequest } from "@/lib/auth";
-import loginVideo from "@assets/YouCut_20250930_005437820_1759181322984.mp4";
 
 export interface LoginPageConfig {
   gradientType: "preset" | "custom";
@@ -523,8 +521,8 @@ export function LoginPageTab() {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <Video className="w-3 h-3" />
-                  <span>انیمیشن پیش‌فرض</span>
+                  <ImageIcon className="w-3 h-3" />
+                  <span>لوگوی سایت (پیش‌فرض)</span>
                 </button>
 
                 <button
@@ -654,13 +652,10 @@ export function LoginPageTab() {
                 {/* Left side visual */}
                 <div className="w-1/2 bg-white dark:bg-slate-950 p-2 flex items-center justify-center border-r border-border/40">
                   {imageType === "default" || !imageUrl ? (
-                    <video
-                      src={loginVideo}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className="max-h-32 w-auto object-cover rounded"
+                    <img
+                      src="/images/rakhsh_logo.png"
+                      alt="لوگوی سایت"
+                      className="max-h-32 w-auto object-contain border-0 shadow-none outline-none"
                     />
                   ) : (
                     <img

@@ -229,6 +229,10 @@ export interface IStorage {
   deleteAnnouncement(id: string): Promise<boolean>;
   markAnnouncementAsRead(announcementId: string, userId: string): Promise<boolean>;
   getUnreadAnnouncementsCount(userId: string, role: string): Promise<number>;
+
+  // System Backup & Restore
+  exportAllTables(): Promise<Record<string, any[]>>;
+  importAllTables(data: Record<string, any[]>): Promise<{ restoredCount: number; tablesCount: number }>;
 }
 
 export class MemStorage implements IStorage {
@@ -2981,6 +2985,104 @@ export class MemStorage implements IStorage {
   async getUnreadAnnouncementsCount(userId: string, role: string): Promise<number> {
     const announcements = await this.getAnnouncementsForUser(userId, role);
     return announcements.filter(a => !a.isRead).length;
+  }
+
+  async exportAllTables(): Promise<Record<string, any[]>> {
+    return {
+      users: Array.from(this.users.values()),
+      tickets: Array.from(this.tickets.values()),
+      subscriptions: Array.from(this.subscriptions.values()),
+      products: Array.from(this.products.values()),
+      sentMessages: Array.from(this.sentMessages.values()),
+      receivedMessages: Array.from(this.receivedMessages.values()),
+      userSubscriptions: Array.from(this.userSubscriptions.values()),
+      categories: Array.from(this.categories.values()),
+      carts: Array.from(this.carts.values()),
+      cartItems: Array.from(this.cartItems.values()),
+      addresses: Array.from(this.addresses.values()),
+      orders: Array.from(this.orders.values()),
+      orderItems: Array.from(this.orderItems.values()),
+      transactions: Array.from(this.transactions.values()),
+      internalChats: Array.from(this.internalChats.values()),
+      faqs: Array.from(this.faqs.values()),
+      passwordResetOtps: Array.from(this.passwordResetOtps.values()),
+      loginLogs: Array.from(this.loginLogs.values()),
+      plugins: Array.from(this.plugins.values()),
+      seoSettings: this.seoSettings ? [this.seoSettings] : [],
+      seoIndexingLogs: Array.from(this.seoIndexingLogs.values()),
+      sslCertificates: Array.from(this.sslCertificates.values()),
+      sslLogs: Array.from(this.sslLogs.values()),
+      blupalGateways: Array.from(this.blupalGateways.values()),
+      blupalTransactions: Array.from(this.blupalTransactions.values()),
+      announcements: Array.from(this.announcements.values()),
+      announcementReads: Array.from(this.announcementReads.values()),
+      guestChatSessions: Array.from(this.guestChatSessions.values()),
+      guestChatMessages: Array.from(this.guestChatMessages.values()),
+      projectOrderRequests: Array.from(this.projectOrderRequests.values()),
+    };
+  }
+
+  async importAllTables(data: Record<string, any[]>): Promise<{ restoredCount: number; tablesCount: number }> {
+    let restoredCount = 0;
+    let tablesCount = 0;
+
+    const restoreMap = (map: Map<string, any>, items?: any[], keyProp = "id") => {
+      if (Array.isArray(items) && items.length > 0) {
+        map.clear();
+        for (const item of items) {
+          const cleanItem = { ...item };
+          // Parse date strings to Date objects
+          for (const [k, v] of Object.entries(cleanItem)) {
+            if (typeof v === "string" && (k.endsWith("At") || k === "date" || k === "timestamp" || k === "paidAt" || k === "readAt" || k === "startDate" || k === "endDate")) {
+              const d = new Date(v);
+              if (!isNaN(d.getTime())) cleanItem[k] = d;
+            }
+          }
+          const key = cleanItem[keyProp] || cleanItem.id || randomUUID();
+          map.set(key, cleanItem);
+        }
+        restoredCount += items.length;
+        tablesCount++;
+      }
+    };
+
+    restoreMap(this.users, data.users, "id");
+    restoreMap(this.blupalGateways, data.blupalGateways, "id");
+    restoreMap(this.blupalTransactions, data.blupalTransactions, "id");
+    restoreMap(this.transactions, data.transactions, "id");
+    restoreMap(this.orders, data.orders, "id");
+    restoreMap(this.orderItems, data.orderItems, "id");
+    restoreMap(this.carts, data.carts, "id");
+    restoreMap(this.cartItems, data.cartItems, "id");
+    restoreMap(this.subscriptions, data.subscriptions, "id");
+    restoreMap(this.userSubscriptions, data.userSubscriptions, "id");
+    restoreMap(this.products, data.products, "id");
+    restoreMap(this.categories, data.categories, "id");
+    restoreMap(this.tickets, data.tickets, "id");
+    restoreMap(this.addresses, data.addresses, "id");
+    restoreMap(this.sentMessages, data.sentMessages, "id");
+    restoreMap(this.receivedMessages, data.receivedMessages, "id");
+    restoreMap(this.internalChats, data.internalChats, "id");
+    restoreMap(this.faqs, data.faqs, "id");
+    restoreMap(this.passwordResetOtps, data.passwordResetOtps, "id");
+    restoreMap(this.loginLogs, data.loginLogs, "id");
+    restoreMap(this.plugins, data.plugins, "id");
+    restoreMap(this.seoIndexingLogs, data.seoIndexingLogs, "id");
+    restoreMap(this.sslCertificates, data.sslCertificates, "id");
+    restoreMap(this.sslLogs, data.sslLogs, "id");
+    restoreMap(this.announcements, data.announcements, "id");
+    restoreMap(this.announcementReads, data.announcementReads, "id");
+    restoreMap(this.guestChatSessions, data.guestChatSessions, "sessionToken");
+    restoreMap(this.guestChatMessages, data.guestChatMessages, "id");
+    restoreMap(this.projectOrderRequests, data.projectOrderRequests, "id");
+
+    if (Array.isArray(data.seoSettings) && data.seoSettings.length > 0) {
+      this.seoSettings = { ...data.seoSettings[0] };
+      restoredCount += 1;
+      tablesCount++;
+    }
+
+    return { restoredCount, tablesCount };
   }
 }
 

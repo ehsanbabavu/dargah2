@@ -2,7 +2,7 @@ import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { eq, sql, desc, and, gte, or, inArray, ne, ilike, lt } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { users, tickets, subscriptions, products, sentMessages, receivedMessages, userSubscriptions, categories, carts, cartItems, addresses, orders, orderItems, transactions, internalChats, faqs, passwordResetOtps, contentSections, loginLogs, guestChatSessions, guestChatMessages, projectOrderRequests, plugins, seoSettings, seoIndexingLogs, sslCertificates, sslLogs, blupalGateways, blupalTransactions, announcements, announcementReads } from "@shared/schema";
+import { users, tickets, subscriptions, products, sentMessages, receivedMessages, userSubscriptions, categories, carts, cartItems, addresses, orders, orderItems, transactions, internalChats, faqs, passwordResetOtps, maintenanceMode, contentSections, loginLogs, guestChatSessions, guestChatMessages, projectOrderRequests, plugins, seoSettings, seoIndexingLogs, sslCertificates, sslLogs, blupalGateways, blupalTransactions, announcements, announcementReads } from "@shared/schema";
 import { type User, type InsertUser, type Ticket, type InsertTicket, type Subscription, type InsertSubscription, type Product, type InsertProduct, type SentMessage, type InsertSentMessage, type ReceivedMessage, type InsertReceivedMessage, type UserSubscription, type InsertUserSubscription, type Category, type InsertCategory, type Cart, type InsertCart, type CartItem, type InsertCartItem, type Address, type InsertAddress, type Order, type InsertOrder, type OrderItem, type InsertOrderItem, type Transaction, type InsertTransaction, type InternalChat, type InsertInternalChat, type Faq, type InsertFaq, type UpdateFaq, type PasswordResetOtp, type InsertPasswordResetOtp, type ContentSection, type InsertContentSection, type LoginLog, type InsertLoginLog, type GuestChatSession, type InsertGuestChatSession, type GuestChatMessage, type InsertGuestChatMessage, type ProjectOrderRequest, type InsertProjectOrderRequest, type Plugin, type InsertPlugin, type SeoSettings, type InsertSeoSettings, type UpdateSeoSettings, type SeoIndexingLog, type InsertSeoIndexingLog, type SslCertificate, type InsertSslCertificate, type UpdateSslCertificate, type SslLog, type InsertSslLog, type BlupalGateway, type InsertBlupalGateway, type BlupalTransaction, type InsertBlupalTransaction, type Announcement, type InsertAnnouncement, type AnnouncementRead } from "@shared/schema";
 import { type IStorage } from "./storage";
 import bcrypt from "bcryptjs";
@@ -3250,5 +3250,165 @@ export class DbStorage implements IStorage {
       console.error("Error counting unread announcements:", error);
       return 0;
     }
+  }
+
+  async exportAllTables(): Promise<Record<string, any[]>> {
+    const databaseData: Record<string, any[]> = {};
+    if (!process.env.DATABASE_URL) {
+      return databaseData;
+    }
+
+    const tablesMap: Record<string, any> = {
+      users,
+      subscriptions,
+      userSubscriptions,
+      products,
+      categories,
+      tickets,
+      orders,
+      orderItems,
+      carts,
+      cartItems,
+      addresses,
+      transactions,
+      sentMessages,
+      receivedMessages,
+      internalChats,
+      faqs,
+      passwordResetOtps,
+      maintenanceMode,
+      guestChatSessions,
+      guestChatMessages,
+      contentSections,
+      loginLogs,
+      projectOrderRequests,
+      plugins,
+      seoSettings,
+      seoIndexingLogs,
+      sslCertificates,
+      sslLogs,
+      blupalGateways,
+      blupalTransactions,
+      announcements,
+      announcementReads,
+    };
+
+    for (const [name, schema] of Object.entries(tablesMap)) {
+      try {
+        const rows = await db.select().from(schema);
+        databaseData[name] = rows || [];
+      } catch (err) {
+        console.error(`Error exporting table ${name}:`, err);
+        databaseData[name] = [];
+      }
+    }
+    return databaseData;
+  }
+
+  async importAllTables(data: Record<string, any[]>): Promise<{ restoredCount: number; tablesCount: number }> {
+    let restoredCount = 0;
+    let tablesCount = 0;
+    if (!process.env.DATABASE_URL) {
+      return { restoredCount, tablesCount };
+    }
+
+    const tableRestoreOrder = [
+      "users",
+      "subscriptions",
+      "categories",
+      "userSubscriptions",
+      "products",
+      "tickets",
+      "carts",
+      "cartItems",
+      "addresses",
+      "orders",
+      "orderItems",
+      "transactions",
+      "sentMessages",
+      "receivedMessages",
+      "internalChats",
+      "faqs",
+      "passwordResetOtps",
+      "maintenanceMode",
+      "guestChatSessions",
+      "guestChatMessages",
+      "contentSections",
+      "loginLogs",
+      "projectOrderRequests",
+      "plugins",
+      "seoSettings",
+      "seoIndexingLogs",
+      "sslCertificates",
+      "sslLogs",
+      "blupalGateways",
+      "blupalTransactions",
+      "announcements",
+      "announcementReads",
+    ];
+
+    const tablesMap: Record<string, any> = {
+      users,
+      subscriptions,
+      categories,
+      userSubscriptions,
+      products,
+      tickets,
+      carts,
+      cartItems,
+      addresses,
+      orders,
+      orderItems,
+      transactions,
+      sentMessages,
+      receivedMessages,
+      internalChats,
+      faqs,
+      passwordResetOtps,
+      maintenanceMode,
+      guestChatSessions,
+      guestChatMessages,
+      contentSections,
+      loginLogs,
+      projectOrderRequests,
+      plugins,
+      seoSettings,
+      seoIndexingLogs,
+      sslCertificates,
+      sslLogs,
+      blupalGateways,
+      blupalTransactions,
+      announcements,
+      announcementReads,
+    };
+
+    for (const tableName of tableRestoreOrder) {
+      const schema = tablesMap[tableName];
+      const rows = data[tableName];
+      if (schema && Array.isArray(rows) && rows.length > 0) {
+        try {
+          const chunkSize = 50;
+          for (let i = 0; i < rows.length; i += chunkSize) {
+            const chunk = rows.slice(i, i + chunkSize);
+            const formatted = chunk.map((r: any) => {
+              const clean: any = { ...r };
+              for (const [k, v] of Object.entries(clean)) {
+                if (typeof v === "string" && (k.endsWith("At") || k === "date" || k === "timestamp" || k === "paidAt" || k === "readAt" || k === "startDate" || k === "endDate" || k === "expiresAt")) {
+                  const d = new Date(v);
+                  if (!isNaN(d.getTime())) clean[k] = d;
+                }
+              }
+              return clean;
+            });
+            await db.insert(schema).values(formatted).onConflictDoNothing();
+          }
+          restoredCount += rows.length;
+          tablesCount++;
+        } catch (e) {
+          console.error(`Error importing table ${tableName}:`, e);
+        }
+      }
+    }
+    return { restoredCount, tablesCount };
   }
 }

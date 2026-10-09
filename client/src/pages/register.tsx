@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import loginVideo from "@assets/YouCut_20250930_005437820_1759181322984.mp4";
 import { 
   Smartphone, KeyRound, User, ArrowLeft, CheckCircle2, 
   RotateCcw, Lock, Loader2, Sparkles, ShieldCheck,
@@ -918,16 +917,13 @@ export default function Register() {
             <img 
               src={pageConfig?.imageUrl} 
               alt="Register Visual" 
-              className={`max-h-[80vh] w-auto max-w-full mx-auto object-${pageConfig?.imageFit || "contain"} rounded-2xl shadow-xl transition-all duration-300`}
+              className={`max-h-[80vh] w-auto max-w-full mx-auto object-${pageConfig?.imageFit || "contain"} transition-all duration-300 border-0 outline-none shadow-none ring-0`}
             />
           ) : (
-            <video 
-              src={loginVideo} 
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="h-[80vh] w-auto mx-auto mb-6 object-cover rounded-2xl shadow-xl"
+            <img 
+              src="/images/rakhsh_logo.png" 
+              alt="لوگوی سایت رخش پی" 
+              className="h-[80vh] w-auto max-w-full mx-auto object-contain transition-all duration-300 border-0 outline-none shadow-none ring-0 select-none"
             />
           )}
         </div>
