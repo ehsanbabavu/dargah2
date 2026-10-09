@@ -129,6 +129,14 @@ export function createPluginZipArchive(serverBaseUrl: string, prefilledApiKey?: 
   const iconSvg = generateIconSvg();
   zip.addFile(`${folderName}/assets/images/icon.svg`, Buffer.from(iconSvg, "utf-8"));
 
+  // Rakhsh Pay Official Logo Image (icon.png) for WooCommerce Gateway
+  const rakhshLogoPath = path.join(process.cwd(), "public/images/card-to-card-icon.png");
+  if (fs.existsSync(rakhshLogoPath)) {
+    const rakhshLogoBuffer = fs.readFileSync(rakhshLogoPath);
+    zip.addFile(`${folderName}/assets/images/icon.png`, rakhshLogoBuffer);
+    zip.addFile(`${folderName}/assets/images/rakhsh-logo.png`, rakhshLogoBuffer);
+  }
+
   // 4. Languages: POT Template
   const potContent = generatePotFile();
   zip.addFile(`${folderName}/languages/wc-blupal-c2c.pot`, Buffer.from(potContent, "utf-8"));

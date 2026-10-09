@@ -184,10 +184,14 @@ function blupal_c2c_enqueue_frontend_scripts() {
         $title = !empty($settings['title']) ? $settings['title'] : 'پرداخت کارت به کارت هوشمند (تایید آنی)';
         $description = !empty($settings['description']) ? $settings['description'] : 'انتقال وجه کارت به کارت با تایید خودکار و لحظه‌ای از شبکه شتاب.';
 
+        $icon_url = file_exists(BLUPAL_C2C_DIR . 'assets/images/icon.png') 
+            ? (BLUPAL_C2C_URL . 'assets/images/icon.png') 
+            : (BLUPAL_C2C_URL . 'assets/images/icon.svg');
+
         wp_localize_script('blupal-c2c-blocks-integration', 'blupalC2cConfig', array(
             'title'       => $title,
             'description' => $description,
-            'icon'        => BLUPAL_C2C_URL . 'assets/images/icon.svg',
+            'icon'        => $icon_url,
             'enabled'     => (!isset($settings['enabled']) || $settings['enabled'] !== 'no'),
         ));
     }
@@ -312,7 +316,10 @@ if (!class_exists('WC_Gateway_Blupal_C2C') && class_exists('WC_Payment_Gateway')
 
         public function __construct() {
             $this->id                 = 'blupal_c2c';
-            $this->icon               = apply_filters('woocommerce_blupal_c2c_icon', BLUPAL_C2C_URL . 'assets/images/icon.svg');
+            $default_icon = file_exists(BLUPAL_C2C_DIR . 'assets/images/icon.png') 
+                ? (BLUPAL_C2C_URL . 'assets/images/icon.png') 
+                : (BLUPAL_C2C_URL . 'assets/images/icon.svg');
+            $this->icon               = apply_filters('woocommerce_blupal_c2c_icon', $default_icon);
             $this->has_fields         = false;
             $this->supports           = array('products');
             $this->method_title       = __('پرداخت کارت به کارت هوشمند', 'wc-blupal-c2c');
@@ -2755,10 +2762,14 @@ if (!class_exists('WC_Blupal_Blocks_Support') && class_exists('Automattic\\WooCo
         }
 
         public function get_payment_method_data() {
+            $icon_url = file_exists(BLUPAL_C2C_DIR . 'assets/images/icon.png') 
+                ? (BLUPAL_C2C_URL . 'assets/images/icon.png') 
+                : (BLUPAL_C2C_URL . 'assets/images/icon.svg');
+
             return array(
                 'title'       => isset($this->settings['title']) && !empty($this->settings['title']) ? $this->settings['title'] : __('پرداخت کارت به کارت هوشمند (تایید آنی)', 'wc-blupal-c2c'),
                 'description' => isset($this->settings['description']) && !empty($this->settings['description']) ? $this->settings['description'] : __('انتقال وجه کارت به کارت با تایید خودکار و لحظه‌ای از شبکه شتاب.', 'wc-blupal-c2c'),
-                'icon'        => BLUPAL_C2C_URL . 'assets/images/icon.svg',
+                'icon'        => $icon_url,
                 'supports'    => array('products'),
                 'ariaLabel'   => __('پرداخت کارت به کارت هوشمند (تایید آنی)', 'wc-blupal-c2c'),
             );
