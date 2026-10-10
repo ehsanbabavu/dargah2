@@ -35,7 +35,6 @@ RUN npm run build
 FROM node:20-slim AS runner
 
 ENV NODE_ENV=production
-ENV PORT=3000
 
 WORKDIR /app
 
@@ -65,5 +64,5 @@ RUN mkdir -p uploads stamppic public/invoices && chmod -R 755 uploads stamppic p
 # Expose the application port
 EXPOSE 3000
 
-# Start the application
-CMD ["npm", "run", "start"]
+# Start the application directly with node (standard for cloud containers)
+CMD ["node", "dist/index.js"]
