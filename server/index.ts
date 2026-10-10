@@ -7,6 +7,13 @@ import { storage } from "./storage";
 import path from "path";
 import fs from "fs";
 
+process.on("uncaughtException", (err) => {
+  console.error("💥 Uncaught Exception:", err);
+});
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("💥 Unhandled Rejection at:", promise, "reason:", reason);
+});
+
 const app = express();
 
 // Trust proxy - برای دریافت صحیح IP واقعی کاربر از طریق پروکسی Replit
@@ -148,4 +155,7 @@ app.use((req, res, next) => {
 
   process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
   process.on("SIGINT", () => gracefulShutdown("SIGINT"));
-})();
+})().catch((err) => {
+  console.error("💥 Fatal Startup Error in server/index.ts:", err);
+  process.exit(1);
+});
