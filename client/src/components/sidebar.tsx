@@ -77,7 +77,6 @@ export function AppSidebar() {
   const { data: userSubscription } = useQuery<{
     status: string;
     remainingDays: number;
-    subscriptionName?: string | null;
   } | null>({
     queryKey: ['/api/user-subscriptions/me'],
     queryFn: async () => {
@@ -390,40 +389,6 @@ export function AppSidebar() {
             </>
           )}
         </SidebarMenu>
-
-        {/* Subscription Status Widget for Level 1 User in Sidebar */}
-        {user?.role === "user_level_1" && userSubscription && (
-          <div className="p-3 mx-3 my-2 rounded-2xl bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 shadow-xs" data-testid="sidebar-subscription-card">
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                <span className="text-[11px] font-bold text-slate-700 dark:text-zinc-200 truncate">
-                  {userSubscription.subscriptionName || "اشتراک کاربری"}
-                </span>
-              </div>
-              <span className={cn(
-                "text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full shrink-0",
-                userSubscription.status === "active" && userSubscription.remainingDays > 7
-                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400"
-                  : userSubscription.status === "active" && userSubscription.remainingDays > 0
-                  ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 animate-pulse"
-                  : "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400"
-              )}>
-                {userSubscription.remainingDays} روز باقی
-              </span>
-            </div>
-            <Link href="/buy-subscription">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full h-7 text-[11px] font-bold rounded-xl border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-zinc-700 dark:text-indigo-400"
-                onClick={() => sidebar?.setOpenMobile(false)}
-              >
-                تمدید اعتبار
-              </Button>
-            </Link>
-          </div>
-        )}
       </nav>
     </aside>
   );

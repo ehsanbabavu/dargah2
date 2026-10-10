@@ -1008,11 +1008,8 @@ export class DbStorage implements IStorage {
   }
 
   async updateRemainingDays(id: string, remainingDays: number): Promise<UserSubscription | undefined> {
-    const existing = await this.getUserSubscriptionById(id);
     const normalizedDays = Math.max(0, Math.floor(remainingDays));
-    const status = normalizedDays <= 0 
-      ? 'expired' 
-      : (existing?.status === 'suspended' ? 'suspended' : 'active');
+    const status = normalizedDays <= 0 ? 'expired' : 'active';
     const endDate = normalizedDays > 0
       ? new Date(Date.now() + normalizedDays * 24 * 60 * 60 * 1000)
       : new Date();

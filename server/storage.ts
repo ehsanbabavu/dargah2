@@ -1003,9 +1003,9 @@ export class MemStorage implements IStorage {
     let endDate = userSub.endDate ? new Date(userSub.endDate) : null;
     const startDate = userSub.startDate ? new Date(userSub.startDate) : (userSub.createdAt ? new Date(userSub.createdAt) : new Date());
 
-    // If endDate is missing or invalid but remainingDays > 0, calculate endDate from startDate
+    // If endDate is missing or invalid but remainingDays > 0, calculate endDate from now
     if ((!endDate || isNaN(endDate.getTime())) && typeof userSub.remainingDays === 'number' && userSub.remainingDays > 0) {
-      endDate = new Date(startDate.getTime() + userSub.remainingDays * 24 * 60 * 60 * 1000);
+      endDate = new Date(Date.now() + userSub.remainingDays * 24 * 60 * 60 * 1000);
     }
 
     const endDateTime = endDate && !isNaN(endDate.getTime()) ? endDate.getTime() : 0;

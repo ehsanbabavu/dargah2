@@ -24,7 +24,6 @@ import { notifyWooCommerceWebhook } from "./woocommerce-service";
 import { smsService } from "./sms-service";
 import { telegramService } from "./telegram-service";
 import { createFullSystemBackup, restoreFullSystemBackup } from "./backup-service";
-import { subscriptionSyncService } from "./subscription-service";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -3419,63 +3418,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Daily subscription reduction endpoint (supports Admin token, CRON secret, or localhost)
-  app.post("/api/user-subscriptions/daily-reduction", async (req: Request, res: Response) => {
+  // Daily subscription reduction endpoint (for cron job)
+  app.post("/api/user-subscriptions/daily-reduction", authenticateToken, requireAdmin, async (req, res) => {
     try {
-      const cronSecret = (req.headers["x-cron-secret"] || req.query.cron_secret || req.query.secret) as string | undefined;
-      const configuredSecret = process.env.CRON_SECRET || "rakhsh-cron-secret";
-      const isCronSecretValid = Boolean(cronSecret && cronSecret === configuredSecret);
-      const isLocalhost = req.ip === "127.0.0.1" || req.ip === "::1" || req.hostname === "localhost";
-
-      const executeReduction = async () => {
-        const result = await subscriptionSyncService.decrementDaily();
-        return res.json(result);
-      };
-
-      if (isCronSecretValid || isLocalhost) {
-        return await executeReduction();
+      const activeSubscriptions = await storage.getActiveUserSubscriptions();
+      const updatedSubscriptions = [];
+      
+      for (const subscription of activeSubscriptions) {
+        if (subscription.remainingDays > 0) {
+          const newRemainingDays = subscription.remainingDays - 1;
+          const updated = await storage.updateRemainingDays(subscription.id, newRemainingDays);
+          if (updated) {
+            updatedSubscriptions.push(updated);
+          }
+        }
       }
-
-      // If not cron secret or localhost, require Admin JWT
-      return authenticateToken(req, res, () => {
-        requireAdmin(req, res, async () => {
-          return await executeReduction();
-        });
+      
+      res.json({
+        message: `${updatedSubscriptions.length} اشتراک بروزرسانی شد`,
+        updatedSubscriptions
       });
     } catch (error) {
       console.error("خطا در کاهش روزانه اشتراک‌ها:", error);
       res.status(500).json({ message: "خطا در کاهش روزانه اشتراک‌ها" });
-    }
-  });
-
-  // Sync subscriptions endpoint (supports Admin token, CRON secret, or localhost)
-  app.post("/api/user-subscriptions/sync", async (req: Request, res: Response) => {
-    try {
-      const cronSecret = (req.headers["x-cron-secret"] || req.query.cron_secret || req.query.secret) as string | undefined;
-      const configuredSecret = process.env.CRON_SECRET || "rakhsh-cron-secret";
-      const isCronSecretValid = Boolean(cronSecret && cronSecret === configuredSecret);
-      const isLocalhost = req.ip === "127.0.0.1" || req.ip === "::1" || req.hostname === "localhost";
-
-      const executeSync = async () => {
-        const result = await subscriptionSyncService.syncAllSubscriptions();
-        return res.json({
-          message: "همگام‌سازی اشتراک‌ها با موفقیت انجام شد",
-          ...result,
-        });
-      };
-
-      if (isCronSecretValid || isLocalhost) {
-        return await executeSync();
-      }
-
-      return authenticateToken(req, res, () => {
-        requireAdmin(req, res, async () => {
-          return await executeSync();
-        });
-      });
-    } catch (error) {
-      console.error("خطا در همگام‌سازی اشتراک‌ها:", error);
-      res.status(500).json({ message: "خطا در همگام‌سازی اشتراک‌ها" });
     }
   });
 
