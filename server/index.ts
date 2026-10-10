@@ -20,6 +20,11 @@ app.use((_req, res, next) => {
   next();
 });
 
+// Production and PaaS health check endpoints (Render, Docker, Kubernetes)
+app.get(['/health', '/api/health'], (_req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
+
 // JSON parsing middleware - با بررسی content-type و افزایش محدودیت سایز برای فاکتورها
 app.use((req, res, next) => {
   if (req.headers['content-type']?.startsWith('multipart/form-data')) {
@@ -127,4 +132,20 @@ app.use((req, res, next) => {
     // سرویس همگام‌سازی و شمارش معکوس اشتراک‌ها رو شروع کن
     subscriptionSyncService.start();
   });
+
+  // Graceful shutdown handling for cloud platforms (Render, Docker, Kubernetes)
+  const gracefulShutdown = (signal: string) => {
+    log(`Received ${signal}. Gracefully closing HTTP server...`);
+    server.close(() => {
+      log("HTTP server closed. Exiting process.");
+      process.exit(0);
+    });
+    // Force exit after 5s if connections linger
+    setTimeout(() => {
+      process.exit(0);
+    }, 5000);
+  };
+
+  process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+  process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 })();
