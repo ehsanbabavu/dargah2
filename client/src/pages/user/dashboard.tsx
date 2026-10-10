@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { createAuthenticatedRequest } from "@/lib/auth";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import type { UserSubscription, Ticket, Product, Order } from "@shared/schema";
 
 // Extended Order type with customer and address info (same as in received-orders)
@@ -83,6 +84,47 @@ export default function UserDashboard() {
     },
     refetchInterval: 8000,
   });
+
+  // User Subscription query with real-time remaining days (اعتبار زمانی کاربر)
+  const { data: userSubscription, isLoading: subLoading, refetch: refetchSubscription, isRefetching: isSubRefetching } = useQuery<{
+    id: string;
+    subscriptionId: string;
+    status: string;
+    remainingDays: number;
+    isTrialPeriod?: boolean;
+    startDate?: string | Date;
+    endDate?: string | Date;
+    subscriptionName?: string;
+    subscriptionDescription?: string;
+  } | null>({
+    queryKey: ["/api/user-subscriptions/me"],
+    enabled: !!user,
+    queryFn: async () => {
+      const res = await createAuthenticatedRequest("/api/user-subscriptions/me");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    refetchInterval: 12000,
+  });
+
+  // Refresh user subscription remaining days
+  const handleRefreshSubscription = async () => {
+    try {
+      const res = await createAuthenticatedRequest("/api/user-subscriptions/me/refresh", { method: "POST" });
+      if (res.ok) {
+        await queryClient.invalidateQueries({ queryKey: ["/api/user-subscriptions/me"] });
+        await queryClient.refetchQueries({ queryKey: ["/api/user-subscriptions/me"] });
+        toast({
+          title: "بروزرسانی اعتبار زمانی",
+          description: "اعتبار زمانی و تعداد روزهای باقیمانده مجدداً با زمان فعلی همگام‌سازی شد.",
+        });
+      } else {
+        refetchSubscription();
+      }
+    } catch {
+      refetchSubscription();
+    }
+  };
 
   // Get user's tickets
   const { data: tickets = [], isLoading: ticketsLoading } = useQuery<Ticket[]>({
@@ -414,10 +456,207 @@ export default function UserDashboard() {
     );
   }
 
+  // Helper formatters for numbers and dates
+  const formatFa = (num: number | string) => {
+    const n = typeof num === "string" ? parseFloat(num) : num;
+    if (isNaN(n)) return "۰";
+    return n.toLocaleString("fa-IR");
+  };
+
+  const formatPersianDate = (dateStr?: string | Date | null) => {
+    if (!dateStr) return "-";
+    try {
+      const d = new Date(dateStr);
+      return new Intl.DateTimeFormat("fa-IR", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(d);
+    } catch {
+      return String(dateStr);
+    }
+  };
+
   // Admin/Level1 dashboard view
   return (
     <DashboardLayout title="پیشخوان">
       <div className="space-y-6 max-w-6xl mx-auto pb-16" data-testid="dashboard-content" dir="rtl">
+
+        {/* کارت هوشمند اعتبار زمانی و روزهای باقیمانده اشتراک کاربر */}
+        {user?.role === "user_level_1" && (
+          <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 shadow-sm hover:shadow-md transition-all" data-testid="card-user-subscription-credit">
+            {/* نوار رنگی نشانگر وضعیت اعتبار در بالای کارت */}
+            <div className={cn(
+              "h-1.5 w-full bg-gradient-to-r",
+              userSubscription?.status === "active" && (userSubscription?.remainingDays ?? 0) > 7
+                ? "from-emerald-400 via-teal-500 to-indigo-500"
+                : userSubscription?.status === "active" && (userSubscription?.remainingDays ?? 0) > 0
+                ? "from-amber-400 via-orange-500 to-rose-500"
+                : "from-rose-500 via-red-600 to-zinc-700"
+            )} />
+
+            <div className="p-4 sm:p-5">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                
+                {/* بخش راست: آیکون پلن، نام اشتراک، نشان وضعیت و تاریخ انقضا */}
+                <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                  <div className={cn(
+                    "w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-inner",
+                    userSubscription?.status === "active" && (userSubscription?.remainingDays ?? 0) > 7
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                      : userSubscription?.status === "active" && (userSubscription?.remainingDays ?? 0) > 0
+                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                      : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
+                  )}>
+                    <Crown className="w-6 h-6 sm:w-7 sm:h-7" />
+                  </div>
+
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-zinc-100 truncate" data-testid="text-user-plan-name">
+                        {subLoading ? "در حال دریافت وضعیت اشتراک..." : (userSubscription?.subscriptionName || "پلن کاربری درگاه پرداخت")}
+                      </h2>
+                      {userSubscription?.isTrialPeriod && (
+                        <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 font-bold">
+                          آزمایشی
+                        </Badge>
+                      )}
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-[10px] px-2 py-0.5 font-bold",
+                          userSubscription?.status === "active" && (userSubscription?.remainingDays ?? 0) > 7
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                            : userSubscription?.status === "active" && (userSubscription?.remainingDays ?? 0) > 0
+                            ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 animate-pulse"
+                            : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
+                        )}
+                        data-testid="badge-user-subscription-status"
+                      >
+                        {userSubscription?.status === "active" && (userSubscription?.remainingDays ?? 0) > 7
+                          ? "اشتراک فعال و معتبر"
+                          : userSubscription?.status === "active" && (userSubscription?.remainingDays ?? 0) > 0
+                          ? "اعتبار رو به اتمام"
+                          : "منقضی شده"}
+                      </Badge>
+                    </div>
+
+                    <div className="text-[11px] text-slate-500 dark:text-zinc-400 flex items-center gap-2 flex-wrap">
+                      {userSubscription?.endDate ? (
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          <span>پایان اعتبار زمانی:</span>
+                          <span className="font-semibold text-slate-700 dark:text-zinc-300">
+                            {formatPersianDate(userSubscription.endDate)}
+                          </span>
+                        </span>
+                      ) : (
+                        <span>جهت فعال‌سازی درگاه، اشتراک خود را تمدید فرمایید</span>
+                      )}
+                      {userSubscription?.startDate && (
+                        <>
+                          <span className="text-slate-300 dark:text-zinc-700">•</span>
+                          <span>تاریخ شروع: {formatPersianDate(userSubscription.startDate)}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* بخش چپ: شمارنده برجسته روزهای باقیمانده و دکمه‌های عملیات */}
+                <div className="flex items-center justify-between md:justify-end gap-3 sm:gap-4 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-zinc-800">
+                  {/* ویجت روزهای باقیمانده */}
+                  <div 
+                    className={cn(
+                      "px-4 py-2 sm:px-5 sm:py-2.5 rounded-2xl border text-center transition-all min-w-[120px] sm:min-w-[140px]",
+                      userSubscription?.status === "active" && (userSubscription?.remainingDays ?? 0) > 7
+                        ? "bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200/80 dark:border-emerald-900/50"
+                        : userSubscription?.status === "active" && (userSubscription?.remainingDays ?? 0) > 0
+                        ? "bg-amber-50/60 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-900/50"
+                        : "bg-rose-50/60 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/50"
+                    )}
+                    data-testid="box-user-remaining-days"
+                  >
+                    <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-zinc-400 font-medium block">
+                      اعتبار زمانی باقیمانده
+                    </span>
+                    <div className="flex items-baseline justify-center gap-1 mt-0.5">
+                      <span 
+                        className={cn(
+                          "text-2xl sm:text-3xl font-black font-mono tracking-tight",
+                          userSubscription?.status === "active" && (userSubscription?.remainingDays ?? 0) > 7
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : userSubscription?.status === "active" && (userSubscription?.remainingDays ?? 0) > 0
+                            ? "text-amber-600 dark:text-amber-400"
+                            : "text-rose-600 dark:text-rose-400"
+                        )}
+                        data-testid="text-user-remaining-days-value"
+                      >
+                        {subLoading ? "..." : formatFa(userSubscription?.remainingDays ?? 0)}
+                      </span>
+                      <span className="text-xs font-bold text-slate-600 dark:text-zinc-300">
+                        روز
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* دکمه‌های تمدید و استعلام سریع */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <Link href="/buy-subscription">
+                      <Button 
+                        size="sm" 
+                        className={cn(
+                          "h-9 px-3.5 text-xs font-bold rounded-xl gap-1.5 shadow-xs transition-all",
+                          userSubscription?.status === "active" && (userSubscription?.remainingDays ?? 0) > 3
+                            ? "bg-indigo-600 hover:bg-indigo-700 text-white"
+                            : "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white animate-pulse"
+                        )}
+                        data-testid="button-dashboard-renew-subscription"
+                      >
+                        <Crown className="w-3.5 h-3.5" />
+                        <span>{(userSubscription?.remainingDays ?? 0) > 0 ? "تمدید / ارتقای پلن" : "خرید مجدد اشتراک"}</span>
+                      </Button>
+                    </Link>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRefreshSubscription}
+                      disabled={isSubRefetching || subLoading}
+                      title="بروزرسانی و استعلام دقیق روزهای باقیمانده با زمان فعلی"
+                      className="h-9 w-9 p-0 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-zinc-800 shrink-0"
+                      data-testid="button-dashboard-refresh-subscription"
+                    >
+                      <RefreshCw className={cn("w-3.5 h-3.5", (isSubRefetching || subLoading) && "animate-spin text-indigo-600")} />
+                    </Button>
+                  </div>
+
+                </div>
+
+              </div>
+
+              {/* هشدار اتمام زودهنگام اعتبار در صورتی که ۳ روز یا کمتر باقی مانده باشد */}
+              {userSubscription?.status === "active" && (userSubscription?.remainingDays ?? 0) > 0 && (userSubscription?.remainingDays ?? 0) <= 3 && (
+                <div className="mt-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs flex items-center justify-between gap-2 animate-pulse">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>
+                      هشدار انقضا: فقط <b>{userSubscription.remainingDays} روز</b> از اعتبار زمانی شما باقیمانده است! لطفاً جهت جلوگیری از قطع شدن درگاه، نسبت به تمدید اقدام نمایید.
+                    </span>
+                  </div>
+                  <Link href="/buy-subscription">
+                    <span className="font-bold underline text-amber-700 dark:text-amber-300 whitespace-nowrap hover:opacity-80 cursor-pointer">
+                      تمدید سریع
+                    </span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Level 1 Specific: Blupal Gateway Status, Statistics & 10 Latest Transactions */}
         {user?.role === "user_level_1" && (() => {
@@ -433,27 +672,6 @@ export default function UserDashboard() {
               title: "لینک کپی شد",
               description: "لینک درگاه پرداخت شما در حافظه موقت ذخیره شد.",
             });
-          };
-
-          const formatFa = (num: number | string) => {
-            const n = typeof num === "string" ? parseFloat(num) : num;
-            if (isNaN(n)) return "۰";
-            return n.toLocaleString("fa-IR");
-          };
-
-          const formatPersianDate = (dateStr?: string | Date | null) => {
-            if (!dateStr) return "-";
-            try {
-              const d = new Date(dateStr);
-              return new Intl.DateTimeFormat("fa-IR", {
-                month: "short",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              }).format(d);
-            } catch {
-              return String(dateStr);
-            }
           };
 
           return (

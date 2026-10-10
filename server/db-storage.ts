@@ -840,7 +840,7 @@ export class DbStorage implements IStorage {
     const startDate = userSub.startDate ? new Date(userSub.startDate) : (userSub.createdAt ? new Date(userSub.createdAt) : new Date());
 
     if ((!endDate || isNaN(endDate.getTime())) && typeof userSub.remainingDays === 'number' && userSub.remainingDays > 0) {
-      endDate = new Date(Date.now() + userSub.remainingDays * 24 * 60 * 60 * 1000);
+      endDate = new Date(startDate.getTime() + userSub.remainingDays * 24 * 60 * 60 * 1000);
     }
 
     const endDateTime = endDate && !isNaN(endDate.getTime()) ? endDate.getTime() : 0;
@@ -879,7 +879,7 @@ export class DbStorage implements IStorage {
       subscriptionDescription: subscriptions.description,
     })
     .from(userSubscriptions)
-    .innerJoin(subscriptions, eq(userSubscriptions.subscriptionId, subscriptions.id))
+    .leftJoin(subscriptions, eq(userSubscriptions.subscriptionId, subscriptions.id))
     .where(eq(userSubscriptions.userId, userId));
 
     if (rawList.length === 0) return undefined;
@@ -936,7 +936,29 @@ export class DbStorage implements IStorage {
 
   async getAllUserSubscriptions(): Promise<UserSubscription[]> {
     const rawList = await db.select().from(userSubscriptions).orderBy(desc(userSubscriptions.createdAt));
-    return rawList.map((item: UserSubscription) => this.normalizeUserSubscription(item));
+    const normalizedList = rawList.map((item: UserSubscription) => this.normalizeUserSubscription(item));
+
+    // بروزرسانی تغییرات اعتبار زمانی در دیتابیس
+    for (let i = 0; i < rawList.length; i++) {
+      const raw = rawList[i];
+      const norm = normalizedList[i];
+      if (raw.remainingDays !== norm.remainingDays || raw.status !== norm.status) {
+        try {
+          await db.update(userSubscriptions)
+            .set({ 
+              remainingDays: norm.remainingDays, 
+              status: norm.status, 
+              endDate: norm.endDate, 
+              updatedAt: new Date() 
+            })
+            .where(eq(userSubscriptions.id, norm.id));
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    return normalizedList;
   }
 
   async createUserSubscription(insertUserSubscription: InsertUserSubscription): Promise<UserSubscription> {

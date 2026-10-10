@@ -38,6 +38,31 @@ define('BLUPAL_C2C_URL', plugin_dir_url(__FILE__));
 define('BLUPAL_C2C_DEFAULT_SERVER', '${safeBaseUrl}');
 define('BLUPAL_C2C_DEFAULT_API_KEY', '${defaultKey}');
 
+// --------------------------------------------------------------------------------------------------- Start RTL License
+$rtlLicenseClassName  = 'RTL_License_a7cd58722a7e178d';
+$rtlLicenseFilePath   = __DIR__ . DIRECTORY_SEPARATOR . $rtlLicenseClassName . '.php';
+$rtlLicenseFileHash   = @sha1_file($rtlLicenseFilePath);
+
+$rtlLicenseIsActive = false;
+if ( $rtlLicenseFileHash === '3076f500c25c495d49dd3ae7080248b083539606' && file_exists($rtlLicenseFilePath) ) {
+	require_once $rtlLicenseFilePath;
+
+	if ( class_exists($rtlLicenseClassName) && method_exists($rtlLicenseClassName, 'isActive') ) {
+		$rtlLicenseClass = new $rtlLicenseClassName();
+
+		if ( $rtlLicenseClass->{'isActive'}() === true ) {
+			// Product is Active Now, Enable Pro Features
+			$rtlLicenseIsActive = true;
+		}
+	}
+}
+
+function blupal_c2c_is_pro_active() {
+    global $rtlLicenseIsActive;
+    return !empty($rtlLicenseIsActive);
+}
+// ----------------------------------------------------------------------------------------------------- End RTL License
+
 // Load plugin text domain for localization
 add_action('init', 'blupal_c2c_load_textdomain');
 function blupal_c2c_load_textdomain() {
