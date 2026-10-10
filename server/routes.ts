@@ -3350,33 +3350,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/user-subscriptions/me", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userSubscription = await storage.getUserSubscription(req.user!.id);
-      if (userSubscription && !userSubscription.subscriptionName && userSubscription.subscriptionId) {
-        const plan = await storage.getSubscription(userSubscription.subscriptionId);
-        if (plan) {
-          userSubscription.subscriptionName = plan.name;
-          userSubscription.subscriptionDescription = plan.description;
-        }
-      }
       res.json(userSubscription || null);
     } catch (error) {
       res.status(500).json({ message: "خطا در دریافت اشتراک کاربر" });
-    }
-  });
-
-  // Manual refresh and real-time recalculation of remaining days for current user
-  app.post("/api/user-subscriptions/me/refresh", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const userSubscription = await storage.getUserSubscription(req.user!.id);
-      if (userSubscription && !userSubscription.subscriptionName && userSubscription.subscriptionId) {
-        const plan = await storage.getSubscription(userSubscription.subscriptionId);
-        if (plan) {
-          userSubscription.subscriptionName = plan.name;
-          userSubscription.subscriptionDescription = plan.description;
-        }
-      }
-      res.json(userSubscription || null);
-    } catch (error) {
-      res.status(500).json({ message: "خطا در بروزرسانی اعتبار زمانی کاربر" });
     }
   });
 

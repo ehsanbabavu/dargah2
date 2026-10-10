@@ -1,7 +1,8 @@
 import AdmZip from "adm-zip";
 import path from "path";
 import fs from "fs";
-import { type BlupalTransaction } from "@shared/schema";
+import { type BlupalGateway, type BlupalTransaction } from "@shared/schema";
+import { storage } from "./storage";
 import {
   generateMainPluginPhp,
   generateGatewayClassPhp,
@@ -15,38 +16,97 @@ import {
   generateBlocksJs,
 } from "./woocommerce-plugin-files";
 
+/**
+ * Normalizes a URL or domain string to a clean domain hostname
+ * e.g. "https://www.MyShop.ir/checkout/" -> "myshop.ir"
+ */
 export function normalizeDomain(input: string): string {
   if (!input || typeof input !== "string") return "";
   let cleaned = input.trim().toLowerCase();
+  
+  // Remove protocol
   cleaned = cleaned.replace(/^https?:\/\//, "");
+  
+  // Remove credentials if any
   if (cleaned.includes("@")) {
     cleaned = cleaned.split("@")[1];
   }
+
+  // Remove path and query
   cleaned = cleaned.split("/")[0].split("?")[0].split("#")[0];
+
+  // Remove port
   cleaned = cleaned.split(":")[0];
+
+  // Remove leading www.
   if (cleaned.startsWith("www.")) {
     cleaned = cleaned.substring(4);
   }
+
   return cleaned.trim();
 }
 
+/**
+ * Validates whether the incoming request domain matches the authorized domain
+ */
 export function isDomainAuthorized(candidate: string, authorized: string): boolean {
   const cleanCandidate = normalizeDomain(candidate);
   const cleanAuthorized = normalizeDomain(authorized);
-  if (!cleanAuthorized) return true;
+  
+  if (!cleanAuthorized) return true; // Not set yet - allows initial configuration
   if (!cleanCandidate) return false;
+
+  // Exact match
   if (cleanCandidate === cleanAuthorized) return true;
+
+  // Subdomain match (e.g. shop.example.com when example.com is authorized)
   if (cleanCandidate.endsWith("." + cleanAuthorized)) return true;
+
+  // Localhost development aliases
+  if (
+    (cleanAuthorized === "localhost" || cleanAuthorized === "127.0.0.1") &&
+    (cleanCandidate === "localhost" || cleanCandidate === "127.0.0.1")
+  ) {
+    return true;
+  }
+
   return false;
 }
 
+/**
+ * Generates the main WordPress / WooCommerce plugin entry code
+ */
+export function generatePluginPhpCode(serverBaseUrl: string, prefilledApiKey?: string): string {
+  return generateMainPluginPhp(serverBaseUrl, prefilledApiKey);
+}
+
+/**
+ * Generates the complete zip archive buffer containing the modular WordPress plugin
+ * Folder and File Structure:
+ * blupal-card-to-card-gateway/
+ * ├── blupal-card-to-card-gateway.php   (Main Plugin Entry)
+ * ├── includes/
+ * │   ├── class-wc-gateway-blupal.php   (WC Payment Gateway Class)
+ * │   ├── class-blupal-api.php          (API Client for Server Calls)
+ * │   └── class-blupal-webhook.php      (Return Callback & Webhook Processor)
+ * ├── assets/
+ * │   ├── css/
+ * │   │   └── admin.css                 (Admin styling for settings box)
+ * │   └── images/
+ * │       └── icon.svg                  (Gateway Icon for Checkout)
+ * ├── languages/
+ * │   └── wc-blupal-c2c.pot             (Translation Template)
+ * └── readme.txt                        (WordPress Plugin Readme)
+ */
 export function createPluginZipArchive(serverBaseUrl: string, prefilledApiKey?: string): Buffer {
   const zip = new AdmZip();
   const folderName = "blupal-card-to-card-gateway";
 
+  // 1. Main Plugin Entry Point
   const mainPhp = generateMainPluginPhp(serverBaseUrl, prefilledApiKey);
   zip.addFile(`${folderName}/blupal-card-to-card-gateway.php`, Buffer.from(mainPhp, "utf-8"));
 
+  // 2. Includes: Modular Classes
   const gatewayPhp = generateGatewayClassPhp(serverBaseUrl, prefilledApiKey);
   zip.addFile(`${folderName}/includes/class-wc-gateway-blupal.php`, Buffer.from(gatewayPhp, "utf-8"));
 
@@ -59,6 +119,7 @@ export function createPluginZipArchive(serverBaseUrl: string, prefilledApiKey?: 
   const blocksPhp = generateBlocksSupportPhp();
   zip.addFile(`${folderName}/includes/class-blupal-blocks-support.php`, Buffer.from(blocksPhp, "utf-8"));
 
+  // 3. Assets: CSS, JS & Icons
   const adminCss = generateAdminCss();
   zip.addFile(`${folderName}/assets/css/admin.css`, Buffer.from(adminCss, "utf-8"));
 
@@ -68,6 +129,7 @@ export function createPluginZipArchive(serverBaseUrl: string, prefilledApiKey?: 
   const iconSvg = generateIconSvg();
   zip.addFile(`${folderName}/assets/images/icon.svg`, Buffer.from(iconSvg, "utf-8"));
 
+  // Rakhsh Pay Official Logo Image (icon.png) for WooCommerce Gateway
   const rakhshLogoPath = path.join(process.cwd(), "public/images/card-to-card-icon.png");
   if (fs.existsSync(rakhshLogoPath)) {
     const rakhshLogoBuffer = fs.readFileSync(rakhshLogoPath);
@@ -75,15 +137,20 @@ export function createPluginZipArchive(serverBaseUrl: string, prefilledApiKey?: 
     zip.addFile(`${folderName}/assets/images/rakhsh-logo.png`, rakhshLogoBuffer);
   }
 
+  // 4. Languages: POT Template
   const potContent = generatePotFile();
   zip.addFile(`${folderName}/languages/wc-blupal-c2c.pot`, Buffer.from(potContent, "utf-8"));
 
+  // 5. Readme Documentation
   const readmeContent = generateReadmeTxt();
   zip.addFile(`${folderName}/readme.txt`, Buffer.from(readmeContent, "utf-8"));
 
   return zip.toBuffer();
 }
 
+/**
+ * Saves a copy of the default plugin zip to public/downloads/
+ */
 export function ensurePluginZipFile(serverBaseUrl: string): string {
   const downloadsDir = path.join(process.cwd(), "public", "downloads");
   if (!fs.existsSync(downloadsDir)) {
@@ -96,48 +163,66 @@ export function ensurePluginZipFile(serverBaseUrl: string): string {
   return zipPath;
 }
 
+/**
+ * Validates a URL against SSRF vulnerabilities (loopback, private ranges, metadata services)
+ */
 export function isSafePublicWebhookUrl(rawUrl: string): boolean {
   try {
     const parsed = new URL(rawUrl);
     if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
       return false;
     }
+
     const hostname = parsed.hostname.toLowerCase().trim();
     if (!hostname) return false;
 
+    // Block localhost, link-local, loopback, cloud metadata
     const blockedHosts = [
-      'localhost', '127.0.0.1', '0.0.0.0', '::1',
-      'metadata.google.internal', '169.254.169.254', 'instance-data',
+      'localhost',
+      '127.0.0.1',
+      '0.0.0.0',
+      '::1',
+      'metadata.google.internal',
+      '169.254.169.254',
+      'instance-data',
     ];
     if (blockedHosts.includes(hostname) || hostname.endsWith('.local') || hostname.endsWith('.internal')) {
       return false;
     }
 
+    // Check IPv4 private ranges
     const ipMatch = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
     if (ipMatch) {
       const a = parseInt(ipMatch[1], 10);
       const b = parseInt(ipMatch[2], 10);
-      if (a === 10) return false;
-      if (a === 127) return false;
-      if (a === 169 && b === 254) return false;
-      if (a === 172 && b >= 16 && b <= 31) return false;
-      if (a === 192 && b === 168) return false;
+      if (a === 10) return false; // 10.0.0.0/8
+      if (a === 127) return false; // 127.0.0.0/8
+      if (a === 169 && b === 254) return false; // 169.254.0.0/16
+      if (a === 172 && b >= 16 && b <= 31) return false; // 172.16.0.0/12
+      if (a === 192 && b === 168) return false; // 192.168.0.0/16
       if (a === 0) return false;
     }
+
     return true;
   } catch {
     return false;
   }
 }
 
+/**
+ * Notifies the customer's WooCommerce site when an invoice is confirmed as paid
+ */
 export async function notifyWooCommerceWebhook(tx: BlupalTransaction, trackingCode?: string): Promise<boolean> {
   if (!tx.callbackUrl) return false;
+
   try {
     const notifyUrl = tx.callbackUrl;
     if (!isSafePublicWebhookUrl(notifyUrl)) {
       console.warn(`[SSRF-PREVENTION] Blocked unsafe WooCommerce webhook URL: ${notifyUrl}`);
       return false;
     }
+
+    console.log(`Sending WooCommerce Webhook to: ${notifyUrl} for invoice: ${tx.invoiceId}`);
 
     const res = await fetch(notifyUrl, {
       method: "POST",
@@ -159,6 +244,8 @@ export async function notifyWooCommerceWebhook(tx: BlupalTransaction, trackingCo
       redirect: "error",
       signal: AbortSignal.timeout(10000),
     });
+
+    console.log(`WooCommerce Webhook Response for invoice ${tx.invoiceId}:`, res.status);
     return res.ok;
   } catch (err: any) {
     console.warn(`Failed to notify WooCommerce webhook (${tx.callbackUrl}):`, err.message);
